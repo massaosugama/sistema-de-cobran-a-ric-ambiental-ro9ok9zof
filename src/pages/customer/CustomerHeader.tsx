@@ -8,52 +8,69 @@ import type { Customer } from '@/lib/mock'
 export function CustomerHeader({ customer }: { customer: Customer }) {
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-        <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
+      <div className="flex items-center gap-2 text-sm font-medium text-slate-500 mb-2">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 rounded-full hover:bg-slate-200"
+          asChild
+        >
           <Link to="/queue">
             <ArrowLeft className="h-4 w-4" />
           </Link>
         </Button>
-        <Link to="/queue" className="hover:underline">
-          Fila
+        <Link to="/queue" className="hover:text-primary transition-colors">
+          Fila de Atendimento
         </Link>
-        <span>/</span>
-        <span className="font-medium text-foreground">UC {customer.uc}</span>
+        <span className="text-slate-300">/</span>
+        <span className="text-slate-900 font-bold">UC {customer.uc}</span>
       </div>
 
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-6 rounded-lg border shadow-sm border-l-4 border-l-primary">
-        <div>
-          <div className="flex items-center gap-3 mb-1">
-            <h1 className="text-2xl font-bold tracking-tight text-primary">{customer.name}</h1>
-            <Badge variant="outline" className="bg-slate-100">
-              {customer.personCode}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden">
+        {/* Brand Accent Line */}
+        <div className="absolute left-0 top-0 bottom-0 w-2 bg-primary"></div>
+
+        <div className="pl-2">
+          <div className="flex items-center gap-3 mb-1.5">
+            <h1 className="text-2xl font-black tracking-tight text-slate-900">{customer.name}</h1>
+            <Badge
+              variant="outline"
+              className="bg-slate-50 border-slate-200 text-slate-600 font-bold uppercase tracking-wider text-[10px]"
+            >
+              CÓD: {customer.personCode}
             </Badge>
           </div>
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground">
-            <span>{customer.document}</span>
-            <span className="w-1 h-1 rounded-full bg-slate-300 hidden sm:block" />
-            <span className="truncate max-w-[300px]">{customer.address}</span>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm font-medium text-slate-500">
+            <span className="bg-slate-100 px-2 py-0.5 rounded-md">{customer.document}</span>
+            <span className="w-1.5 h-1.5 rounded-full bg-slate-300 hidden sm:block" />
+            <span className="truncate max-w-[400px]">{customer.address}</span>
           </div>
         </div>
-        <div className="flex flex-col items-end gap-2">
-          <Badge className="text-sm px-3 py-1 bg-emerald-100 text-emerald-800 hover:bg-emerald-200 border-none">
-            {customer.status.toUpperCase().replace('_', ' ')}
+
+        <div className="flex flex-col items-end gap-2 pl-2 w-full sm:w-auto border-t sm:border-t-0 sm:border-l border-slate-100 pt-4 sm:pt-0 sm:pl-6 mt-2 sm:mt-0">
+          <Badge className="text-xs px-3 py-1 bg-primary/10 text-primary hover:bg-primary/20 border-none font-bold uppercase tracking-wide">
+            {customer.status.replace('_', ' ')}
           </Badge>
-          <span className="text-2xl font-bold text-destructive">
-            R$ {customer.totalDebt.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-          </span>
+          <div className="flex flex-col items-end">
+            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-0.5">
+              Dívida Total
+            </span>
+            <span className="text-3xl font-black text-slate-900 leading-none">
+              R$ {customer.totalDebt.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+            </span>
+          </div>
         </div>
       </div>
 
       {customer.redundancyAlert && (
-        <Alert
-          variant="destructive"
-          className="bg-amber-50 border-amber-200 text-amber-800 animate-in slide-in-from-top-2"
-        >
-          <AlertCircle className="h-4 w-4 !text-amber-800" />
-          <AlertTitle>Alerta de Redundância</AlertTitle>
-          <AlertDescription>
-            Este cliente foi contatado por <strong>{customer.redundancyAlert.operator}</strong> há{' '}
+        <Alert className="bg-orange-50 border-orange-200 text-orange-900 rounded-xl animate-in slide-in-from-top-2 shadow-sm">
+          <AlertCircle className="h-5 w-5 !text-[#ff8c00]" />
+          <AlertTitle className="font-bold text-orange-900 flex items-center gap-2">
+            Alerta de Redundância
+          </AlertTitle>
+          <AlertDescription className="font-medium mt-1">
+            Este cliente foi contatado por{' '}
+            <strong className="font-black">{customer.redundancyAlert.operator}</strong> há{' '}
             {customer.redundancyAlert.daysAgo} dias. Verifique o histórico antes de realizar uma
             nova abordagem.
           </AlertDescription>

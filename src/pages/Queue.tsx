@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Search, Filter, MoreHorizontal, ArrowRight } from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Search, Filter, ArrowRight } from 'lucide-react'
+import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -33,16 +33,26 @@ export default function Queue() {
   const getStatusLabel = (status: string) => {
     switch (status) {
       case 'pendente':
-        return <Badge variant="secondary">Pendente</Badge>
+        return (
+          <Badge
+            variant="secondary"
+            className="bg-slate-100 text-slate-600 font-medium border-slate-200"
+          >
+            Pendente
+          </Badge>
+        )
       case 'promessa':
         return (
-          <Badge variant="default" className="bg-emerald-500 hover:bg-emerald-600">
+          <Badge className="bg-emerald-500 hover:bg-emerald-600 text-white font-medium shadow-sm">
             Promessa
           </Badge>
         )
       case 'em_andamento':
         return (
-          <Badge variant="outline" className="border-primary text-primary">
+          <Badge
+            variant="outline"
+            className="border-primary/30 text-primary bg-primary/5 font-medium"
+          >
             Em Andamento
           </Badge>
         )
@@ -55,76 +65,101 @@ export default function Queue() {
     <div className="space-y-6 animate-fade-in-up">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-primary">Fila de Atendimento</h1>
-          <p className="text-muted-foreground mt-1">
+          <h1 className="text-3xl font-black tracking-tight text-slate-900">Fila de Atendimento</h1>
+          <p className="text-slate-500 mt-1 font-medium">
             Gerencie seus contatos pendentes e priorize a recuperação.
           </p>
         </div>
-        <Button className="bg-primary hover:bg-primary/90">Atribuir Novos</Button>
+        <Button className="font-bold shadow-md shadow-primary/20">Atribuir Novos</Button>
       </div>
 
-      <Card>
-        <CardHeader className="pb-3 border-b">
+      <Card className="border-slate-200 shadow-sm overflow-hidden">
+        <CardHeader className="pb-3 border-b bg-white">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <Tabs defaultValue="todas" className="w-full md:w-auto" onValueChange={setFilter}>
-              <TabsList>
-                <TabsTrigger value="todas">Minha Fila</TabsTrigger>
-                <TabsTrigger value="atrasados">Atrasados (Hoje)</TabsTrigger>
-                <TabsTrigger value="prioridade">Alta Prioridade</TabsTrigger>
+              <TabsList className="bg-slate-100 p-1 rounded-full">
+                <TabsTrigger
+                  value="todas"
+                  className="rounded-full data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm"
+                >
+                  Minha Fila
+                </TabsTrigger>
+                <TabsTrigger
+                  value="atrasados"
+                  className="rounded-full data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm"
+                >
+                  Atrasados (Hoje)
+                </TabsTrigger>
+                <TabsTrigger
+                  value="prioridade"
+                  className="rounded-full data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm"
+                >
+                  Alta Prioridade
+                </TabsTrigger>
               </TabsList>
             </Tabs>
             <div className="flex w-full md:w-auto items-center gap-2">
               <div className="relative w-full md:w-64">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input placeholder="Buscar na fila..." className="pl-9" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <Input
+                  placeholder="Buscar na fila..."
+                  className="pl-9 rounded-full bg-slate-50 border-slate-200 h-9"
+                />
               </div>
-              <Button variant="outline" size="icon">
+              <Button
+                variant="outline"
+                size="icon"
+                className="rounded-full border-slate-200 text-slate-500"
+              >
                 <Filter className="h-4 w-4" />
               </Button>
             </div>
           </div>
         </CardHeader>
-        <CardContent className="p-0">
+        <CardContent className="p-0 bg-white">
           <Table>
-            <TableHeader className="bg-slate-50">
-              <TableRow>
-                <TableHead className="w-[100px]">UC</TableHead>
-                <TableHead>Devedor</TableHead>
-                <TableHead>Dias Atraso</TableHead>
-                <TableHead>Valor Total</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Próx. Ação</TableHead>
-                <TableHead className="text-right">Ação</TableHead>
+            <TableHeader className="bg-slate-50/80">
+              <TableRow className="border-slate-100 hover:bg-transparent">
+                <TableHead className="w-[100px] font-semibold text-slate-600">UC</TableHead>
+                <TableHead className="font-semibold text-slate-600">Devedor</TableHead>
+                <TableHead className="font-semibold text-slate-600">Dias Atraso</TableHead>
+                <TableHead className="font-semibold text-slate-600">Valor Total</TableHead>
+                <TableHead className="font-semibold text-slate-600">Status</TableHead>
+                <TableHead className="font-semibold text-slate-600">Próx. Ação</TableHead>
+                <TableHead className="text-right font-semibold text-slate-600">Ação</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {MOCK_CUSTOMERS.map((customer) => (
-                <TableRow key={customer.id} className="hover:bg-slate-50 group transition-colors">
-                  <TableCell className="font-medium">{customer.uc}</TableCell>
+                <TableRow
+                  key={customer.id}
+                  className="hover:bg-primary/5 border-slate-100 group transition-colors"
+                >
+                  <TableCell className="font-medium text-slate-700">{customer.uc}</TableCell>
                   <TableCell>
                     <div className="flex flex-col">
-                      <span className="font-semibold text-primary">{customer.name}</span>
-                      <span className="text-xs text-muted-foreground">
+                      <span className="font-bold text-slate-900">{customer.name}</span>
+                      <span className="text-xs font-medium text-slate-500">
                         CPF/CNPJ: {customer.document}
                       </span>
                     </div>
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
-                      {customer.overdueDays}
+                      <span className="font-medium text-slate-700">{customer.overdueDays}</span>
                       <Badge
                         variant={getPriorityColor(customer.priority) as any}
-                        className="text-[10px] px-1.5 py-0"
+                        className="text-[10px] px-2 py-0 uppercase font-bold tracking-wider"
                       >
-                        {customer.priority.toUpperCase()}
+                        {customer.priority}
                       </Badge>
                     </div>
                   </TableCell>
-                  <TableCell className="font-semibold">
+                  <TableCell className="font-bold text-slate-900">
                     R$ {customer.totalDebt.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                   </TableCell>
                   <TableCell>{getStatusLabel(customer.status)}</TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
+                  <TableCell className="text-sm font-medium text-slate-500">
                     {customer.nextAction || 'Não agendado'}
                   </TableCell>
                   <TableCell className="text-right">
@@ -132,10 +167,10 @@ export default function Queue() {
                       variant="ghost"
                       size="sm"
                       asChild
-                      className="opacity-0 group-hover:opacity-100 transition-opacity text-primary"
+                      className="opacity-0 group-hover:opacity-100 transition-all text-primary font-bold hover:bg-primary/10 hover:text-primary rounded-full px-4"
                     >
                       <Link to={`/customer/${customer.id}`}>
-                        Abrir <ArrowRight className="ml-2 h-4 w-4" />
+                        Atender <ArrowRight className="ml-1 h-4 w-4" />
                       </Link>
                     </Button>
                   </TableCell>
