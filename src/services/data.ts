@@ -9,7 +9,7 @@ export async function getSettlementsByUc(uc: string) {
 export async function getContactHistory(uc: string) {
   const { data, error } = await supabase
     .from('contact_history')
-    .select('*, profiles:operator_id(name)')
+    .select('*, profiles(name)')
     .eq('uc', uc)
     .order('created_at', { ascending: false })
   if (error) throw error
