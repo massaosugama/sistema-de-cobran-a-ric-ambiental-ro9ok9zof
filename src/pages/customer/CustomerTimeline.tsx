@@ -73,7 +73,7 @@ export function CustomerTimeline({ uc }: { uc: string }) {
         <div className="text-center py-10 text-slate-500 font-medium">Carregando histórico...</div>
       ) : events.length === 0 ? (
         <div className="text-center py-10 text-slate-500 font-medium">
-          Nenhuma interação registrada.
+          Nenhuma interação readsfgistrada.
         </div>
       ) : (
         <div className="space-y-8 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-slate-200 before:to-transparent">
