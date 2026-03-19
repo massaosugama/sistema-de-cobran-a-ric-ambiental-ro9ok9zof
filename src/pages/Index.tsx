@@ -1,10 +1,12 @@
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { CalendarDays, TrendingUp, Users, Target, ArrowRight } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { CURRENT_USER } from '@/lib/mock'
+import { getDebts, ParsedDebt } from '@/services/debts'
+import { useAuth } from '@/hooks/use-auth'
 
 const LEADERBOARD = [
   {
@@ -24,25 +26,23 @@ const LEADERBOARD = [
   },
 ]
 
-const RECENT_ACTIVITIES = [
-  {
-    id: 1,
-    action: 'Promessa de Pagamento',
-    target: 'UC 1098234',
-    time: '10 min atrás',
-    status: 'success',
-  },
-  { id: 2, action: 'Contato WTK', target: 'UC 1098235', time: '45 min atrás', status: 'default' },
-  { id: 3, action: 'Recusa', target: 'UC 1098236', time: '2 horas atrás', status: 'destructive' },
-]
-
 export default function Index() {
+  const [queue, setQueue] = useState<ParsedDebt[]>([])
+  const { user } = useAuth()
+  const name = user?.user_metadata?.name || user?.email?.split('@')[0] || 'Operador'
+
+  useEffect(() => {
+    getDebts()
+      .then((d) => setQueue(d.slice(0, 3)))
+      .catch(console.error)
+  }, [])
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold tracking-tight text-primary">Dashboard Operacional</h1>
         <p className="text-muted-foreground mt-1">
-          Bem-vinda de volta, {CURRENT_USER.name}. Aqui está o resumo do seu dia.
+          Bem-vindo(a) de volta, {name}. Aqui está o resumo do seu dia.
         </p>
       </div>
 
@@ -65,7 +65,7 @@ export default function Index() {
             <Target className="h-4 w-4 text-warning" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-primary">{CURRENT_USER.points}</div>
+            <div className="text-2xl font-bold text-primary">1245</div>
             <p className="text-xs text-muted-foreground mt-1">+120 desde ontem</p>
           </CardContent>
         </Card>
@@ -99,22 +99,29 @@ export default function Index() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {[1, 2, 3].map((i) => (
-                <div
-                  key={i}
-                  className="flex items-center justify-between p-3 border rounded-lg hover:bg-slate-50 transition-colors"
-                >
-                  <div className="flex flex-col gap-1">
-                    <span className="font-semibold text-sm">João Silva (UC 1098{i}4)</span>
-                    <span className="text-xs text-muted-foreground">
-                      Retorno agendado - Promessa de R$ 500
-                    </span>
+              {queue.length === 0 ? (
+                <p className="text-sm text-slate-500">Nenhuma ação pendente.</p>
+              ) : (
+                queue.map((debt) => (
+                  <div
+                    key={debt.id}
+                    className="flex items-center justify-between p-3 border rounded-lg hover:bg-slate-50 transition-colors"
+                  >
+                    <div className="flex flex-col gap-1">
+                      <span className="font-semibold text-sm">
+                        {debt.name} (UC {debt.uc})
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        Valor: R${' '}
+                        {debt.totalDebt.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                    <Button size="sm" variant="secondary" asChild>
+                      <Link to={`/customer/${debt.uc}`}>Atender</Link>
+                    </Button>
                   </div>
-                  <Button size="sm" variant="secondary" asChild>
-                    <Link to="/customer/1">Atender</Link>
-                  </Button>
-                </div>
-              ))}
+                ))
+              )}
             </div>
             <Button variant="ghost" className="w-full mt-4 text-primary" asChild>
               <Link to="/queue">
@@ -131,7 +138,7 @@ export default function Index() {
           </CardHeader>
           <CardContent>
             <div className="space-y-6">
-              {LEADERBOARD.map((user, idx) => (
+              {LEADERBOARD.map((u, idx) => (
                 <div key={idx} className="flex items-center">
                   <div className="flex-1 flex items-center gap-3">
                     <span
@@ -140,16 +147,16 @@ export default function Index() {
                       {idx + 1}
                     </span>
                     <Avatar className="h-8 w-8">
-                      <AvatarImage src={user.avatar} />
-                      <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+                      <AvatarImage src={u.avatar} />
+                      <AvatarFallback>{u.name.charAt(0)}</AvatarFallback>
                     </Avatar>
-                    <span className="text-sm font-medium">{user.name}</span>
+                    <span className="text-sm font-medium">{u.name}</span>
                   </div>
                   <Badge
                     variant={idx === 0 ? 'default' : 'secondary'}
                     className={idx === 0 ? 'bg-primary' : ''}
                   >
-                    {user.points} pts
+                    {u.points} pts
                   </Badge>
                 </div>
               ))}

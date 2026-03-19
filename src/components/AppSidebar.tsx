@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom'
-import { LayoutDashboard, ListTodo, BarChart3, Settings, Waves, Trophy } from 'lucide-react'
+import { LayoutDashboard, ListTodo, BarChart3, Settings, Waves, Trophy, LogOut } from 'lucide-react'
 import {
   Sidebar,
   SidebarContent,
@@ -12,8 +12,9 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from '@/components/ui/sidebar'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { CURRENT_USER } from '@/lib/mock'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { useAuth } from '@/hooks/use-auth'
+import { Button } from '@/components/ui/button'
 
 const NAV_ITEMS = [
   { title: 'Dashboard', url: '/', icon: LayoutDashboard },
@@ -24,6 +25,9 @@ const NAV_ITEMS = [
 
 export function AppSidebar() {
   const location = useLocation()
+  const { user, signOut } = useAuth()
+
+  const name = user?.user_metadata?.name || user?.email?.split('@')[0] || 'Operador'
 
   return (
     <Sidebar variant="inset">
@@ -75,20 +79,29 @@ export function AppSidebar() {
             </div>
             <span className="text-orange-900">Pontos Hoje</span>
           </div>
-          <span className="font-bold text-[#ff8c00] text-lg">{CURRENT_USER.points}</span>
+          <span className="font-bold text-[#ff8c00] text-lg">1245</span>
         </div>
 
-        <div className="flex items-center gap-3 px-2">
-          <Avatar className="h-9 w-9 border-2 border-white shadow-sm">
-            <AvatarImage src={CURRENT_USER.avatar} />
-            <AvatarFallback className="bg-primary/10 text-primary font-medium">AC</AvatarFallback>
-          </Avatar>
-          <div className="flex flex-col overflow-hidden">
-            <span className="text-sm font-bold text-foreground truncate">{CURRENT_USER.name}</span>
-            <span className="text-xs font-medium text-muted-foreground truncate">
-              {CURRENT_USER.role}
-            </span>
+        <div className="flex items-center justify-between px-2">
+          <div className="flex items-center gap-3">
+            <Avatar className="h-9 w-9 border-2 border-white shadow-sm">
+              <AvatarFallback className="bg-primary/10 text-primary font-medium">
+                {name.substring(0, 2).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+            <div className="flex flex-col overflow-hidden">
+              <span className="text-sm font-bold text-foreground truncate">{name}</span>
+              <span className="text-xs font-medium text-muted-foreground truncate">Operador</span>
+            </div>
           </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => signOut()}
+            className="h-8 w-8 text-slate-500 hover:text-red-600 hover:bg-red-50"
+          >
+            <LogOut className="h-4 w-4" />
+          </Button>
         </div>
       </SidebarFooter>
     </Sidebar>

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Search, Filter, ArrowRight } from 'lucide-react'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
@@ -14,10 +14,25 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { MOCK_CUSTOMERS } from '@/lib/mock'
+import { getDebts, ParsedDebt } from '@/services/debts'
+import { useDebounce } from '@/hooks/use-debounce'
 
 export default function Queue() {
   const [filter, setFilter] = useState('todas')
+  const [search, setSearch] = useState('')
+  const debouncedSearch = useDebounce(search, 500)
+  const [debts, setDebts] = useState<ParsedDebt[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    setLoading(true)
+    getDebts(debouncedSearch)
+      .then((data) => {
+        setDebts(data)
+        setLoading(false)
+      })
+      .catch(console.error)
+  }, [debouncedSearch])
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
@@ -103,6 +118,8 @@ export default function Queue() {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                 <Input
                   placeholder="Buscar na fila..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
                   className="pl-9 rounded-full bg-slate-50 border-slate-200 h-9"
                 />
               </div>
@@ -125,57 +142,67 @@ export default function Queue() {
                 <TableHead className="font-semibold text-slate-600">Dias Atraso</TableHead>
                 <TableHead className="font-semibold text-slate-600">Valor Total</TableHead>
                 <TableHead className="font-semibold text-slate-600">Status</TableHead>
-                <TableHead className="font-semibold text-slate-600">Próx. Ação</TableHead>
                 <TableHead className="text-right font-semibold text-slate-600">Ação</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {MOCK_CUSTOMERS.map((customer) => (
-                <TableRow
-                  key={customer.id}
-                  className="hover:bg-primary/5 border-slate-100 group transition-colors"
-                >
-                  <TableCell className="font-medium text-slate-700">{customer.uc}</TableCell>
-                  <TableCell>
-                    <div className="flex flex-col">
-                      <span className="font-bold text-slate-900">{customer.name}</span>
-                      <span className="text-xs font-medium text-slate-500">
-                        CPF/CNPJ: {customer.document}
-                      </span>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium text-slate-700">{customer.overdueDays}</span>
-                      <Badge
-                        variant={getPriorityColor(customer.priority) as any}
-                        className="text-[10px] px-2 py-0 uppercase font-bold tracking-wider"
-                      >
-                        {customer.priority}
-                      </Badge>
-                    </div>
-                  </TableCell>
-                  <TableCell className="font-bold text-slate-900">
-                    R$ {customer.totalDebt.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                  </TableCell>
-                  <TableCell>{getStatusLabel(customer.status)}</TableCell>
-                  <TableCell className="text-sm font-medium text-slate-500">
-                    {customer.nextAction || 'Não agendado'}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      asChild
-                      className="opacity-0 group-hover:opacity-100 transition-all text-primary font-bold hover:bg-primary/10 hover:text-primary rounded-full px-4"
-                    >
-                      <Link to={`/customer/${customer.id}`}>
-                        Atender <ArrowRight className="ml-1 h-4 w-4" />
-                      </Link>
-                    </Button>
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-10 text-slate-500 font-medium">
+                    Buscando devedores...
                   </TableCell>
                 </TableRow>
-              ))}
+              ) : debts.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-10 text-slate-500 font-medium">
+                    Nenhum devedor encontrado.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                debts.map((customer) => (
+                  <TableRow
+                    key={customer.id}
+                    className="hover:bg-primary/5 border-slate-100 group transition-colors"
+                  >
+                    <TableCell className="font-medium text-slate-700">{customer.uc}</TableCell>
+                    <TableCell>
+                      <div className="flex flex-col">
+                        <span className="font-bold text-slate-900">{customer.name}</span>
+                        <span className="text-xs font-medium text-slate-500">
+                          CPF/CNPJ: {customer.document}
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-slate-700">{customer.overdueDays}</span>
+                        <Badge
+                          variant={getPriorityColor(customer.priority) as any}
+                          className="text-[10px] px-2 py-0 uppercase font-bold tracking-wider"
+                        >
+                          {customer.priority}
+                        </Badge>
+                      </div>
+                    </TableCell>
+                    <TableCell className="font-bold text-slate-900">
+                      R$ {customer.totalDebt.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    </TableCell>
+                    <TableCell>{getStatusLabel(customer.status)}</TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        asChild
+                        className="opacity-0 group-hover:opacity-100 transition-all text-primary font-bold hover:bg-primary/10 hover:text-primary rounded-full px-4"
+                      >
+                        <Link to={`/customer/${customer.id}`}>
+                          Atender <ArrowRight className="ml-1 h-4 w-4" />
+                        </Link>
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
         </CardContent>

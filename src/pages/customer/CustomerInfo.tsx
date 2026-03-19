@@ -2,12 +2,12 @@ import { Phone, MapPin, CheckCircle2, XCircle, FileText } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
-import type { Customer } from '@/lib/mock'
+import type { ParsedDebt } from '@/services/debts'
 
-export function CustomerInfo({ customer }: { customer: Customer }) {
+export function CustomerInfo({ customer }: { customer: ParsedDebt }) {
   const validPhones = customer.phones.filter((p) => p.isValid).length
   const totalPhones = customer.phones.length
-  const phoneQuality = (validPhones / totalPhones) * 100
+  const phoneQuality = totalPhones > 0 ? (validPhones / totalPhones) * 100 : 0
 
   return (
     <>
@@ -20,29 +20,35 @@ export function CustomerInfo({ customer }: { customer: Customer }) {
         </CardHeader>
         <CardContent className="pt-4 space-y-4 text-sm">
           <div className="space-y-3">
-            {customer.phones.map((phone, idx) => (
-              <div key={idx} className="flex items-center justify-between group">
-                <div className="flex items-center gap-2">
-                  <Phone className="h-4 w-4 text-muted-foreground" />
-                  <span className="font-medium">{phone.number}</span>
+            {customer.phones.length === 0 ? (
+              <p className="text-muted-foreground text-xs text-center py-2">
+                Nenhum telefone registrado.
+              </p>
+            ) : (
+              customer.phones.map((phone, idx) => (
+                <div key={idx} className="flex items-center justify-between group">
+                  <div className="flex items-center gap-2">
+                    <Phone className="h-4 w-4 text-muted-foreground" />
+                    <span className="font-medium">{phone.number}</span>
+                  </div>
+                  {phone.isValid ? (
+                    <Badge
+                      variant="outline"
+                      className="bg-emerald-50 text-emerald-700 border-emerald-200 gap-1 px-1.5 py-0 rounded-sm"
+                    >
+                      <CheckCircle2 className="h-3 w-3" /> Válido
+                    </Badge>
+                  ) : (
+                    <Badge
+                      variant="outline"
+                      className="bg-rose-50 text-rose-700 border-rose-200 gap-1 px-1.5 py-0 rounded-sm"
+                    >
+                      <XCircle className="h-3 w-3" /> Inválido
+                    </Badge>
+                  )}
                 </div>
-                {phone.isValid ? (
-                  <Badge
-                    variant="outline"
-                    className="bg-emerald-50 text-emerald-700 border-emerald-200 gap-1 px-1.5 py-0 rounded-sm"
-                  >
-                    <CheckCircle2 className="h-3 w-3" /> Válido
-                  </Badge>
-                ) : (
-                  <Badge
-                    variant="outline"
-                    className="bg-rose-50 text-rose-700 border-rose-200 gap-1 px-1.5 py-0 rounded-sm"
-                  >
-                    <XCircle className="h-3 w-3" /> Inválido
-                  </Badge>
-                )}
-              </div>
-            ))}
+              ))
+            )}
           </div>
 
           <Separator />
@@ -82,18 +88,24 @@ export function CustomerInfo({ customer }: { customer: Customer }) {
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
               Referências em aberto
             </p>
-            {customer.invoices.map((inv, idx) => (
-              <div
-                key={idx}
-                className="flex justify-between items-center text-sm p-2 bg-white border rounded-md shadow-subtle"
-              >
-                <span className="font-medium text-slate-700">{inv.ref}</span>
-                <div className="flex flex-col text-right">
-                  <span className="font-semibold text-primary">R$ {inv.value.toFixed(2)}</span>
-                  <span className="text-[10px] text-muted-foreground">{inv.days} dias</span>
+            {customer.invoices.length === 0 ? (
+              <p className="text-muted-foreground text-xs text-center py-2">
+                Sem faturas pendentes listadas.
+              </p>
+            ) : (
+              customer.invoices.map((inv, idx) => (
+                <div
+                  key={idx}
+                  className="flex justify-between items-center text-sm p-2 bg-white border rounded-md shadow-subtle"
+                >
+                  <span className="font-medium text-slate-700">{inv.ref}</span>
+                  <div className="flex flex-col text-right">
+                    <span className="font-semibold text-primary">R$ {inv.value.toFixed(2)}</span>
+                    <span className="text-[10px] text-muted-foreground">{inv.days} dias</span>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </CardContent>
       </Card>

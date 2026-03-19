@@ -1,13 +1,16 @@
-import { Bell, Search, PlusCircle } from 'lucide-react'
+import { Bell, Search, PlusCircle, LogOut } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { SidebarTrigger } from '@/components/ui/sidebar'
 import { Badge } from '@/components/ui/badge'
 import { Link } from 'react-router-dom'
+import { useAuth } from '@/hooks/use-auth'
 
-const RECENT_UCS = ['1098234', '1098235', '1098200']
+const RECENT_UCS = ['1098234', '1098235', '1098236']
 
 export function AppHeader() {
+  const { signOut } = useAuth()
+
   return (
     <header className="sticky top-0 z-30 flex h-16 w-full items-center justify-between border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4 shadow-sm shrink-0">
       <div className="flex items-center gap-4 flex-1">
@@ -19,7 +22,7 @@ export function AppHeader() {
           </span>
           <div className="flex gap-2">
             {RECENT_UCS.map((uc) => (
-              <Link key={uc} to={`/customer/1`}>
+              <Link key={uc} to={`/customer/${uc}`}>
                 <Badge
                   variant="secondary"
                   className="bg-slate-100 text-slate-600 hover:bg-primary hover:text-white cursor-pointer transition-colors font-medium border border-slate-200"
@@ -57,6 +60,15 @@ export function AppHeader() {
         >
           <Bell className="h-5 w-5" />
           <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-[#ff8c00] border-2 border-background"></span>
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => signOut()}
+          title="Sair"
+          className="text-slate-500 hover:text-red-600 hover:bg-red-50 sm:hidden"
+        >
+          <LogOut className="h-5 w-5" />
         </Button>
       </div>
     </header>

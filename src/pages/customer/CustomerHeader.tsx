@@ -3,9 +3,8 @@ import { ArrowLeft, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import type { Customer } from '@/lib/mock'
 
-export function CustomerHeader({ customer }: { customer: Customer }) {
+export function CustomerHeader({ customer }: { customer: any }) {
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2 text-sm font-medium text-slate-500 mb-2">
@@ -27,23 +26,30 @@ export function CustomerHeader({ customer }: { customer: Customer }) {
       </div>
 
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden">
-        {/* Brand Accent Line */}
         <div className="absolute left-0 top-0 bottom-0 w-2 bg-primary"></div>
 
         <div className="pl-2">
           <div className="flex items-center gap-3 mb-1.5">
-            <h1 className="text-2xl font-black tracking-tight text-slate-900">{customer.name}</h1>
-            <Badge
-              variant="outline"
-              className="bg-slate-50 border-slate-200 text-slate-600 font-bold uppercase tracking-wider text-[10px]"
-            >
-              CÓD: {customer.personCode}
-            </Badge>
+            <h1 className="text-2xl font-black tracking-tight text-slate-900">
+              {customer.name || 'Cliente Sem Nome'}
+            </h1>
+            {customer.personCode && (
+              <Badge
+                variant="outline"
+                className="bg-slate-50 border-slate-200 text-slate-600 font-bold uppercase tracking-wider text-[10px]"
+              >
+                CÓD: {customer.personCode}
+              </Badge>
+            )}
           </div>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm font-medium text-slate-500">
-            <span className="bg-slate-100 px-2 py-0.5 rounded-md">{customer.document}</span>
+            {customer.document && (
+              <span className="bg-slate-100 px-2 py-0.5 rounded-md">{customer.document}</span>
+            )}
             <span className="w-1.5 h-1.5 rounded-full bg-slate-300 hidden sm:block" />
-            <span className="truncate max-w-[400px]">{customer.address}</span>
+            <span className="truncate max-w-[400px]">
+              {customer.address || 'Endereço não cadastrado'}
+            </span>
           </div>
         </div>
 
@@ -71,8 +77,7 @@ export function CustomerHeader({ customer }: { customer: Customer }) {
           <AlertDescription className="font-medium mt-1">
             Este cliente foi contatado por{' '}
             <strong className="font-black">{customer.redundancyAlert.operator}</strong> há{' '}
-            {customer.redundancyAlert.daysAgo} dias. Verifique o histórico antes de realizar uma
-            nova abordagem.
+            {customer.redundancyAlert.daysAgo} dias. Verifique o histórico.
           </AlertDescription>
         </Alert>
       )}
