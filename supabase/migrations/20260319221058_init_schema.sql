@@ -1,9 +1,9 @@
-DO $
+DO $$
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'contact_type_enum') THEN
     CREATE TYPE contact_type_enum AS ENUM ('WTK PASSIVO', 'TEL PASSIVO', 'WTK ATIVO', 'TEL ATIVO', 'E-MAIL', 'OUTRO');
   END IF;
-END $;
+END $$;
 
 CREATE TABLE IF NOT EXISTS public.profiles (
     id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -97,7 +97,7 @@ CREATE POLICY "authenticated_all" ON public.contact_history FOR ALL TO authentic
 DROP POLICY IF EXISTS "authenticated_all" ON public.follow_up_tasks;
 CREATE POLICY "authenticated_all" ON public.follow_up_tasks FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
-DO $
+DO $$
 DECLARE
   admin_id uuid;
   user_id uuid;
@@ -148,5 +148,4 @@ BEGIN
     ('1098234', 1, 'PIX', 400.00, '07/23', '2023-10-15')
   ON CONFLICT DO NOTHING;
 
-END $;
-
+END $$;
