@@ -46,6 +46,7 @@ export function CustomerActionForm({ customer }: { customer: ParsedDebt }) {
     try {
       const contactData = {
         uc: customer.uc,
+        cod_pess_fat: customer.personCode,
         operator_id: user?.id,
         contact_type: channel,
         status,
@@ -56,6 +57,7 @@ export function CustomerActionForm({ customer }: { customer: ParsedDebt }) {
       const taskData = date
         ? {
             uc: customer.uc,
+            cod_pess_fat: customer.personCode,
             operator_id: user?.id,
             action: `Retorno de ${status}`,
             due_date: format(date, 'yyyy-MM-dd'),
@@ -75,14 +77,12 @@ export function CustomerActionForm({ customer }: { customer: ParsedDebt }) {
         ),
       })
 
-      // Reset form
       setStatus('')
       setNotes('')
       setDate(undefined)
       setValidatePhone(false)
       setTalkedToOwner(false)
 
-      // Trigger a window reload or context refresh if desired
       setTimeout(() => window.location.reload(), 1000)
     } catch (error: any) {
       toast({ title: 'Erro', description: error.message, variant: 'destructive' })

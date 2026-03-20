@@ -2,18 +2,20 @@ import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { PhoneCall, MessageSquare, Mail, HelpCircle, CheckCircle2, User } from 'lucide-react'
 import { getContactHistory } from '@/services/data'
+import type { ParsedDebt } from '@/services/debts'
 
-export function CustomerTimeline() {
+export function CustomerTimeline({ customer }: { customer?: ParsedDebt }) {
   const { id } = useParams<{ id: string }>()
   const [events, setEvents] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     async function fetchData() {
-      if (!id) return
+      const targetUc = customer?.uc || id
+      if (!targetUc) return
       setLoading(true)
       try {
-        const contacts = await getContactHistory(id)
+        const contacts = await getContactHistory(targetUc, customer?.personCode)
 
         const formattedContacts = contacts.map((c: any) => ({
           id: c.id,
@@ -33,7 +35,7 @@ export function CustomerTimeline() {
       }
     }
     fetchData()
-  }, [id])
+  }, [id, customer?.uc, customer?.personCode])
 
   const getIcon = (type: string) => {
     if (type?.includes('WTK')) return <MessageSquare className="h-4 w-4" />

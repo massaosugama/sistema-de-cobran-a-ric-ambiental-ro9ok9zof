@@ -42,6 +42,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: 'contact_history_operator_id_fkey'
+            columns: ['operator_id']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+          {
             foreignKeyName: 'contact_history_uc_fkey'
             columns: ['uc']
             isOneToOne: false
@@ -464,7 +471,7 @@ export const Constants = {
 
 // --- CONSTRAINTS ---
 // Table: contact_history
-//   FOREIGN KEY contact_history_operator_id_fkey: FOREIGN KEY (operator_id) REFERENCES auth.users(id) ON DELETE SET NULL
+//   FOREIGN KEY contact_history_operator_id_fkey: FOREIGN KEY (operator_id) REFERENCES profiles(id) ON DELETE SET NULL
 //   PRIMARY KEY contact_history_pkey: PRIMARY KEY (id)
 //   FOREIGN KEY contact_history_uc_fkey: FOREIGN KEY (uc) REFERENCES pending_debts(uc) ON DELETE CASCADE
 // Table: follow_up_tasks

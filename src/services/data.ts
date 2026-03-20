@@ -6,12 +6,14 @@ export async function getSettlementsByUc(uc: string) {
   return data || []
 }
 
-export async function getContactHistory(uc: string) {
-  const { data, error } = await supabase
-    .from('contact_history')
-    .select('*, profiles(name)')
-    .eq('uc', uc)
-    .order('created_at', { ascending: false })
+export async function getContactHistory(uc: string, codPessFat?: string) {
+  let query = supabase.from('contact_history').select('*, profiles(name)').eq('uc', uc)
+
+  if (codPessFat) {
+    query = query.or(`cod_pess_fat.eq.${codPessFat},cod_pess_fat.is.null`)
+  }
+
+  const { data, error } = await query.order('created_at', { ascending: false })
   if (error) throw error
   return data || []
 }

@@ -64,7 +64,12 @@ export async function getDebts(search?: string) {
 }
 
 export async function getDebtByUc(uc: string) {
-  const { data, error } = await supabase.from('pending_debts').select('*').eq('uc', uc).single()
+  const { data, error } = await supabase
+    .from('pending_debts')
+    .select('*')
+    .eq('uc', uc)
+    .limit(1)
+    .single()
   if (error) throw error
   return parseDebtRow(data)
 }

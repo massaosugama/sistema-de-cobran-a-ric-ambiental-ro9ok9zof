@@ -44,7 +44,7 @@ export default function CustomerPage() {
         </div>
 
         <div className="lg:col-span-5 h-[calc(100vh-220px)] lg:sticky lg:top-20 overflow-y-auto pr-2 rounded-lg border bg-card shadow-sm">
-          <CustomerTimeline />
+          <CustomerTimeline customer={customer} />
         </div>
 
         <div className="lg:col-span-4 space-y-6 h-auto">
