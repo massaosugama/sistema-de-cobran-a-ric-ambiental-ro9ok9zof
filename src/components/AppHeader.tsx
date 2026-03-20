@@ -1,75 +1,56 @@
-import { Bell, Search, PlusCircle, LogOut } from 'lucide-react'
-import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
 import { SidebarTrigger } from '@/components/ui/sidebar'
-import { Badge } from '@/components/ui/badge'
-import { Link } from 'react-router-dom'
+import { Button } from '@/components/ui/button'
 import { useAuth } from '@/hooks/use-auth'
-
-const RECENT_UCS = ['1098234', '1098235', '1098236']
+import { LogOut, User, Database } from 'lucide-react'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 
 export function AppHeader() {
-  const { signOut } = useAuth()
+  const { user, signOut } = useAuth()
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 w-full items-center justify-between border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4 shadow-sm shrink-0">
-      <div className="flex items-center gap-4 flex-1">
-        <SidebarTrigger className="text-primary hover:bg-primary/10 hover:text-primary" />
-
-        <div className="hidden md:flex items-center gap-2.5 px-4 border-l border-border h-8">
-          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap">
-            Recentes:
-          </span>
-          <div className="flex gap-2">
-            {RECENT_UCS.map((uc) => (
-              <Link key={uc} to={`/customer/${uc}`}>
-                <Badge
-                  variant="secondary"
-                  className="bg-slate-100 text-slate-600 hover:bg-primary hover:text-white cursor-pointer transition-colors font-medium border border-slate-200"
-                >
-                  {uc}
-                </Badge>
-              </Link>
-            ))}
-          </div>
+    <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4 bg-background">
+      <SidebarTrigger className="-ml-1" />
+      <div className="flex flex-1 items-center justify-between">
+        <h1 className="text-lg font-semibold tracking-tight">Sistema de Cobrança</h1>
+        <div className="flex items-center gap-4">
+          <Button variant="outline" size="sm" asChild className="hidden sm:flex">
+            <a
+              href="https://supabase.com/dashboard/project/mwikdqlrwclmmfdcpddb/editor"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <Database className="mr-2 h-4 w-4" />
+              Integração de Backend
+            </a>
+          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="rounded-full">
+                <User className="h-5 w-5" />
+                <span className="sr-only">Menu do usuário</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>Minha Conta</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem className="text-muted-foreground truncate max-w-[200px]">
+                {user?.email || 'Usuário'}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => signOut()}>
+                <LogOut className="mr-2 h-4 w-4" />
+                <span>Sair</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
-
-        <div className="relative w-full max-w-md ml-auto md:ml-4">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            type="search"
-            placeholder="Buscar UC, CPF/CNPJ ou Nome..."
-            className="w-full bg-slate-100/50 pl-9 border-slate-200 focus-visible:ring-primary/30 rounded-full h-9"
-          />
-        </div>
-      </div>
-
-      <div className="flex items-center gap-3 ml-4">
-        <Button
-          variant="outline"
-          size="sm"
-          className="hidden sm:flex gap-2 text-primary border-primary/20 hover:bg-primary/5 hover:text-primary font-semibold"
-        >
-          <PlusCircle className="h-4 w-4" />
-          Contato Avulso
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="relative text-slate-500 hover:text-primary hover:bg-primary/5"
-        >
-          <Bell className="h-5 w-5" />
-          <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-[#ff8c00] border-2 border-background"></span>
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => signOut()}
-          title="Sair"
-          className="text-slate-500 hover:text-red-600 hover:bg-red-50 sm:hidden"
-        >
-          <LogOut className="h-5 w-5" />
-        </Button>
       </div>
     </header>
   )

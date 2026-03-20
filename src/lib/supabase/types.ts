@@ -11,6 +11,7 @@ export type Database = {
     Tables: {
       contact_history: {
         Row: {
+          cod_pess_fat: string | null
           contact_type: Database['public']['Enums']['contact_type_enum'] | null
           created_at: string
           id: string
@@ -21,6 +22,7 @@ export type Database = {
           uc: string | null
         }
         Insert: {
+          cod_pess_fat?: string | null
           contact_type?: Database['public']['Enums']['contact_type_enum'] | null
           created_at?: string
           id?: string
@@ -31,6 +33,7 @@ export type Database = {
           uc?: string | null
         }
         Update: {
+          cod_pess_fat?: string | null
           contact_type?: Database['public']['Enums']['contact_type_enum'] | null
           created_at?: string
           id?: string
@@ -49,17 +52,18 @@ export type Database = {
             referencedColumns: ['id']
           },
           {
-            foreignKeyName: 'contact_history_uc_fkey'
-            columns: ['uc']
+            foreignKeyName: 'contact_history_uc_cod_pess_fat_fkey'
+            columns: ['uc', 'cod_pess_fat']
             isOneToOne: false
             referencedRelation: 'pending_debts'
-            referencedColumns: ['uc']
+            referencedColumns: ['uc', 'cod_pess_fat']
           },
         ]
       }
       follow_up_tasks: {
         Row: {
           action: string | null
+          cod_pess_fat: string | null
           completed: boolean | null
           created_at: string
           due_date: string | null
@@ -69,6 +73,7 @@ export type Database = {
         }
         Insert: {
           action?: string | null
+          cod_pess_fat?: string | null
           completed?: boolean | null
           created_at?: string
           due_date?: string | null
@@ -78,6 +83,7 @@ export type Database = {
         }
         Update: {
           action?: string | null
+          cod_pess_fat?: string | null
           completed?: boolean | null
           created_at?: string
           due_date?: string | null
@@ -87,17 +93,17 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'follow_up_tasks_uc_fkey'
-            columns: ['uc']
+            foreignKeyName: 'follow_up_tasks_uc_cod_pess_fat_fkey'
+            columns: ['uc', 'cod_pess_fat']
             isOneToOne: false
             referencedRelation: 'pending_debts'
-            referencedColumns: ['uc']
+            referencedColumns: ['uc', 'cod_pess_fat']
           },
         ]
       }
       pending_debts: {
         Row: {
-          cod_pess_fat: string | null
+          cod_pess_fat: string
           endereco: string | null
           pessoa_fatura_celular: string | null
           pessoa_fatura_cpf_cnpj: string | null
@@ -118,7 +124,7 @@ export type Database = {
           valor_total: number | null
         }
         Insert: {
-          cod_pess_fat?: string | null
+          cod_pess_fat: string
           endereco?: string | null
           pessoa_fatura_celular?: string | null
           pessoa_fatura_cpf_cnpj?: string | null
@@ -139,7 +145,7 @@ export type Database = {
           valor_total?: number | null
         }
         Update: {
-          cod_pess_fat?: string | null
+          cod_pess_fat?: string
           endereco?: string | null
           pessoa_fatura_celular?: string | null
           pessoa_fatura_cpf_cnpj?: string | null
@@ -416,6 +422,7 @@ export const Constants = {
 //   quality_result: text (nullable)
 //   notes: text (nullable)
 //   created_at: timestamp with time zone (not null, default: now())
+//   cod_pess_fat: text (nullable)
 // Table: follow_up_tasks
 //   id: uuid (not null, default: gen_random_uuid())
 //   uc: text (nullable)
@@ -424,6 +431,7 @@ export const Constants = {
 //   due_date: date (nullable)
 //   completed: boolean (nullable, default: false)
 //   created_at: timestamp with time zone (not null, default: now())
+//   cod_pess_fat: text (nullable)
 // Table: pending_debts
 //   uc: text (not null)
 //   setor: text (nullable)
@@ -434,7 +442,7 @@ export const Constants = {
 //   situ_docto: text (nullable)
 //   valor_total: numeric (nullable)
 //   refs: text (nullable)
-//   cod_pess_fat: text (nullable)
+//   cod_pess_fat: text (not null)
 //   pessoa_fatura_nome: text (nullable)
 //   pessoa_fatura_cpf_cnpj: text (nullable)
 //   pessoa_fatura_celular: text (nullable)
@@ -473,13 +481,13 @@ export const Constants = {
 // Table: contact_history
 //   FOREIGN KEY contact_history_operator_id_fkey: FOREIGN KEY (operator_id) REFERENCES profiles(id) ON DELETE SET NULL
 //   PRIMARY KEY contact_history_pkey: PRIMARY KEY (id)
-//   FOREIGN KEY contact_history_uc_fkey: FOREIGN KEY (uc) REFERENCES pending_debts(uc) ON DELETE CASCADE
+//   FOREIGN KEY contact_history_uc_cod_pess_fat_fkey: FOREIGN KEY (uc, cod_pess_fat) REFERENCES pending_debts(uc, cod_pess_fat) ON DELETE CASCADE
 // Table: follow_up_tasks
 //   FOREIGN KEY follow_up_tasks_operator_id_fkey: FOREIGN KEY (operator_id) REFERENCES auth.users(id) ON DELETE SET NULL
 //   PRIMARY KEY follow_up_tasks_pkey: PRIMARY KEY (id)
-//   FOREIGN KEY follow_up_tasks_uc_fkey: FOREIGN KEY (uc) REFERENCES pending_debts(uc) ON DELETE CASCADE
+//   FOREIGN KEY follow_up_tasks_uc_cod_pess_fat_fkey: FOREIGN KEY (uc, cod_pess_fat) REFERENCES pending_debts(uc, cod_pess_fat) ON DELETE CASCADE
 // Table: pending_debts
-//   PRIMARY KEY pending_debts_pkey: PRIMARY KEY (uc)
+//   PRIMARY KEY pending_debts_pkey: PRIMARY KEY (uc, cod_pess_fat)
 // Table: profiles
 //   FOREIGN KEY profiles_id_fkey: FOREIGN KEY (id) REFERENCES auth.users(id) ON DELETE CASCADE
 //   PRIMARY KEY profiles_pkey: PRIMARY KEY (id)
