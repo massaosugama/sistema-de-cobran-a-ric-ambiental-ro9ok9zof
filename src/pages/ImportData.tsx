@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
@@ -13,8 +13,11 @@ import {
   Database,
   RefreshCw,
   X,
+  Lightbulb,
+  ExternalLink,
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase/client'
+import { useAuth } from '@/hooks/use-auth'
 
 const pendingDebtsColumns = [
   'cod_pess_fat',
@@ -37,7 +40,6 @@ const pendingDebtsColumns = [
   'uc_repete',
   'valor_total',
 ]
-
 const settlementsColumns = [
   'id',
   'cod_pess_fat',
@@ -78,6 +80,67 @@ const parseCSV = async (file: File) => {
   return { headers, data }
 }
 
+function QuoteRotator({
+  quotes,
+  startIndex,
+  onIndexChange,
+}: {
+  quotes: any[]
+  startIndex: number
+  onIndexChange: (idx: number) => void
+}) {
+  const [index, setIndex] = useState(() => (quotes.length > 0 ? startIndex % quotes.length : 0))
+  const onIndexChangeRef = useRef(onIndexChange)
+
+  useEffect(() => {
+    onIndexChangeRef.current = onIndexChange
+  }, [onIndexChange])
+
+  useEffect(() => {
+    if (!quotes || quotes.length === 0) return
+    const interval = setInterval(() => {
+      setIndex((prev) => {
+        const next = (prev + 1) % quotes.length
+        onIndexChangeRef.current(next)
+        return next
+      })
+    }, 10000)
+    return () => clearInterval(interval)
+  }, [quotes])
+
+  const quote = quotes[index]
+  if (!quote) return null
+
+  return (
+    <div
+      key={index}
+      className="bg-indigo-50/50 border border-indigo-100 rounded-xl p-5 mt-4 animate-fade-in flex flex-col items-center justify-center flex-1 transition-all duration-500 shadow-sm"
+    >
+      <Lightbulb className="h-6 w-6 text-indigo-400 mb-3" />
+      <p className="text-[15px] font-medium text-indigo-900 text-center italic leading-relaxed">
+        "{quote.text}"
+      </p>
+      <div className="flex items-center gap-3 mt-4 flex-wrap justify-center">
+        {quote.theory && (
+          <span className="text-[11px] font-semibold text-indigo-700 bg-indigo-100 px-2.5 py-1 rounded-full uppercase tracking-wider">
+            {quote.theory}
+          </span>
+        )}
+        {quote.link && (
+          <a
+            href={quote.link}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[12px] font-semibold text-indigo-600 hover:text-indigo-800 underline underline-offset-4 flex items-center gap-1 transition-colors"
+          >
+            Saiba mais <ExternalLink className="h-3 w-3" />
+          </a>
+        )}
+      </div>
+    </div>
+  )
+}
+
 interface ImportCardProps {
   title: string
   description: string
@@ -85,6 +148,9 @@ interface ImportCardProps {
   tableName: 'pending_debts' | 'settlements'
   allowedColumns: string[]
   onProcess: (data: any[], setProgress: (p: number) => void) => Promise<void>
+  quotes: any[]
+  startIndex: number
+  onQuoteIndexChange: (idx: number) => void
 }
 
 function ImportCard({
@@ -94,6 +160,9 @@ function ImportCard({
   tableName,
   allowedColumns,
   onProcess,
+  quotes,
+  startIndex,
+  onQuoteIndexChange,
 }: ImportCardProps) {
   const { toast } = useToast()
   const [file, setFile] = useState<File | null>(null)
@@ -112,21 +181,17 @@ function ImportCard({
     if (!file) return
     try {
       const { headers, data } = await parseCSV(file)
-      if (data.length === 0) throw new Error('O arquivo está vazio ou o formato é inválido.')
+      if (data.length === 0) throw new Error('O arquivo está vazio ou formato inválido.')
       setCsvData(data)
 
       const extra = headers.filter((h) => !allowedColumns.includes(h))
-
       if (extra.length > 0) {
         setExtraColumns(extra)
         const rememberedStr = localStorage.getItem(`ignored_columns_${tableName}`)
         const remembered = rememberedStr ? JSON.parse(rememberedStr) : []
         setRememberedColumns(remembered)
-
         const initialIgnored: Record<string, boolean> = {}
-        extra.forEach((col) => {
-          initialIgnored[col] = remembered.includes(col)
-        })
+        extra.forEach((col) => (initialIgnored[col] = remembered.includes(col)))
         setIgnoredColumns(initialIgnored)
         setStatus('mapping')
       } else {
@@ -143,7 +208,6 @@ function ImportCard({
     const toIgnore = Object.entries(ignoredConfig)
       .filter(([_, isIgnored]) => isIgnored)
       .map(([col]) => col)
-
     const allRemembered = Array.from(new Set([...rememberedColumns, ...toIgnore]))
     localStorage.setItem(`ignored_columns_${tableName}`, JSON.stringify(allRemembered))
 
@@ -227,54 +291,46 @@ function ImportCard({
             </div>
 
             {status === 'mapping' && (
-              <div className="border border-amber-200 bg-amber-50/50 rounded-xl p-4 space-y-4 animate-fade-in">
+              <div className="border border-amber-200 bg-amber-50/50 rounded-xl p-4 space-y-4 animate-fade-in flex-1">
                 <div className="flex items-start gap-3">
                   <AlertCircle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
                   <div>
                     <h4 className="font-medium text-amber-900">Colunas não reconhecidas</h4>
                     <p className="text-sm text-amber-700 mt-1 leading-relaxed">
-                      Detectamos colunas no arquivo que não existem no banco de dados. Selecione
-                      quais deseja ignorar.
+                      Selecione as colunas para ignorar.
                     </p>
                   </div>
                 </div>
-
                 <div className="space-y-1 bg-white rounded-lg p-2 border border-amber-100 max-h-48 overflow-y-auto">
-                  {extraColumns.map((col) => {
-                    const isRemembered = rememberedColumns.includes(col)
-                    return (
-                      <div
-                        key={col}
-                        className="flex items-center justify-between py-2 px-2 hover:bg-slate-50 rounded-md transition-colors"
-                      >
-                        <div className="flex items-center gap-3">
-                          <Checkbox
-                            id={`col-${col}-${tableName}`}
-                            checked={ignoredColumns[col]}
-                            onCheckedChange={(c) =>
-                              setIgnoredColumns((prev) => ({ ...prev, [col]: !!c }))
-                            }
-                          />
-                          <label
-                            htmlFor={`col-${col}-${tableName}`}
-                            className="text-sm font-medium text-slate-700 cursor-pointer select-none"
-                          >
-                            {col}
-                          </label>
-                        </div>
-                        {!isRemembered && (
-                          <Badge
-                            variant="secondary"
-                            className="bg-blue-100 text-blue-700 hover:bg-blue-100 text-[10px] px-1.5 py-0 h-4 uppercase tracking-wider"
-                          >
-                            Nova
-                          </Badge>
-                        )}
+                  {extraColumns.map((col) => (
+                    <div
+                      key={col}
+                      className="flex items-center justify-between py-2 px-2 hover:bg-slate-50 rounded-md transition-colors"
+                    >
+                      <div className="flex items-center gap-3">
+                        <Checkbox
+                          id={`col-${col}-${tableName}`}
+                          checked={ignoredColumns[col]}
+                          onCheckedChange={(c) => setIgnoredColumns((p) => ({ ...p, [col]: !!c }))}
+                        />
+                        <label
+                          htmlFor={`col-${col}-${tableName}`}
+                          className="text-sm font-medium text-slate-700 cursor-pointer"
+                        >
+                          {col}
+                        </label>
                       </div>
-                    )
-                  })}
+                      {!rememberedColumns.includes(col) && (
+                        <Badge
+                          variant="secondary"
+                          className="bg-blue-100 text-blue-700 text-[10px] uppercase tracking-wider"
+                        >
+                          Nova
+                        </Badge>
+                      )}
+                    </div>
+                  ))}
                 </div>
-
                 <Button
                   onClick={() => proceedWithImport(csvData, ignoredColumns)}
                   className="w-full"
@@ -285,12 +341,19 @@ function ImportCard({
             )}
 
             {status === 'uploading' && (
-              <div className="space-y-2 mt-auto pt-4">
-                <div className="flex justify-between text-xs font-medium text-slate-600">
-                  <span>Processando dados...</span>
-                  <span>{progress}%</span>
+              <div className="space-y-4 mt-auto pt-4 flex-1 flex flex-col">
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm font-medium text-slate-700">
+                    <span>Processando dados...</span>
+                    <span>{progress}%</span>
+                  </div>
+                  <Progress value={progress} className="h-2.5" />
                 </div>
-                <Progress value={progress} className="h-2" />
+                <QuoteRotator
+                  quotes={quotes}
+                  startIndex={startIndex}
+                  onIndexChange={onQuoteIndexChange}
+                />
               </div>
             )}
 
@@ -299,20 +362,17 @@ function ImportCard({
                 <CheckCircle2 className="h-5 w-5" /> Base atualizada com sucesso!
               </div>
             )}
-
             {status === 'error' && (
               <div className="flex items-start gap-2 text-sm font-medium text-destructive bg-red-50 p-3 rounded-lg border border-red-100 mt-auto">
-                <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
-                <span className="break-all">{errorMsg || 'Erro desconhecido.'}</span>
+                <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />{' '}
+                <span className="break-all">{errorMsg}</span>
               </div>
             )}
-
             {status === 'idle' && (
               <Button onClick={handleStart} className="w-full font-bold mt-auto">
                 Iniciar Processamento
               </Button>
             )}
-
             {(status === 'success' || status === 'error') && (
               <Button
                 onClick={() => {
@@ -333,21 +393,51 @@ function ImportCard({
 }
 
 export default function ImportData() {
+  const { user } = useAuth()
+  const [quotes, setQuotes] = useState<any[]>([])
+  const [quoteIndex, setQuoteIndex] = useState(0)
+
+  useEffect(() => {
+    if (!user) return
+    const fetchContext = async () => {
+      const { data: qData } = await (supabase as any)
+        .from('quotes')
+        .select('*')
+        .order('order_index', { ascending: true })
+      if (qData) setQuotes(qData)
+      const { data: pData } = await (supabase as any)
+        .from('profiles')
+        .select('last_quote_index')
+        .eq('id', user.id)
+        .single()
+      if (pData?.last_quote_index) setQuoteIndex(pData.last_quote_index)
+    }
+    fetchContext()
+  }, [user])
+
+  const handleIndexChange = (newIndex: number) => {
+    setQuoteIndex(newIndex)
+    if (user) {
+      ;(supabase as any)
+        .from('profiles')
+        .update({ last_quote_index: newIndex })
+        .eq('id', user.id)
+        .then()
+    }
+  }
+
   const processPendencies = async (data: any[], setProgress: (p: number) => void) => {
     setProgress(15)
     const { error: truncErr } = await supabase.rpc('truncate_pending_debts')
     if (truncErr) throw new Error('Erro ao limpar a base: ' + truncErr.message)
     setProgress(30)
-
     const chunkSize = 200
     for (let i = 0; i < data.length; i += chunkSize) {
       const chunk = data.slice(i, i + chunkSize)
       const { error: insErr } = await supabase.from('pending_debts').insert(chunk)
-      if (insErr)
-        throw new Error(
-          `Erro de Mapeamento na inserção (Linha ${i + 1}) - Detalhe: ${insErr.message}`,
-        )
+      if (insErr) throw new Error(`Erro na inserção (Linha ${i + 1}) - Detalhe: ${insErr.message}`)
       setProgress(30 + Math.floor((i / data.length) * 70))
+      await new Promise((r) => setTimeout(r, 50)) // artificial delay for UI rotation
     }
   }
 
@@ -357,24 +447,22 @@ export default function ImportData() {
     for (let i = 0; i < data.length; i += chunkSize) {
       const chunk = data.slice(i, i + chunkSize)
       const { error: insErr } = await supabase.from('settlements').insert(chunk)
-      if (insErr)
-        throw new Error(
-          `Erro de Mapeamento na inserção (Linha ${i + 1}) - Detalhe: ${insErr.message}`,
-        )
+      if (insErr) throw new Error(`Erro na inserção (Linha ${i + 1}) - Detalhe: ${insErr.message}`)
       setProgress(20 + Math.floor((i / data.length) * 80))
+      await new Promise((r) => setTimeout(r, 50)) // artificial delay for UI rotation
     }
   }
 
   return (
-    <div className="space-y-6 animate-fade-in-up">
+    <div className="space-y-6 animate-fade-in-up pb-10">
       <div>
         <h1 className="text-3xl font-black tracking-tight text-slate-900">Importação de Dados</h1>
         <p className="text-slate-500 mt-1 font-medium">
-          Módulo central para carga rápida de arquivos CSV do sistema legado.
+          Módulo central para carga rápida de arquivos CSV do sistema.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
         <ImportCard
           title="Base de Pendências"
           description="Substituição total. Limpa as pendências atuais e carrega os novos registros."
@@ -382,14 +470,20 @@ export default function ImportData() {
           tableName="pending_debts"
           allowedColumns={pendingDebtsColumns}
           onProcess={processPendencies}
+          quotes={quotes}
+          startIndex={quoteIndex}
+          onQuoteIndexChange={handleIndexChange}
         />
         <ImportCard
           title="Base de Baixas"
-          description="Carga incremental. Adiciona novas baixas ao histórico sem apagar registros antigos."
+          description="Carga incremental. Adiciona novas baixas ao histórico sem apagar antigos."
           icon={<Database className="h-5 w-5 text-emerald-500" />}
           tableName="settlements"
           allowedColumns={settlementsColumns}
           onProcess={processSettlements}
+          quotes={quotes}
+          startIndex={quoteIndex}
+          onQuoteIndexChange={handleIndexChange}
         />
       </div>
     </div>
