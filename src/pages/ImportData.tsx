@@ -13,11 +13,9 @@ import {
   Database,
   RefreshCw,
   X,
-  Lightbulb,
-  ExternalLink,
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase/client'
-import { useAuth } from '@/hooks/use-auth'
+import { useAppState } from '@/hooks/use-app-state'
 
 const pendingDebtsColumns = [
   'cod_pess_fat',
@@ -80,67 +78,6 @@ const parseCSV = async (file: File) => {
   return { headers, data }
 }
 
-function QuoteRotator({
-  quotes,
-  startIndex,
-  onIndexChange,
-}: {
-  quotes: any[]
-  startIndex: number
-  onIndexChange: (idx: number) => void
-}) {
-  const [index, setIndex] = useState(() => (quotes.length > 0 ? startIndex % quotes.length : 0))
-  const onIndexChangeRef = useRef(onIndexChange)
-
-  useEffect(() => {
-    onIndexChangeRef.current = onIndexChange
-  }, [onIndexChange])
-
-  useEffect(() => {
-    if (!quotes || quotes.length === 0) return
-    const interval = setInterval(() => {
-      setIndex((prev) => {
-        const next = (prev + 1) % quotes.length
-        onIndexChangeRef.current(next)
-        return next
-      })
-    }, 10000)
-    return () => clearInterval(interval)
-  }, [quotes])
-
-  const quote = quotes[index]
-  if (!quote) return null
-
-  return (
-    <div
-      key={index}
-      className="bg-indigo-50/50 border border-indigo-100 rounded-xl p-5 mt-4 animate-fade-in flex flex-col items-center justify-center flex-1 transition-all duration-500 shadow-sm"
-    >
-      <Lightbulb className="h-6 w-6 text-indigo-400 mb-3" />
-      <p className="text-[15px] font-medium text-indigo-900 text-center italic leading-relaxed">
-        "{quote.text}"
-      </p>
-      <div className="flex items-center gap-3 mt-4 flex-wrap justify-center">
-        {quote.theory && (
-          <span className="text-[11px] font-semibold text-indigo-700 bg-indigo-100 px-2.5 py-1 rounded-full uppercase tracking-wider">
-            {quote.theory}
-          </span>
-        )}
-        {quote.link && (
-          <a
-            href={quote.link}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-[12px] font-semibold text-indigo-600 hover:text-indigo-800 underline underline-offset-4 flex items-center gap-1 transition-colors"
-          >
-            Saiba mais <ExternalLink className="h-3 w-3" />
-          </a>
-        )}
-      </div>
-    </div>
-  )
-}
-
 interface ImportCardProps {
   title: string
   description: string
@@ -148,9 +85,6 @@ interface ImportCardProps {
   tableName: 'pending_debts' | 'settlements'
   allowedColumns: string[]
   onProcess: (data: any[], setProgress: (p: number) => void) => Promise<void>
-  quotes: any[]
-  startIndex: number
-  onQuoteIndexChange: (idx: number) => void
 }
 
 function ImportCard({
@@ -160,11 +94,10 @@ function ImportCard({
   tableName,
   allowedColumns,
   onProcess,
-  quotes,
-  startIndex,
-  onQuoteIndexChange,
 }: ImportCardProps) {
   const { toast } = useToast()
+  const { setIsImporting } = useAppState()
+
   const [file, setFile] = useState<File | null>(null)
   const [status, setStatus] = useState<'idle' | 'mapping' | 'uploading' | 'success' | 'error'>(
     'idle',
@@ -176,6 +109,10 @@ function ImportCard({
   const [rememberedColumns, setRememberedColumns] = useState<string[]>([])
   const [ignoredColumns, setIgnoredColumns] = useState<Record<string, boolean>>({})
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    return () => setIsImporting(false)
+  }, [setIsImporting])
 
   const handleStart = async () => {
     if (!file) return
@@ -219,14 +156,18 @@ function ImportCard({
 
     setStatus('uploading')
     setProgress(5)
+    setIsImporting(true)
+
     try {
       await onProcess(cleanedData, setProgress)
       setStatus('success')
       setProgress(100)
+      setIsImporting(false)
       toast({ title: 'Sucesso!', description: 'Arquivo processado.', variant: 'default' })
     } catch (err: any) {
       setStatus('error')
       setErrorMsg(err.message)
+      setIsImporting(false)
       toast({ title: 'Erro na importação', description: err.message, variant: 'destructive' })
     }
   }
@@ -341,7 +282,7 @@ function ImportCard({
             )}
 
             {status === 'uploading' && (
-              <div className="space-y-4 mt-auto pt-4 flex-1 flex flex-col">
+              <div className="space-y-4 mt-auto pt-4 flex-1 flex flex-col justify-center">
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm font-medium text-slate-700">
                     <span>Processando dados...</span>
@@ -349,11 +290,6 @@ function ImportCard({
                   </div>
                   <Progress value={progress} className="h-2.5" />
                 </div>
-                <QuoteRotator
-                  quotes={quotes}
-                  startIndex={startIndex}
-                  onIndexChange={onQuoteIndexChange}
-                />
               </div>
             )}
 
@@ -393,39 +329,6 @@ function ImportCard({
 }
 
 export default function ImportData() {
-  const { user } = useAuth()
-  const [quotes, setQuotes] = useState<any[]>([])
-  const [quoteIndex, setQuoteIndex] = useState(0)
-
-  useEffect(() => {
-    if (!user) return
-    const fetchContext = async () => {
-      const { data: qData } = await (supabase as any)
-        .from('quotes')
-        .select('*')
-        .order('order_index', { ascending: true })
-      if (qData) setQuotes(qData)
-      const { data: pData } = await (supabase as any)
-        .from('profiles')
-        .select('last_quote_index')
-        .eq('id', user.id)
-        .single()
-      if (pData?.last_quote_index) setQuoteIndex(pData.last_quote_index)
-    }
-    fetchContext()
-  }, [user])
-
-  const handleIndexChange = (newIndex: number) => {
-    setQuoteIndex(newIndex)
-    if (user) {
-      ;(supabase as any)
-        .from('profiles')
-        .update({ last_quote_index: newIndex })
-        .eq('id', user.id)
-        .then()
-    }
-  }
-
   const processPendencies = async (data: any[], setProgress: (p: number) => void) => {
     setProgress(15)
     const { error: truncErr } = await supabase.rpc('truncate_pending_debts')
@@ -437,7 +340,7 @@ export default function ImportData() {
       const { error: insErr } = await supabase.from('pending_debts').insert(chunk)
       if (insErr) throw new Error(`Erro na inserção (Linha ${i + 1}) - Detalhe: ${insErr.message}`)
       setProgress(30 + Math.floor((i / data.length) * 70))
-      await new Promise((r) => setTimeout(r, 50)) // artificial delay for UI rotation
+      await new Promise((r) => setTimeout(r, 50)) // artificial delay
     }
   }
 
@@ -449,7 +352,7 @@ export default function ImportData() {
       const { error: insErr } = await supabase.from('settlements').insert(chunk)
       if (insErr) throw new Error(`Erro na inserção (Linha ${i + 1}) - Detalhe: ${insErr.message}`)
       setProgress(20 + Math.floor((i / data.length) * 80))
-      await new Promise((r) => setTimeout(r, 50)) // artificial delay for UI rotation
+      await new Promise((r) => setTimeout(r, 50)) // artificial delay
     }
   }
 
@@ -470,9 +373,6 @@ export default function ImportData() {
           tableName="pending_debts"
           allowedColumns={pendingDebtsColumns}
           onProcess={processPendencies}
-          quotes={quotes}
-          startIndex={quoteIndex}
-          onQuoteIndexChange={handleIndexChange}
         />
         <ImportCard
           title="Base de Baixas"
@@ -481,9 +381,6 @@ export default function ImportData() {
           tableName="settlements"
           allowedColumns={settlementsColumns}
           onProcess={processSettlements}
-          quotes={quotes}
-          startIndex={quoteIndex}
-          onQuoteIndexChange={handleIndexChange}
         />
       </div>
     </div>

@@ -1,6 +1,15 @@
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { Settings as SettingsIcon, BookOpen, Plus, Edit2, Trash2, ExternalLink } from 'lucide-react'
+import {
+  Settings as SettingsIcon,
+  BookOpen,
+  Plus,
+  Edit2,
+  Trash2,
+  ExternalLink,
+  Activity,
+  User,
+} from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -28,6 +37,7 @@ import { useToast } from '@/hooks/use-toast'
 export default function Settings() {
   const { toast } = useToast()
   const [quotes, setQuotes] = useState<any[]>([])
+  const [clicks, setClicks] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingQuote, setEditingQuote] = useState<any>(null)
@@ -46,8 +56,21 @@ export default function Settings() {
     setLoading(false)
   }
 
+  const fetchClicks = async () => {
+    const { data, error } = await (supabase as any)
+      .from('quote_clicks')
+      .select(`
+        id, created_at,
+        profiles ( first_name, last_name, name, email ),
+        quotes ( text )
+      `)
+      .order('created_at', { ascending: false })
+    if (data) setClicks(data)
+  }
+
   useEffect(() => {
     fetchQuotes()
+    fetchClicks()
   }, [])
 
   const handleSave = async () => {
@@ -105,12 +128,15 @@ export default function Settings() {
       </div>
 
       <Tabs defaultValue="quotes" className="w-full">
-        <TabsList className="grid w-full max-w-md grid-cols-2">
+        <TabsList className="grid w-full max-w-2xl grid-cols-3">
           <TabsTrigger value="general" className="flex items-center gap-2">
             <SettingsIcon className="h-4 w-4" /> Geral
           </TabsTrigger>
           <TabsTrigger value="quotes" className="flex items-center gap-2">
-            <BookOpen className="h-4 w-4" /> Frases de Treinamento
+            <BookOpen className="h-4 w-4" /> Base de Conhecimento
+          </TabsTrigger>
+          <TabsTrigger value="engagement" className="flex items-center gap-2">
+            <Activity className="h-4 w-4" /> Engajamento
           </TabsTrigger>
         </TabsList>
 
@@ -139,8 +165,7 @@ export default function Settings() {
                   <BookOpen className="h-5 w-5 text-primary" /> Base de Conhecimento
                 </CardTitle>
                 <CardDescription className="mt-1">
-                  Gerencie as frases que aparecem para os operadores durante o processamento de
-                  arquivos.
+                  Gerencie as frases que aparecem para os operadores durante o uso do sistema.
                 </CardDescription>
               </div>
               <Button onClick={openNew} size="sm" className="flex items-center gap-1.5">
@@ -222,6 +247,73 @@ export default function Settings() {
                           </TableCell>
                         </TableRow>
                       ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="engagement" className="mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Activity className="h-5 w-5 text-primary" /> Relatório de Engajamento
+              </CardTitle>
+              <CardDescription>
+                Acompanhe quais operadores estão interagindo com os links das pílulas de
+                conhecimento.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="border rounded-lg overflow-hidden">
+                <Table>
+                  <TableHeader className="bg-slate-50">
+                    <TableRow>
+                      <TableHead>Operador</TableHead>
+                      <TableHead>Frase Acessada</TableHead>
+                      <TableHead className="text-right">Data/Hora</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {loading ? (
+                      <TableRow>
+                        <TableCell colSpan={3} className="text-center py-8 text-slate-500">
+                          Carregando...
+                        </TableCell>
+                      </TableRow>
+                    ) : clicks.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={3} className="text-center py-8 text-slate-500">
+                          Nenhum clique registrado ainda.
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      clicks.map((c) => {
+                        const operatorName = c.profiles?.first_name
+                          ? `${c.profiles.first_name} ${c.profiles.last_name || ''}`
+                          : c.profiles?.name || c.profiles?.email || 'Desconhecido'
+
+                        return (
+                          <TableRow key={c.id}>
+                            <TableCell className="font-medium text-sm text-slate-800">
+                              <div className="flex items-center gap-2">
+                                <div className="bg-slate-100 p-1.5 rounded-full">
+                                  <User className="h-3 w-3 text-slate-500" />
+                                </div>
+                                {operatorName}
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-sm text-slate-600">
+                              <span className="line-clamp-1 max-w-[400px]">"{c.quotes?.text}"</span>
+                            </TableCell>
+                            <TableCell className="text-right text-xs text-slate-500 font-medium">
+                              {new Date(c.created_at).toLocaleString('pt-BR')}
+                            </TableCell>
+                          </TableRow>
+                        )
+                      })
                     )}
                   </TableBody>
                 </Table>

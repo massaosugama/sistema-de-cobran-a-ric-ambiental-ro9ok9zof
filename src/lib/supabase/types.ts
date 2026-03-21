@@ -157,19 +157,49 @@ export type Database = {
           created_at: string
           email: string
           id: string
+          last_quote_index: number | null
           name: string | null
         }
         Insert: {
           created_at?: string
           email: string
           id: string
+          last_quote_index?: number | null
           name?: string | null
         }
         Update: {
           created_at?: string
           email?: string
           id?: string
+          last_quote_index?: number | null
           name?: string | null
+        }
+        Relationships: []
+      }
+      quotes: {
+        Row: {
+          created_at: string
+          id: string
+          link: string | null
+          order_index: number
+          text: string
+          theory: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          link?: string | null
+          order_index?: number
+          text: string
+          theory?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          link?: string | null
+          order_index?: number
+          text?: string
+          theory?: string | null
         }
         Relationships: []
       }
@@ -442,6 +472,14 @@ export const Constants = {
 //   email: text (not null)
 //   name: text (nullable)
 //   created_at: timestamp with time zone (not null, default: now())
+//   last_quote_index: integer (nullable, default: 0)
+// Table: quotes
+//   id: uuid (not null, default: gen_random_uuid())
+//   text: text (not null)
+//   theory: text (nullable)
+//   link: text (nullable)
+//   order_index: integer (not null)
+//   created_at: timestamp with time zone (not null, default: now())
 // Table: settlements
 //   id: uuid (not null, default: gen_random_uuid())
 //   uc: text (nullable)
@@ -474,6 +512,8 @@ export const Constants = {
 // Table: profiles
 //   FOREIGN KEY profiles_id_fkey: FOREIGN KEY (id) REFERENCES auth.users(id) ON DELETE CASCADE
 //   PRIMARY KEY profiles_pkey: PRIMARY KEY (id)
+// Table: quotes
+//   PRIMARY KEY quotes_pkey: PRIMARY KEY (id)
 // Table: settlements
 //   PRIMARY KEY settlements_pkey: PRIMARY KEY (id)
 
@@ -491,6 +531,10 @@ export const Constants = {
 //     USING: true
 //     WITH CHECK: true
 // Table: profiles
+//   Policy "authenticated_all" (ALL, PERMISSIVE) roles={authenticated}
+//     USING: true
+//     WITH CHECK: true
+// Table: quotes
 //   Policy "authenticated_all" (ALL, PERMISSIVE) roles={authenticated}
 //     USING: true
 //     WITH CHECK: true

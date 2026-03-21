@@ -21,6 +21,7 @@ import {
   useSidebar,
 } from '@/components/ui/sidebar'
 import logoImg from '@/assets/ricambiental_logo-01-500-porcento-fbb5f.png'
+import { SidebarQuote } from './SidebarQuote'
 
 const navigation = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
@@ -36,6 +37,8 @@ export function AppSidebar() {
   const location = useLocation()
   const { state } = useSidebar()
 
+  const isCustomerScreen = location.pathname.startsWith('/customer/')
+
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader className="flex items-center justify-center h-16 px-4 border-b">
@@ -47,8 +50,9 @@ export function AppSidebar() {
           </div>
         )}
       </SidebarHeader>
-      <SidebarContent>
-        <SidebarGroup>
+
+      <SidebarContent className="flex flex-col h-full">
+        <SidebarGroup className="flex-1">
           <SidebarGroupLabel>Menu Principal</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
@@ -68,6 +72,13 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        {/* Knowledge Base Area */}
+        {!isCustomerScreen && state === 'expanded' && (
+          <div className="mt-auto">
+            <SidebarQuote />
+          </div>
+        )}
       </SidebarContent>
     </Sidebar>
   )
