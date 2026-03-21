@@ -54,12 +54,10 @@ export default function Login() {
             </div>
           </div>
           <CardTitle className="text-2xl font-black text-slate-900 tracking-tight">
-            Ric Ambiental
+            Ric Recupera & Desenvolve
           </CardTitle>
           <CardDescription>
-            {mode === 'login'
-              ? 'Acesse o sistema de gestão de cobranças'
-              : 'Crie sua conta de operador'}
+            {mode === 'login' ? 'Acesse a plataforma' : 'Crie sua conta de operador'}
           </CardDescription>
         </CardHeader>
         <CardContent>

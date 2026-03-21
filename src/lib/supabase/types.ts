@@ -158,6 +158,7 @@ export type Database = {
           email: string
           first_name: string | null
           id: string
+          is_admin: boolean | null
           last_name: string | null
           last_quote_index: number | null
           name: string | null
@@ -167,6 +168,7 @@ export type Database = {
           email: string
           first_name?: string | null
           id: string
+          is_admin?: boolean | null
           last_name?: string | null
           last_quote_index?: number | null
           name?: string | null
@@ -176,6 +178,7 @@ export type Database = {
           email?: string
           first_name?: string | null
           id?: string
+          is_admin?: boolean | null
           last_name?: string | null
           last_quote_index?: number | null
           name?: string | null
@@ -510,6 +513,7 @@ export const Constants = {
 //   last_quote_index: integer (nullable, default: 0)
 //   first_name: text (nullable)
 //   last_name: text (nullable)
+//   is_admin: boolean (nullable, default: false)
 // Table: quote_clicks
 //   id: uuid (not null, default: gen_random_uuid())
 //   user_id: uuid (not null)
