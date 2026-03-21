@@ -156,25 +156,60 @@ export type Database = {
         Row: {
           created_at: string
           email: string
+          first_name: string | null
           id: string
+          last_name: string | null
           last_quote_index: number | null
           name: string | null
         }
         Insert: {
           created_at?: string
           email: string
+          first_name?: string | null
           id: string
+          last_name?: string | null
           last_quote_index?: number | null
           name?: string | null
         }
         Update: {
           created_at?: string
           email?: string
+          first_name?: string | null
           id?: string
+          last_name?: string | null
           last_quote_index?: number | null
           name?: string | null
         }
         Relationships: []
+      }
+      quote_clicks: {
+        Row: {
+          created_at: string
+          id: string
+          quote_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          quote_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          quote_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'quote_clicks_quote_id_fkey'
+            columns: ['quote_id']
+            isOneToOne: false
+            referencedRelation: 'quotes'
+            referencedColumns: ['id']
+          },
+        ]
       }
       quotes: {
         Row: {
@@ -473,6 +508,13 @@ export const Constants = {
 //   name: text (nullable)
 //   created_at: timestamp with time zone (not null, default: now())
 //   last_quote_index: integer (nullable, default: 0)
+//   first_name: text (nullable)
+//   last_name: text (nullable)
+// Table: quote_clicks
+//   id: uuid (not null, default: gen_random_uuid())
+//   user_id: uuid (not null)
+//   quote_id: uuid (not null)
+//   created_at: timestamp with time zone (not null, default: now())
 // Table: quotes
 //   id: uuid (not null, default: gen_random_uuid())
 //   text: text (not null)
@@ -512,6 +554,10 @@ export const Constants = {
 // Table: profiles
 //   FOREIGN KEY profiles_id_fkey: FOREIGN KEY (id) REFERENCES auth.users(id) ON DELETE CASCADE
 //   PRIMARY KEY profiles_pkey: PRIMARY KEY (id)
+// Table: quote_clicks
+//   PRIMARY KEY quote_clicks_pkey: PRIMARY KEY (id)
+//   FOREIGN KEY quote_clicks_quote_id_fkey: FOREIGN KEY (quote_id) REFERENCES quotes(id) ON DELETE CASCADE
+//   FOREIGN KEY quote_clicks_user_id_fkey: FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE
 // Table: quotes
 //   PRIMARY KEY quotes_pkey: PRIMARY KEY (id)
 // Table: settlements
@@ -534,6 +580,11 @@ export const Constants = {
 //   Policy "authenticated_all" (ALL, PERMISSIVE) roles={authenticated}
 //     USING: true
 //     WITH CHECK: true
+// Table: quote_clicks
+//   Policy "authenticated_insert_quote_clicks" (INSERT, PERMISSIVE) roles={authenticated}
+//     WITH CHECK: (auth.uid() = user_id)
+//   Policy "authenticated_select_quote_clicks" (SELECT, PERMISSIVE) roles={authenticated}
+//     USING: true
 // Table: quotes
 //   Policy "authenticated_all" (ALL, PERMISSIVE) roles={authenticated}
 //     USING: true
@@ -544,6 +595,30 @@ export const Constants = {
 //     WITH CHECK: true
 
 // --- DATABASE FUNCTIONS ---
+// FUNCTION handle_new_user()
+//   CREATE OR REPLACE FUNCTION public.handle_new_user()
+//    RETURNS trigger
+//    LANGUAGE plpgsql
+//    SECURITY DEFINER
+//   AS $function$
+//   BEGIN
+//     INSERT INTO public.profiles (id, email, name, first_name, last_name)
+//     VALUES (
+//       NEW.id,
+//       NEW.email,
+//       COALESCE(NEW.raw_user_meta_data->>'name', ''),
+//       NEW.raw_user_meta_data->>'first_name',
+//       NEW.raw_user_meta_data->>'last_name'
+//     )
+//     ON CONFLICT (id) DO UPDATE SET
+//       email = EXCLUDED.email,
+//       name = EXCLUDED.name,
+//       first_name = EXCLUDED.first_name,
+//       last_name = EXCLUDED.last_name;
+//     RETURN NEW;
+//   END;
+//   $function$
+//
 // FUNCTION truncate_pending_debts()
 //   CREATE OR REPLACE FUNCTION public.truncate_pending_debts()
 //    RETURNS void

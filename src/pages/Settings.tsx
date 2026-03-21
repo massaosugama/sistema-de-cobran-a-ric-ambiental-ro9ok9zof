@@ -9,12 +9,19 @@ import {
   ExternalLink,
   Activity,
   User,
+  Users,
+  UserPlus,
+  Shield,
+  KeyRound,
+  Copy,
+  Check,
 } from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { Switch } from '@/components/ui/switch'
 import {
   Table,
   TableBody,
@@ -38,42 +45,52 @@ export default function Settings() {
   const { toast } = useToast()
   const [quotes, setQuotes] = useState<any[]>([])
   const [clicks, setClicks] = useState<any[]>([])
+  const [operators, setOperators] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+
+  // Quotes state
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingQuote, setEditingQuote] = useState<any>(null)
-
   const [text, setText] = useState('')
   const [theory, setTheory] = useState('')
   const [link, setLink] = useState('')
 
+  // Operators state
+  const [isOperatorModalOpen, setIsOperatorModalOpen] = useState(false)
+  const [isInviteModalOpen, setIsInviteModalOpen] = useState(false)
+  const [editingOperator, setEditingOperator] = useState<any>(null)
+  const [opFirstName, setOpFirstName] = useState('')
+  const [opLastName, setOpLastName] = useState('')
+  const [opIsAdmin, setOpIsAdmin] = useState(false)
+  const [copied, setCopied] = useState(false)
+
   const fetchQuotes = async () => {
-    setLoading(true)
-    const { data, error } = await (supabase as any)
-      .from('quotes')
-      .select('*')
-      .order('order_index', { ascending: true })
+    const { data } = await (supabase as any).from('quotes').select('*').order('order_index')
     if (data) setQuotes(data)
-    setLoading(false)
+  }
+
+  const fetchOperators = async () => {
+    const { data } = await (supabase as any)
+      .from('profiles')
+      .select('*')
+      .order('created_at', { ascending: false })
+    if (data) setOperators(data)
   }
 
   const fetchClicks = async () => {
-    const { data, error } = await (supabase as any)
+    const { data } = await (supabase as any)
       .from('quote_clicks')
-      .select(`
-        id, created_at,
-        profiles ( first_name, last_name, name, email ),
-        quotes ( text )
-      `)
+      .select('id, created_at, profiles(first_name, last_name, name, email), quotes(text)')
       .order('created_at', { ascending: false })
     if (data) setClicks(data)
   }
 
   useEffect(() => {
-    fetchQuotes()
-    fetchClicks()
+    setLoading(true)
+    Promise.all([fetchQuotes(), fetchOperators(), fetchClicks()]).finally(() => setLoading(false))
   }, [])
 
-  const handleSave = async () => {
+  const handleSaveQuote = async () => {
     if (!text.trim())
       return toast({ title: 'Erro', description: 'A frase é obrigatória.', variant: 'destructive' })
 
@@ -89,12 +106,11 @@ export default function Settings() {
       if (error) toast({ title: 'Erro', description: error.message, variant: 'destructive' })
       else toast({ title: 'Sucesso', description: 'Frase criada.' })
     }
-
     setIsModalOpen(false)
     fetchQuotes()
   }
 
-  const handleDelete = async (id: string) => {
+  const handleDeleteQuote = async (id: string) => {
     if (!confirm('Tem certeza que deseja excluir esta frase?')) return
     const { error } = await (supabase as any).from('quotes').delete().eq('id', id)
     if (error) toast({ title: 'Erro', description: error.message, variant: 'destructive' })
@@ -104,7 +120,7 @@ export default function Settings() {
     }
   }
 
-  const openNew = () => {
+  const openNewQuote = () => {
     setEditingQuote(null)
     setText('')
     setTheory('')
@@ -112,12 +128,61 @@ export default function Settings() {
     setIsModalOpen(true)
   }
 
-  const openEdit = (q: any) => {
+  const openEditQuote = (q: any) => {
     setEditingQuote(q)
     setText(q.text)
     setTheory(q.theory || '')
     setLink(q.link || '')
     setIsModalOpen(true)
+  }
+
+  const openEditOperator = (op: any) => {
+    setEditingOperator(op)
+    setOpFirstName(op.first_name || '')
+    setOpLastName(op.last_name || '')
+    setOpIsAdmin(!!op.is_admin)
+    setIsOperatorModalOpen(true)
+  }
+
+  const handleSaveOperator = async () => {
+    if (!editingOperator) return
+    const { error } = await (supabase as any)
+      .from('profiles')
+      .update({
+        first_name: opFirstName,
+        last_name: opLastName,
+        name: `${opFirstName} ${opLastName}`.trim(),
+        is_admin: opIsAdmin,
+      })
+      .eq('id', editingOperator.id)
+
+    if (error) {
+      toast({ title: 'Erro', description: error.message, variant: 'destructive' })
+    } else {
+      toast({ title: 'Sucesso', description: 'Operador atualizado com sucesso.' })
+      setIsOperatorModalOpen(false)
+      fetchOperators()
+    }
+  }
+
+  const handleResetPassword = async (email: string) => {
+    if (!confirm(`Deseja enviar um link de redefinição de senha para ${email}?`)) return
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/login`,
+    })
+    if (error) toast({ title: 'Erro', description: error.message, variant: 'destructive' })
+    else toast({ title: 'Sucesso', description: 'E-mail de redefinição enviado com sucesso.' })
+  }
+
+  const copyInviteLink = () => {
+    const link = `${window.location.origin}/login`
+    navigator.clipboard.writeText(link)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+    toast({
+      title: 'Link Copiado',
+      description: 'O link de cadastro foi copiado para sua área de transferência.',
+    })
   }
 
   return (
@@ -127,13 +192,16 @@ export default function Settings() {
         <p className="text-slate-500 mt-1 font-medium">Parâmetros e preferências do sistema.</p>
       </div>
 
-      <Tabs defaultValue="quotes" className="w-full">
-        <TabsList className="grid w-full max-w-2xl grid-cols-3">
+      <Tabs defaultValue="operators" className="w-full">
+        <TabsList className="grid w-full max-w-4xl grid-cols-4">
           <TabsTrigger value="general" className="flex items-center gap-2">
             <SettingsIcon className="h-4 w-4" /> Geral
           </TabsTrigger>
+          <TabsTrigger value="operators" className="flex items-center gap-2">
+            <Users className="h-4 w-4" /> Operadores
+          </TabsTrigger>
           <TabsTrigger value="quotes" className="flex items-center gap-2">
-            <BookOpen className="h-4 w-4" /> Base de Conhecimento
+            <BookOpen className="h-4 w-4" /> Conhecimento
           </TabsTrigger>
           <TabsTrigger value="engagement" className="flex items-center gap-2">
             <Activity className="h-4 w-4" /> Engajamento
@@ -150,9 +218,107 @@ export default function Settings() {
             </CardHeader>
             <CardContent>
               <p className="text-sm text-slate-600">
-                As configurações de equipe, regras de negócio e integrações ficarão disponíveis aqui
-                em breve.
+                As configurações de regras de negócio e integrações ficarão disponíveis aqui em
+                breve.
               </p>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="operators" className="mt-6">
+          <Card>
+            <CardHeader className="flex flex-row items-start justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <Users className="h-5 w-5 text-primary" /> Gestão de Operadores
+                </CardTitle>
+                <CardDescription className="mt-1">
+                  Gerencie os acessos, edite perfis e convide novos membros para a equipe.
+                </CardDescription>
+              </div>
+              <Button
+                onClick={() => setIsInviteModalOpen(true)}
+                size="sm"
+                className="flex items-center gap-1.5"
+              >
+                <UserPlus className="h-4 w-4" /> Convidar
+              </Button>
+            </CardHeader>
+            <CardContent>
+              <div className="border rounded-lg overflow-hidden">
+                <Table>
+                  <TableHeader className="bg-slate-50">
+                    <TableRow>
+                      <TableHead>Operador</TableHead>
+                      <TableHead>E-mail</TableHead>
+                      <TableHead>Perfil</TableHead>
+                      <TableHead className="text-right">Ações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {loading ? (
+                      <TableRow>
+                        <TableCell colSpan={4} className="text-center py-8 text-slate-500">
+                          Carregando...
+                        </TableCell>
+                      </TableRow>
+                    ) : operators.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={4} className="text-center py-8 text-slate-500">
+                          Nenhum operador encontrado.
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      operators.map((op) => (
+                        <TableRow key={op.id}>
+                          <TableCell className="font-medium text-sm text-slate-800">
+                            <div className="flex items-center gap-2">
+                              <div className="bg-slate-100 p-1.5 rounded-full">
+                                <User className="h-3 w-3 text-slate-500" />
+                              </div>
+                              {op.first_name} {op.last_name}
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-sm text-slate-600">{op.email}</TableCell>
+                          <TableCell>
+                            {op.is_admin ? (
+                              <span className="inline-flex items-center gap-1 bg-purple-50 text-purple-700 px-2.5 py-0.5 rounded-full text-xs font-semibold tracking-wide">
+                                <Shield className="h-3 w-3" /> Admin
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 bg-slate-100 text-slate-700 px-2.5 py-0.5 rounded-full text-xs font-semibold tracking-wide">
+                                Operador
+                              </span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-2">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                title="Resetar Senha"
+                                onClick={() => handleResetPassword(op.email)}
+                                className="h-8 w-8 text-slate-500 hover:text-amber-600"
+                              >
+                                <KeyRound className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                title="Editar Operador"
+                                onClick={() => openEditOperator(op)}
+                                className="h-8 w-8 text-slate-500 hover:text-primary"
+                              >
+                                <Edit2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -165,10 +331,10 @@ export default function Settings() {
                   <BookOpen className="h-5 w-5 text-primary" /> Base de Conhecimento
                 </CardTitle>
                 <CardDescription className="mt-1">
-                  Gerencie as frases que aparecem para os operadores durante o uso do sistema.
+                  Gerencie as frases que aparecem para os operadores.
                 </CardDescription>
               </div>
-              <Button onClick={openNew} size="sm" className="flex items-center gap-1.5">
+              <Button onClick={openNewQuote} size="sm" className="flex items-center gap-1.5">
                 <Plus className="h-4 w-4" /> Nova Frase
               </Button>
             </CardHeader>
@@ -230,7 +396,7 @@ export default function Settings() {
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                onClick={() => openEdit(q)}
+                                onClick={() => openEditQuote(q)}
                                 className="h-8 w-8 text-slate-500 hover:text-primary"
                               >
                                 <Edit2 className="h-4 w-4" />
@@ -238,7 +404,7 @@ export default function Settings() {
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                onClick={() => handleDelete(q.id)}
+                                onClick={() => handleDeleteQuote(q.id)}
                                 className="h-8 w-8 text-slate-500 hover:text-destructive"
                               >
                                 <Trash2 className="h-4 w-4" />
@@ -294,7 +460,6 @@ export default function Settings() {
                         const operatorName = c.profiles?.first_name
                           ? `${c.profiles.first_name} ${c.profiles.last_name || ''}`
                           : c.profiles?.name || c.profiles?.email || 'Desconhecido'
-
                         return (
                           <TableRow key={c.id}>
                             <TableCell className="font-medium text-sm text-slate-800">
@@ -366,7 +531,84 @@ export default function Settings() {
             <Button variant="outline" onClick={() => setIsModalOpen(false)}>
               Cancelar
             </Button>
-            <Button onClick={handleSave}>Salvar Frase</Button>
+            <Button onClick={handleSaveQuote}>Salvar Frase</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isOperatorModalOpen} onOpenChange={setIsOperatorModalOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Editar Operador</DialogTitle>
+            <DialogDescription>Atualize os dados e permissões do operador.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="opFirstName">Nome</Label>
+                <Input
+                  id="opFirstName"
+                  value={opFirstName}
+                  onChange={(e) => setOpFirstName(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="opLastName">Sobrenome</Label>
+                <Input
+                  id="opLastName"
+                  value={opLastName}
+                  onChange={(e) => setOpLastName(e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="flex items-center justify-between rounded-lg border p-4">
+              <div className="space-y-0.5">
+                <Label className="text-base">Administrador</Label>
+                <p className="text-sm text-slate-500">
+                  Concede acesso total às configurações do sistema.
+                </p>
+              </div>
+              <Switch checked={opIsAdmin} onCheckedChange={setOpIsAdmin} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsOperatorModalOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleSaveOperator}>Salvar Alterações</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isInviteModalOpen} onOpenChange={setIsInviteModalOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Convidar Operador</DialogTitle>
+            <DialogDescription>
+              Envie o link abaixo para que o novo membro da equipe crie sua conta e defina sua
+              própria senha.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <div className="flex items-center space-x-2">
+              <Input
+                readOnly
+                value={`${window.location.origin}/login`}
+                className="bg-slate-50 text-slate-500"
+              />
+              <Button size="icon" onClick={copyInviteLink} className="shrink-0">
+                {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+              </Button>
+            </div>
+            <p className="text-xs text-slate-500 mt-4">
+              Após a criação da conta, você poderá editar o perfil dele e conceder permissões de
+              administrador nesta mesma tela.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsInviteModalOpen(false)}>
+              Fechar
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
