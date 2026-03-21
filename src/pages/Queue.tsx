@@ -19,6 +19,10 @@ import { useAuth } from '@/hooks/use-auth'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
+const safeText = (text: any): string => (typeof text === 'string' ? text : '')
+const safeSlice = (text: any, start: number, end?: number): string =>
+  typeof text === 'string' ? text.slice(start, end) : ''
+
 export default function Queue() {
   const { user } = useAuth()
   const [search, setSearch] = useState('')
@@ -145,22 +149,22 @@ export default function Queue() {
                           <div className="flex flex-col max-w-[180px] sm:max-w-[250px]">
                             <span
                               className="font-bold text-slate-900 truncate"
-                              title={customer.name}
+                              title={safeText(customer.name)}
                             >
-                              {customer.name}
+                              {safeText(customer.name)}
                             </span>
                             <span
                               className="text-xs font-medium text-slate-500 truncate"
-                              title={`${customer.uc} • ${customer.document}`}
+                              title={`${customer.uc} • ${safeText(customer.document)}`}
                             >
-                              UC: {customer.uc} • {customer.document}
+                              UC: {customer.uc} • {safeText(customer.document)}
                             </span>
                             {customer.address && (
                               <span
                                 className="text-xs font-medium text-slate-400 truncate mt-0.5"
-                                title={customer.address}
+                                title={safeText(customer.address)}
                               >
-                                {customer.address}
+                                {safeText(customer.address)}
                               </span>
                             )}
                           </div>
@@ -183,9 +187,9 @@ export default function Queue() {
                               {customer.lastOperatorName && (
                                 <Badge
                                   className="w-fit text-[10px] px-1.5 py-0 uppercase tracking-wider shadow-none bg-slate-600 text-white hover:bg-slate-700"
-                                  title={`Último atendimento por: ${customer.lastOperatorName}`}
+                                  title={`Último atendimento por: ${safeText(customer.lastOperatorName)}`}
                                 >
-                                  {customer.lastOperatorName.substring(0, 4)}
+                                  {safeSlice(customer.lastOperatorName, 0, 4)}
                                 </Badge>
                               )}
                             </div>
@@ -273,9 +277,9 @@ export default function Queue() {
                           <div className="flex flex-col max-w-[180px] sm:max-w-[250px]">
                             <span
                               className="font-bold text-slate-900 truncate"
-                              title={customer.name}
+                              title={safeText(customer.name)}
                             >
-                              {customer.name}
+                              {safeText(customer.name)}
                             </span>
                             <span
                               className="text-xs font-medium text-slate-500 truncate"
@@ -289,9 +293,9 @@ export default function Queue() {
                             {customer.address && (
                               <span
                                 className="text-xs font-medium text-slate-400 truncate mt-0.5"
-                                title={customer.address}
+                                title={safeText(customer.address)}
                               >
-                                {customer.address}
+                                {safeText(customer.address)}
                               </span>
                             )}
                           </div>
