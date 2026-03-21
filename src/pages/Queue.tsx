@@ -151,12 +151,22 @@ export default function Queue() {
                                 minimumFractionDigits: 2,
                               })}
                             </span>
-                            <Badge
-                              variant={getPriorityColor(customer.priority) as any}
-                              className="w-fit text-[10px] px-1.5 py-0 uppercase tracking-wider mt-0.5 shadow-none"
-                            >
-                              {customer.priority}
-                            </Badge>
+                            <div className="flex items-center gap-1.5 mt-0.5">
+                              <Badge
+                                variant={getPriorityColor(customer.priority) as any}
+                                className="w-fit text-[10px] px-1.5 py-0 uppercase tracking-wider shadow-none"
+                              >
+                                {customer.priority}
+                              </Badge>
+                              {customer.lastOperatorName && (
+                                <Badge
+                                  className="w-fit text-[10px] px-1.5 py-0 uppercase tracking-wider shadow-none bg-slate-600 text-white hover:bg-slate-700"
+                                  title={`Último atendimento por: ${customer.lastOperatorName}`}
+                                >
+                                  {customer.lastOperatorName.substring(0, 4)}
+                                </Badge>
+                              )}
+                            </div>
                           </div>
                         </TableCell>
                         <TableCell className="text-right">

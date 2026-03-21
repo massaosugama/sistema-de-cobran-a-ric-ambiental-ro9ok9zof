@@ -16,6 +16,7 @@ export interface ParsedDebt {
   invoices: { ref: string; value: number; days: number }[]
   redundancyAlert?: { operator: string; daysAgo: number }
   lastContactDate?: string
+  lastOperatorName?: string
 }
 
 function parseDebtRow(
@@ -68,18 +69,26 @@ export async function getDebts(search?: string, operatorId?: string) {
 
   let attendedUcs = new Set<string>()
   let latestContactDates: Record<string, string> = {}
+  let globalLatestOperator: Record<string, string> = {}
 
-  if (operatorId) {
-    const { data: contacts, error: contactsError } = await supabase
-      .from('contact_history')
-      .select('uc, cod_pess_fat, created_at')
-      .eq('operator_id', operatorId)
-      .order('created_at', { ascending: false })
+  const { data: contacts, error: contactsError } = await supabase
+    .from('contact_history')
+    .select('uc, cod_pess_fat, created_at, operator_id, profiles(name)')
+    .order('created_at', { ascending: false })
 
-    if (!contactsError && contacts) {
-      for (const contact of contacts) {
-        if (contact.uc && contact.cod_pess_fat) {
-          const key = `${contact.uc}_${contact.cod_pess_fat}`
+  if (!contactsError && contacts) {
+    for (const contact of contacts) {
+      if (contact.uc && contact.cod_pess_fat) {
+        const key = `${contact.uc}_${contact.cod_pess_fat}`
+
+        if (!globalLatestOperator[key]) {
+          const opName = (contact.profiles as any)?.name
+          if (opName) {
+            globalLatestOperator[key] = opName
+          }
+        }
+
+        if (operatorId && contact.operator_id === operatorId) {
           attendedUcs.add(key)
           if (!latestContactDates[key]) {
             latestContactDates[key] = contact.created_at
@@ -91,19 +100,21 @@ export async function getDebts(search?: string, operatorId?: string) {
 
   const parsedDebts = (debts || []).map((row) => parseDebtRow(row))
 
-  if (!operatorId) {
-    return { unattended: parsedDebts, attended: [] }
-  }
-
   const unattended: ParsedDebt[] = []
   const attended: ParsedDebt[] = []
 
   for (const debt of parsedDebts) {
     const key = `${debt.uc}_${debt.personCode}`
-    if (attendedUcs.has(key)) {
-      attended.push({ ...debt, lastContactDate: latestContactDates[key] })
+    const lastOpName = globalLatestOperator[key]
+
+    if (operatorId && attendedUcs.has(key)) {
+      attended.push({
+        ...debt,
+        lastContactDate: latestContactDates[key],
+        lastOperatorName: lastOpName,
+      })
     } else {
-      unattended.push(debt)
+      unattended.push({ ...debt, lastOperatorName: lastOpName })
     }
   }
 
