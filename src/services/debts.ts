@@ -173,3 +173,10 @@ export async function getDebtByUc(uc: string) {
 
   return parseDebtRow(data, phoneValidationStatus)
 }
+
+export async function getPortfolioStats() {
+  const { data, error } = await (supabase as any).rpc('get_portfolio_stats')
+  if (error) throw error
+
+  return data as { total_cases: number; total_value: number }
+}

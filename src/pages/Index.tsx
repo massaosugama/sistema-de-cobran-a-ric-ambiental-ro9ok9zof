@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { CalendarDays, TrendingUp, Users, Target, ArrowRight } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { getDebts, ParsedDebt } from '@/services/debts'
+import { getDebts, getPortfolioStats, ParsedDebt } from '@/services/debts'
 import { useAuth } from '@/hooks/use-auth'
 
 const LEADERBOARD = [
@@ -28,13 +28,22 @@ const LEADERBOARD = [
 
 export default function Index() {
   const [queue, setQueue] = useState<ParsedDebt[]>([])
+  const [portfolioStats, setPortfolioStats] = useState({ total_cases: 0, total_value: 0 })
   const { user } = useAuth()
   const name = user?.user_metadata?.name || user?.email?.split('@')[0] || 'Operador'
 
   useEffect(() => {
     getDebts()
-      .then((d) => setQueue(d.slice(0, 3)))
+      .then((d) => {
+        if (Array.isArray(d)) {
+          setQueue(d.slice(0, 3))
+        } else if (d && d.unattended) {
+          setQueue(d.unattended.slice(0, 3))
+        }
+      })
       .catch(console.error)
+
+    getPortfolioStats().then(setPortfolioStats).catch(console.error)
   }, [])
 
   return (
@@ -49,14 +58,12 @@ export default function Index() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-sm font-medium">Minhas Pendências</CardTitle>
+            <CardTitle className="text-sm font-medium">Total da Carteira</CardTitle>
             <CalendarDays className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">24</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              <span className="text-destructive font-medium">8 atrasadas</span> para hoje
-            </p>
+            <div className="text-2xl font-bold">{portfolioStats.total_cases}</div>
+            <p className="text-xs text-muted-foreground mt-1">Casos únicos (UC + Pessoa)</p>
           </CardContent>
         </Card>
         <Card>
