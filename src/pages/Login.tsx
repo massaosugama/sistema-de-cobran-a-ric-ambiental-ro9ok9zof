@@ -115,13 +115,6 @@ export default function Login() {
                 placeholder="••••••••"
               />
             </div>
-            <Button
-              type="submit"
-              disabled={isSubmitting}
-              className="w-full h-11 font-bold text-base mt-2 shadow-md"
-            >
-              {isSubmitting ? 'Aguarde...' : mode === 'login' ? 'Entrar no Sistema' : 'Criar Conta'}
-            </Button>
           </form>
 
           <div className="mt-6 text-center text-sm text-slate-500">
