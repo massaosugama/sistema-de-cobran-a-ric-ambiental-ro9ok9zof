@@ -1,5 +1,13 @@
 import { Link, useLocation } from 'react-router-dom'
-import { LayoutDashboard, Users, FileText, Settings, CreditCard, PhoneCall } from 'lucide-react'
+import {
+  LayoutDashboard,
+  Users,
+  FileText,
+  Settings,
+  CreditCard,
+  PhoneCall,
+  Database,
+} from 'lucide-react'
 import {
   Sidebar,
   SidebarContent,
@@ -16,10 +24,11 @@ import logoImg from '@/assets/ricambiental_logo-01-500-porcento-fbb5f.png'
 
 const navigation = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
+  { name: 'Fila Rápida', href: '/queue', icon: PhoneCall },
   { name: 'Baixas', href: '/settlements', icon: CreditCard },
-  { name: 'Pendências', href: '/pendencies', icon: FileText },
   { name: 'Devedores', href: '/debtors', icon: Users },
-  { name: 'Follow-up', href: '/follow-up', icon: PhoneCall },
+  { name: 'Relatórios', href: '/reports', icon: FileText },
+  { name: 'Importação', href: '/import', icon: Database },
   { name: 'Configurações', href: '/settings', icon: Settings },
 ]
 

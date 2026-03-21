@@ -9,6 +9,10 @@ import Index from './pages/Index'
 import Queue from './pages/Queue'
 import CustomerPage from './pages/customer/CustomerPage'
 import Reports from './pages/Reports'
+import ImportData from './pages/ImportData'
+import Settlements from './pages/Settlements'
+import Debtors from './pages/Debtors'
+import Settings from './pages/Settings'
 import NotFound from './pages/NotFound'
 import Login from './pages/Login'
 
@@ -26,6 +30,10 @@ const App = () => (
               <Route path="/queue" element={<Queue />} />
               <Route path="/customer/:id" element={<CustomerPage />} />
               <Route path="/reports" element={<Reports />} />
+              <Route path="/import" element={<ImportData />} />
+              <Route path="/settlements" element={<Settlements />} />
+              <Route path="/debtors" element={<Debtors />} />
+              <Route path="/settings" element={<Settings />} />
             </Route>
           </Route>
           <Route path="*" element={<NotFound />} />

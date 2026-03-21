@@ -51,13 +51,6 @@ export type Database = {
             referencedRelation: 'profiles'
             referencedColumns: ['id']
           },
-          {
-            foreignKeyName: 'contact_history_uc_cod_pess_fat_fkey'
-            columns: ['uc', 'cod_pess_fat']
-            isOneToOne: false
-            referencedRelation: 'pending_debts'
-            referencedColumns: ['uc', 'cod_pess_fat']
-          },
         ]
       }
       follow_up_tasks: {
@@ -91,15 +84,7 @@ export type Database = {
           operator_id?: string | null
           uc?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: 'follow_up_tasks_uc_cod_pess_fat_fkey'
-            columns: ['uc', 'cod_pess_fat']
-            isOneToOne: false
-            referencedRelation: 'pending_debts'
-            referencedColumns: ['uc', 'cod_pess_fat']
-          },
-        ]
+        Relationships: []
       }
       pending_debts: {
         Row: {
@@ -481,11 +466,9 @@ export const Constants = {
 // Table: contact_history
 //   FOREIGN KEY contact_history_operator_id_fkey: FOREIGN KEY (operator_id) REFERENCES profiles(id) ON DELETE SET NULL
 //   PRIMARY KEY contact_history_pkey: PRIMARY KEY (id)
-//   FOREIGN KEY contact_history_uc_cod_pess_fat_fkey: FOREIGN KEY (uc, cod_pess_fat) REFERENCES pending_debts(uc, cod_pess_fat) ON DELETE CASCADE
 // Table: follow_up_tasks
 //   FOREIGN KEY follow_up_tasks_operator_id_fkey: FOREIGN KEY (operator_id) REFERENCES auth.users(id) ON DELETE SET NULL
 //   PRIMARY KEY follow_up_tasks_pkey: PRIMARY KEY (id)
-//   FOREIGN KEY follow_up_tasks_uc_cod_pess_fat_fkey: FOREIGN KEY (uc, cod_pess_fat) REFERENCES pending_debts(uc, cod_pess_fat) ON DELETE CASCADE
 // Table: pending_debts
 //   PRIMARY KEY pending_debts_pkey: PRIMARY KEY (uc, cod_pess_fat)
 // Table: profiles
