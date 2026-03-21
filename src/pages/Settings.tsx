@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import {
   Settings as SettingsIcon,
@@ -15,6 +16,9 @@ import {
   KeyRound,
   Copy,
   Check,
+  UserCircle,
+  Eye,
+  EyeOff,
 } from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
@@ -40,13 +44,23 @@ import {
 } from '@/components/ui/dialog'
 import { supabase } from '@/lib/supabase/client'
 import { useToast } from '@/hooks/use-toast'
+import { useAuth } from '@/hooks/use-auth'
 
 export default function Settings() {
   const { toast } = useToast()
+  const [searchParams] = useSearchParams()
+  const defaultTab = searchParams.get('tab') || 'profile'
+
+  const { user, updatePassword } = useAuth()
   const [quotes, setQuotes] = useState<any[]>([])
   const [clicks, setClicks] = useState<any[]>([])
   const [operators, setOperators] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+
+  // Profile state
+  const [newPassword, setNewPassword] = useState('')
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false)
+  const [showPasswordProfile, setShowPasswordProfile] = useState(false)
 
   // Quotes state
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -89,6 +103,26 @@ export default function Settings() {
     setLoading(true)
     Promise.all([fetchQuotes(), fetchOperators(), fetchClicks()]).finally(() => setLoading(false))
   }, [])
+
+  const handleUpdatePassword = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (newPassword.length < 6) {
+      return toast({
+        title: 'Erro',
+        description: 'A senha deve ter pelo menos 6 caracteres.',
+        variant: 'destructive',
+      })
+    }
+    setIsUpdatingPassword(true)
+    const { error } = await updatePassword(newPassword)
+    setIsUpdatingPassword(false)
+    if (error) {
+      toast({ title: 'Erro', description: error.message, variant: 'destructive' })
+    } else {
+      toast({ title: 'Sucesso', description: 'Senha atualizada com sucesso.' })
+      setNewPassword('')
+    }
+  }
 
   const handleSaveQuote = async () => {
     if (!text.trim())
@@ -168,7 +202,7 @@ export default function Settings() {
   const handleResetPassword = async (email: string) => {
     if (!confirm(`Deseja enviar um link de redefinição de senha para ${email}?`)) return
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/login`,
+      redirectTo: `${window.location.origin}/settings?tab=profile`,
     })
     if (error) toast({ title: 'Erro', description: error.message, variant: 'destructive' })
     else toast({ title: 'Sucesso', description: 'E-mail de redefinição enviado com sucesso.' })
@@ -192,8 +226,11 @@ export default function Settings() {
         <p className="text-slate-500 mt-1 font-medium">Parâmetros e preferências do sistema.</p>
       </div>
 
-      <Tabs defaultValue="operators" className="w-full">
-        <TabsList className="grid w-full max-w-4xl grid-cols-4">
+      <Tabs defaultValue={defaultTab} className="w-full">
+        <TabsList className="grid w-full max-w-5xl grid-cols-5">
+          <TabsTrigger value="profile" className="flex items-center gap-2">
+            <UserCircle className="h-4 w-4" /> Meu Perfil
+          </TabsTrigger>
           <TabsTrigger value="general" className="flex items-center gap-2">
             <SettingsIcon className="h-4 w-4" /> Geral
           </TabsTrigger>
@@ -207,6 +244,66 @@ export default function Settings() {
             <Activity className="h-4 w-4" /> Engajamento
           </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="profile" className="mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <UserCircle className="h-5 w-5 text-primary" /> Meu Perfil
+              </CardTitle>
+              <CardDescription>
+                Gerencie suas informações pessoais e credenciais de acesso.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-4 max-w-sm">
+                <div>
+                  <Label className="text-slate-500 text-xs uppercase tracking-wider">
+                    E-mail de acesso
+                  </Label>
+                  <p className="font-medium text-slate-900">{user?.email}</p>
+                </div>
+
+                <form
+                  onSubmit={handleUpdatePassword}
+                  className="space-y-4 pt-4 border-t border-slate-100"
+                >
+                  <div className="space-y-2">
+                    <Label htmlFor="newPassword">Nova Senha</Label>
+                    <div className="relative">
+                      <Input
+                        id="newPassword"
+                        type={showPasswordProfile ? 'text' : 'password'}
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        placeholder="••••••••"
+                        required
+                        className="pr-10"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPasswordProfile(!showPasswordProfile)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none"
+                        tabIndex={-1}
+                        title={showPasswordProfile ? 'Ocultar senha' : 'Exibir senha'}
+                      >
+                        {showPasswordProfile ? (
+                          <EyeOff className="h-4 w-4" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
+                      </button>
+                    </div>
+                    <p className="text-xs text-slate-500">Mínimo de 6 caracteres.</p>
+                  </div>
+                  <Button type="submit" disabled={isUpdatingPassword || newPassword.length < 6}>
+                    {isUpdatingPassword ? 'Atualizando...' : 'Atualizar Senha'}
+                  </Button>
+                </form>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
         <TabsContent value="general" className="mt-6">
           <Card>
