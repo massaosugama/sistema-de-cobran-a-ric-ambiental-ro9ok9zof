@@ -1,11 +1,10 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Search, Filter, ArrowRight } from 'lucide-react'
-import { Card, CardContent, CardHeader } from '@/components/ui/card'
+import { Search, ArrowRight, Clock } from 'lucide-react'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   Table,
   TableBody,
@@ -16,23 +15,29 @@ import {
 } from '@/components/ui/table'
 import { getDebts, ParsedDebt } from '@/services/debts'
 import { useDebounce } from '@/hooks/use-debounce'
+import { useAuth } from '@/hooks/use-auth'
+import { format } from 'date-fns'
+import { ptBR } from 'date-fns/locale'
 
 export default function Queue() {
-  const [filter, setFilter] = useState('todas')
+  const { user } = useAuth()
   const [search, setSearch] = useState('')
   const debouncedSearch = useDebounce(search, 500)
-  const [debts, setDebts] = useState<ParsedDebt[]>([])
+  const [unattended, setUnattended] = useState<ParsedDebt[]>([])
+  const [attended, setAttended] = useState<ParsedDebt[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    if (!user?.id) return
     setLoading(true)
-    getDebts(debouncedSearch)
+    getDebts(debouncedSearch, user.id)
       .then((data) => {
-        setDebts(data)
+        setUnattended(data.unattended)
+        setAttended(data.attended)
         setLoading(false)
       })
       .catch(console.error)
-  }, [debouncedSearch])
+  }, [debouncedSearch, user?.id])
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
@@ -45,168 +50,245 @@ export default function Queue() {
     }
   }
 
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case 'pendente':
-        return (
-          <Badge
-            variant="secondary"
-            className="bg-slate-100 text-slate-600 font-medium border-slate-200"
-          >
-            Pendente
-          </Badge>
-        )
-      case 'promessa':
-        return (
-          <Badge className="bg-emerald-500 hover:bg-emerald-600 text-white font-medium shadow-sm">
-            Promessa
-          </Badge>
-        )
-      case 'em_andamento':
-        return (
-          <Badge
-            variant="outline"
-            className="border-primary/30 text-primary bg-primary/5 font-medium"
-          >
-            Em Andamento
-          </Badge>
-        )
-      default:
-        return <Badge variant="secondary">{status}</Badge>
-    }
-  }
-
   return (
     <div className="space-y-6 animate-fade-in-up">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-black tracking-tight text-slate-900">Fila de Atendimento</h1>
+          <h1 className="text-3xl font-black tracking-tight text-slate-900">Fila Rápida</h1>
           <p className="text-slate-500 mt-1 font-medium">
-            Gerencie seus contatos pendentes e priorize a recuperação.
+            Gerencie seus contatos pendentes e acompanhe suas negociações em andamento.
           </p>
         </div>
-        <Button className="font-bold shadow-md shadow-primary/20">Atribuir Novos</Button>
+
+        <div className="relative w-full sm:w-80">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+          <Input
+            placeholder="Buscar na fila (UC, Nome, CPF/CNPJ)..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-9 rounded-full bg-white border-slate-200 shadow-sm h-10 w-full focus-visible:ring-primary/20"
+          />
+        </div>
       </div>
 
-      <Card className="border-slate-200 shadow-sm overflow-hidden">
-        <CardHeader className="pb-3 border-b bg-white">
-          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-            <Tabs defaultValue="todas" className="w-full md:w-auto" onValueChange={setFilter}>
-              <TabsList className="bg-slate-100 p-1 rounded-full">
-                <TabsTrigger
-                  value="todas"
-                  className="rounded-full data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm"
-                >
-                  Minha Fila
-                </TabsTrigger>
-                <TabsTrigger
-                  value="atrasados"
-                  className="rounded-full data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm"
-                >
-                  Atrasados (Hoje)
-                </TabsTrigger>
-                <TabsTrigger
-                  value="prioridade"
-                  className="rounded-full data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm"
-                >
-                  Alta Prioridade
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
-            <div className="flex w-full md:w-auto items-center gap-2">
-              <div className="relative w-full md:w-64">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                <Input
-                  placeholder="Buscar na fila..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="pl-9 rounded-full bg-slate-50 border-slate-200 h-9"
-                />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+        {/* Coluna Esquerda: Fila de Devedores */}
+        <Card className="border-slate-200 shadow-sm flex flex-col h-[calc(100vh-12rem)] min-h-[500px]">
+          <CardHeader className="pb-3 border-b bg-slate-50/50 shrink-0">
+            <div className="flex justify-between items-center">
+              <div>
+                <CardTitle className="text-lg font-bold text-slate-800">
+                  Fila de Devedores
+                </CardTitle>
+                <CardDescription>Novas oportunidades de negociação</CardDescription>
               </div>
-              <Button
-                variant="outline"
-                size="icon"
-                className="rounded-full border-slate-200 text-slate-500"
+              <Badge
+                variant="secondary"
+                className="bg-white shadow-sm border-slate-200 text-slate-600"
               >
-                <Filter className="h-4 w-4" />
-              </Button>
+                {unattended.length} pendentes
+              </Badge>
             </div>
-          </div>
-        </CardHeader>
-        <CardContent className="p-0 bg-white">
-          <Table>
-            <TableHeader className="bg-slate-50/80">
-              <TableRow className="border-slate-100 hover:bg-transparent">
-                <TableHead className="w-[100px] font-semibold text-slate-600">UC</TableHead>
-                <TableHead className="font-semibold text-slate-600">Devedor</TableHead>
-                <TableHead className="font-semibold text-slate-600">Dias Atraso</TableHead>
-                <TableHead className="font-semibold text-slate-600">Valor Total</TableHead>
-                <TableHead className="font-semibold text-slate-600">Status</TableHead>
-                <TableHead className="text-right font-semibold text-slate-600">Ação</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center py-10 text-slate-500 font-medium">
-                    Buscando devedores...
-                  </TableCell>
-                </TableRow>
-              ) : debts.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center py-10 text-slate-500 font-medium">
-                    Nenhum devedor encontrado.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                debts.map((customer) => (
-                  <TableRow
-                    key={customer.id}
-                    className="hover:bg-primary/5 border-slate-100 group transition-colors"
-                  >
-                    <TableCell className="font-medium text-slate-700">{customer.uc}</TableCell>
-                    <TableCell>
-                      <div className="flex flex-col">
-                        <span className="font-bold text-slate-900">{customer.name}</span>
-                        <span className="text-xs font-medium text-slate-500">
-                          CPF/CNPJ: {customer.document}
-                        </span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium text-slate-700">{customer.overdueDays}</span>
-                        <Badge
-                          variant={getPriorityColor(customer.priority) as any}
-                          className="text-[10px] px-2 py-0 uppercase font-bold tracking-wider"
-                        >
-                          {customer.priority}
-                        </Badge>
-                      </div>
-                    </TableCell>
-                    <TableCell className="font-bold text-slate-900">
-                      R$ {customer.totalDebt.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                    </TableCell>
-                    <TableCell>{getStatusLabel(customer.status)}</TableCell>
-                    <TableCell className="text-right">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        asChild
-                        className="opacity-0 group-hover:opacity-100 transition-all text-primary font-bold hover:bg-primary/10 hover:text-primary rounded-full px-4"
-                      >
-                        <Link to={`/customer/${customer.id}`}>
-                          Atender <ArrowRight className="ml-1 h-4 w-4" />
-                        </Link>
-                      </Button>
-                    </TableCell>
+          </CardHeader>
+          <CardContent className="p-0 flex-1 overflow-hidden flex flex-col">
+            <div className="flex-1 overflow-hidden [&>div]:h-full [&>div]:overflow-auto">
+              <Table>
+                <TableHeader className="bg-slate-50/90 sticky top-0 z-10 outline outline-1 outline-slate-100 shadow-sm backdrop-blur-sm">
+                  <TableRow className="border-slate-100 hover:bg-transparent">
+                    <TableHead className="font-semibold text-slate-600">Devedor / UC</TableHead>
+                    <TableHead className="font-semibold text-slate-600 w-[120px]">
+                      Valor Total
+                    </TableHead>
+                    <TableHead className="text-right font-semibold text-slate-600 w-[60px]"></TableHead>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+                </TableHeader>
+                <TableBody>
+                  {loading ? (
+                    <TableRow>
+                      <TableCell
+                        colSpan={3}
+                        className="text-center py-10 text-slate-500 font-medium"
+                      >
+                        Buscando devedores...
+                      </TableCell>
+                    </TableRow>
+                  ) : unattended.length === 0 ? (
+                    <TableRow>
+                      <TableCell
+                        colSpan={3}
+                        className="text-center py-10 text-slate-500 font-medium"
+                      >
+                        Nenhum devedor novo encontrado.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    unattended.map((customer) => (
+                      <TableRow
+                        key={`${customer.uc}_${customer.personCode}`}
+                        className="hover:bg-primary/5 border-slate-100 group transition-colors"
+                      >
+                        <TableCell>
+                          <div className="flex flex-col max-w-[180px] sm:max-w-[250px]">
+                            <span
+                              className="font-bold text-slate-900 truncate"
+                              title={customer.name}
+                            >
+                              {customer.name}
+                            </span>
+                            <span
+                              className="text-xs font-medium text-slate-500 truncate"
+                              title={`${customer.uc} • ${customer.document}`}
+                            >
+                              UC: {customer.uc} • {customer.document}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-col items-start">
+                            <span className="font-bold text-slate-900 whitespace-nowrap">
+                              R${' '}
+                              {customer.totalDebt.toLocaleString('pt-BR', {
+                                minimumFractionDigits: 2,
+                              })}
+                            </span>
+                            <Badge
+                              variant={getPriorityColor(customer.priority) as any}
+                              className="w-fit text-[10px] px-1.5 py-0 uppercase tracking-wider mt-0.5 shadow-none"
+                            >
+                              {customer.priority}
+                            </Badge>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            asChild
+                            className="text-slate-400 group-hover:text-primary group-hover:bg-primary/10 rounded-full transition-all"
+                          >
+                            <Link to={`/customer/${customer.id}`} title="Atender Devedor">
+                              <ArrowRight className="h-4 w-4" />
+                            </Link>
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Coluna Direita: Fila de Atendimento */}
+        <Card className="border-slate-200 shadow-sm flex flex-col h-[calc(100vh-12rem)] min-h-[500px]">
+          <CardHeader className="pb-3 border-b bg-primary/5 shrink-0">
+            <div className="flex justify-between items-center">
+              <div>
+                <CardTitle className="text-lg font-bold text-primary">
+                  Fila de Atendimento
+                </CardTitle>
+                <CardDescription className="text-primary/70">
+                  Meus contatos em andamento
+                </CardDescription>
+              </div>
+              <Badge
+                variant="outline"
+                className="bg-white shadow-sm border-primary/20 text-primary"
+              >
+                {attended.length} em carteira
+              </Badge>
+            </div>
+          </CardHeader>
+          <CardContent className="p-0 flex-1 overflow-hidden flex flex-col">
+            <div className="flex-1 overflow-hidden [&>div]:h-full [&>div]:overflow-auto">
+              <Table>
+                <TableHeader className="bg-slate-50/90 sticky top-0 z-10 outline outline-1 outline-slate-100 shadow-sm backdrop-blur-sm">
+                  <TableRow className="border-slate-100 hover:bg-transparent">
+                    <TableHead className="font-semibold text-slate-600">Devedor / UC</TableHead>
+                    <TableHead className="font-semibold text-slate-600 w-[140px]">
+                      Último Contato
+                    </TableHead>
+                    <TableHead className="text-right font-semibold text-slate-600 w-[60px]"></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {loading ? (
+                    <TableRow>
+                      <TableCell
+                        colSpan={3}
+                        className="text-center py-10 text-slate-500 font-medium"
+                      >
+                        Buscando atendimentos...
+                      </TableCell>
+                    </TableRow>
+                  ) : attended.length === 0 ? (
+                    <TableRow>
+                      <TableCell
+                        colSpan={3}
+                        className="text-center py-10 text-slate-500 font-medium"
+                      >
+                        Você ainda não iniciou nenhum atendimento.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    attended.map((customer) => (
+                      <TableRow
+                        key={`${customer.uc}_${customer.personCode}`}
+                        className="hover:bg-primary/5 border-slate-100 group transition-colors"
+                      >
+                        <TableCell>
+                          <div className="flex flex-col max-w-[180px] sm:max-w-[250px]">
+                            <span
+                              className="font-bold text-slate-900 truncate"
+                              title={customer.name}
+                            >
+                              {customer.name}
+                            </span>
+                            <span
+                              className="text-xs font-medium text-slate-500 truncate"
+                              title={`UC: ${customer.uc} • R$ ${customer.totalDebt.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
+                            >
+                              UC: {customer.uc} • R${' '}
+                              {customer.totalDebt.toLocaleString('pt-BR', {
+                                minimumFractionDigits: 2,
+                              })}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1.5 text-slate-600 whitespace-nowrap">
+                            <Clock className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                            <span className="text-xs font-medium">
+                              {customer.lastContactDate
+                                ? format(new Date(customer.lastContactDate), "dd/MM 'às' HH:mm", {
+                                    locale: ptBR,
+                                  })
+                                : '-'}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            asChild
+                            className="text-slate-400 group-hover:text-primary group-hover:bg-primary/10 rounded-full transition-all"
+                          >
+                            <Link to={`/customer/${customer.id}`} title="Continuar Atendimento">
+                              <ArrowRight className="h-4 w-4" />
+                            </Link>
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   )
 }

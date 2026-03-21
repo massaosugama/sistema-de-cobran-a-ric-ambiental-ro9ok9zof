@@ -15,6 +15,7 @@ export interface ParsedDebt {
   phones: { number: string; status: 'a_verificar' | 'validado' | 'invalido' }[]
   invoices: { ref: string; value: number; days: number }[]
   redundancyAlert?: { operator: string; daysAgo: number }
+  lastContactDate?: string
 }
 
 function parseDebtRow(
@@ -55,16 +56,64 @@ function parseDebtRow(
   }
 }
 
-export async function getDebts(search?: string) {
+export async function getDebts(search?: string, operatorId?: string) {
   let query = supabase.from('pending_debts').select('*').order('valor_total', { ascending: false })
   if (search) {
     query = query.or(
       `uc.ilike.%${search}%,pessoa_fatura_nome.ilike.%${search}%,pessoa_fatura_cpf_cnpj.ilike.%${search}%`,
     )
   }
-  const { data, error } = await query
+  const { data: debts, error } = await query
   if (error) throw error
-  return (data || []).map((row) => parseDebtRow(row))
+
+  let attendedUcs = new Set<string>()
+  let latestContactDates: Record<string, string> = {}
+
+  if (operatorId) {
+    const { data: contacts, error: contactsError } = await supabase
+      .from('contact_history')
+      .select('uc, cod_pess_fat, created_at')
+      .eq('operator_id', operatorId)
+      .order('created_at', { ascending: false })
+
+    if (!contactsError && contacts) {
+      for (const contact of contacts) {
+        if (contact.uc && contact.cod_pess_fat) {
+          const key = `${contact.uc}_${contact.cod_pess_fat}`
+          attendedUcs.add(key)
+          if (!latestContactDates[key]) {
+            latestContactDates[key] = contact.created_at
+          }
+        }
+      }
+    }
+  }
+
+  const parsedDebts = (debts || []).map((row) => parseDebtRow(row))
+
+  if (!operatorId) {
+    return { unattended: parsedDebts, attended: [] }
+  }
+
+  const unattended: ParsedDebt[] = []
+  const attended: ParsedDebt[] = []
+
+  for (const debt of parsedDebts) {
+    const key = `${debt.uc}_${debt.personCode}`
+    if (attendedUcs.has(key)) {
+      attended.push({ ...debt, lastContactDate: latestContactDates[key] })
+    } else {
+      unattended.push(debt)
+    }
+  }
+
+  attended.sort((a, b) => {
+    const dateA = a.lastContactDate ? new Date(a.lastContactDate).getTime() : 0
+    const dateB = b.lastContactDate ? new Date(b.lastContactDate).getTime() : 0
+    return dateB - dateA
+  })
+
+  return { unattended, attended }
 }
 
 export async function getDebtByUc(uc: string) {
