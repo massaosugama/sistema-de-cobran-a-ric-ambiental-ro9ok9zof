@@ -115,6 +115,10 @@ export default function Login() {
                 placeholder="••••••••"
               />
             </div>
+
+            <Button type="submit" className="w-full mt-6" disabled={isSubmitting}>
+              {isSubmitting ? 'Aguarde...' : mode === 'login' ? 'Entrar' : 'Cadastrar'}
+            </Button>
           </form>
 
           <div className="mt-6 text-center text-sm text-slate-500">
