@@ -57,13 +57,17 @@ function parseDebtRow(
   }
 }
 
-export async function getDebts(search?: string, operatorId?: string) {
+export async function getDebts(search?: string, operatorId?: string, searchAddress?: string) {
   let query = supabase.from('pending_debts').select('*').order('valor_total', { ascending: false })
   if (search) {
     query = query.or(
       `uc.ilike.%${search}%,pessoa_fatura_nome.ilike.%${search}%,pessoa_fatura_cpf_cnpj.ilike.%${search}%`,
     )
   }
+  if (searchAddress) {
+    query = query.ilike('endereco', `%${searchAddress}%`)
+  }
+
   const { data: debts, error } = await query
   if (error) throw error
 

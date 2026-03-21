@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Search, ArrowRight, Clock } from 'lucide-react'
+import { Search, ArrowRight, Clock, MapPin } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -22,7 +22,10 @@ import { ptBR } from 'date-fns/locale'
 export default function Queue() {
   const { user } = useAuth()
   const [search, setSearch] = useState('')
+  const [searchAddress, setSearchAddress] = useState('')
   const debouncedSearch = useDebounce(search, 500)
+  const debouncedSearchAddress = useDebounce(searchAddress, 500)
+
   const [unattended, setUnattended] = useState<ParsedDebt[]>([])
   const [attended, setAttended] = useState<ParsedDebt[]>([])
   const [loading, setLoading] = useState(true)
@@ -30,14 +33,14 @@ export default function Queue() {
   useEffect(() => {
     if (!user?.id) return
     setLoading(true)
-    getDebts(debouncedSearch, user.id)
+    getDebts(debouncedSearch, user.id, debouncedSearchAddress)
       .then((data) => {
         setUnattended(data.unattended)
         setAttended(data.attended)
         setLoading(false)
       })
       .catch(console.error)
-  }, [debouncedSearch, user?.id])
+  }, [debouncedSearch, debouncedSearchAddress, user?.id])
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
@@ -52,7 +55,7 @@ export default function Queue() {
 
   return (
     <div className="space-y-6 animate-fade-in-up">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
         <div>
           <h1 className="text-3xl font-black tracking-tight text-slate-900">Fila Rápida</h1>
           <p className="text-slate-500 mt-1 font-medium">
@@ -60,14 +63,25 @@ export default function Queue() {
           </p>
         </div>
 
-        <div className="relative w-full sm:w-80">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-          <Input
-            placeholder="Buscar na fila (UC, Nome, CPF/CNPJ)..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9 rounded-full bg-white border-slate-200 shadow-sm h-10 w-full focus-visible:ring-primary/20"
-          />
+        <div className="flex flex-col sm:flex-row gap-3 w-full xl:w-auto">
+          <div className="relative w-full sm:w-[280px]">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+            <Input
+              placeholder="Filtre UC, Nome ou Cpf/Cnpj"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9 rounded-full bg-white border-slate-200 shadow-sm h-10 w-full focus-visible:ring-primary/20"
+            />
+          </div>
+          <div className="relative w-full sm:w-[240px]">
+            <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+            <Input
+              placeholder="Filtre Endereço"
+              value={searchAddress}
+              onChange={(e) => setSearchAddress(e.target.value)}
+              className="pl-9 rounded-full bg-white border-slate-200 shadow-sm h-10 w-full focus-visible:ring-primary/20"
+            />
+          </div>
         </div>
       </div>
 
@@ -141,6 +155,14 @@ export default function Queue() {
                             >
                               UC: {customer.uc} • {customer.document}
                             </span>
+                            {customer.address && (
+                              <span
+                                className="text-xs font-medium text-slate-400 truncate mt-0.5"
+                                title={customer.address}
+                              >
+                                {customer.address}
+                              </span>
+                            )}
                           </div>
                         </TableCell>
                         <TableCell>
@@ -264,6 +286,14 @@ export default function Queue() {
                                 minimumFractionDigits: 2,
                               })}
                             </span>
+                            {customer.address && (
+                              <span
+                                className="text-xs font-medium text-slate-400 truncate mt-0.5"
+                                title={customer.address}
+                              >
+                                {customer.address}
+                              </span>
+                            )}
                           </div>
                         </TableCell>
                         <TableCell>
