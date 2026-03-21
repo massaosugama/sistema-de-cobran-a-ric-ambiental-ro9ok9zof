@@ -7,7 +7,6 @@ import {
   HelpCircle,
   CheckCircle2,
   User,
-  XCircle,
   MoreVertical,
   Edit2,
   Eye,
@@ -112,6 +111,17 @@ export function CustomerTimeline({ customer }: { customer?: ParsedDebt }) {
     }
   }
 
+  const handleReactivate = async (interactionId: string) => {
+    if (!confirm('Deseja realmente reativar este registro de atendimento?')) return
+    try {
+      await updateContact(interactionId, { is_active: true })
+      toast({ title: 'Sucesso', description: 'Registro reativado com sucesso.' })
+      fetchData()
+    } catch (error: any) {
+      toast({ title: 'Erro', description: error.message, variant: 'destructive' })
+    }
+  }
+
   const handleSaveEdit = async (updatedData: any) => {
     try {
       await updateContact(selectedContact.id, updatedData)
@@ -140,6 +150,7 @@ export function CustomerTimeline({ customer }: { customer?: ParsedDebt }) {
             const isInactive = !interaction.isActive
             const canEdit = isAdmin || user?.id === interaction.operatorId
             const canInactivate = isAdmin && interaction.isActive
+            const canReactivate = isAdmin && isInactive
 
             return (
               <div
@@ -188,6 +199,14 @@ export function CustomerTimeline({ customer }: { customer?: ParsedDebt }) {
                             className="text-rose-600 focus:text-rose-600"
                           >
                             <Ban className="w-4 h-4 mr-2" /> Inativar
+                          </DropdownMenuItem>
+                        )}
+                        {canReactivate && (
+                          <DropdownMenuItem
+                            onClick={() => handleReactivate(interaction.id)}
+                            className="text-emerald-600 focus:text-emerald-600"
+                          >
+                            <CheckCircle2 className="w-4 h-4 mr-2" /> Reativar
                           </DropdownMenuItem>
                         )}
                       </DropdownMenuContent>

@@ -15,6 +15,7 @@ export type Database = {
           contact_type: Database['public']['Enums']['contact_type_enum'] | null
           created_at: string
           id: string
+          is_active: boolean | null
           notes: string | null
           operator_id: string | null
           quality_result: string | null
@@ -26,6 +27,7 @@ export type Database = {
           contact_type?: Database['public']['Enums']['contact_type_enum'] | null
           created_at?: string
           id?: string
+          is_active?: boolean | null
           notes?: string | null
           operator_id?: string | null
           quality_result?: string | null
@@ -37,6 +39,7 @@ export type Database = {
           contact_type?: Database['public']['Enums']['contact_type_enum'] | null
           created_at?: string
           id?: string
+          is_active?: boolean | null
           notes?: string | null
           operator_id?: string | null
           quality_result?: string | null
@@ -49,6 +52,41 @@ export type Database = {
             columns: ['operator_id']
             isOneToOne: false
             referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      contact_history_audit: {
+        Row: {
+          changed_by: string | null
+          contact_id: string | null
+          created_at: string
+          id: string
+          new_data: Json | null
+          old_data: Json | null
+        }
+        Insert: {
+          changed_by?: string | null
+          contact_id?: string | null
+          created_at?: string
+          id?: string
+          new_data?: Json | null
+          old_data?: Json | null
+        }
+        Update: {
+          changed_by?: string | null
+          contact_id?: string | null
+          created_at?: string
+          id?: string
+          new_data?: Json | null
+          old_data?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'contact_history_audit_contact_id_fkey'
+            columns: ['contact_id']
+            isOneToOne: false
+            referencedRelation: 'contact_history'
             referencedColumns: ['id']
           },
         ]
@@ -476,6 +514,14 @@ export const Constants = {
 //   notes: text (nullable)
 //   created_at: timestamp with time zone (not null, default: now())
 //   cod_pess_fat: text (nullable)
+//   is_active: boolean (nullable, default: true)
+// Table: contact_history_audit
+//   id: uuid (not null, default: gen_random_uuid())
+//   contact_id: uuid (nullable)
+//   changed_by: uuid (nullable)
+//   old_data: jsonb (nullable)
+//   new_data: jsonb (nullable)
+//   created_at: timestamp with time zone (not null, default: now())
 // Table: follow_up_tasks
 //   id: uuid (not null, default: gen_random_uuid())
 //   uc: text (nullable)
@@ -550,6 +596,10 @@ export const Constants = {
 // Table: contact_history
 //   FOREIGN KEY contact_history_operator_id_fkey: FOREIGN KEY (operator_id) REFERENCES profiles(id) ON DELETE SET NULL
 //   PRIMARY KEY contact_history_pkey: PRIMARY KEY (id)
+// Table: contact_history_audit
+//   FOREIGN KEY contact_history_audit_changed_by_fkey: FOREIGN KEY (changed_by) REFERENCES auth.users(id) ON DELETE SET NULL
+//   FOREIGN KEY contact_history_audit_contact_id_fkey: FOREIGN KEY (contact_id) REFERENCES contact_history(id) ON DELETE CASCADE
+//   PRIMARY KEY contact_history_audit_pkey: PRIMARY KEY (id)
 // Table: follow_up_tasks
 //   FOREIGN KEY follow_up_tasks_operator_id_fkey: FOREIGN KEY (operator_id) REFERENCES auth.users(id) ON DELETE SET NULL
 //   PRIMARY KEY follow_up_tasks_pkey: PRIMARY KEY (id)
@@ -569,6 +619,10 @@ export const Constants = {
 
 // --- ROW LEVEL SECURITY POLICIES ---
 // Table: contact_history
+//   Policy "authenticated_all" (ALL, PERMISSIVE) roles={authenticated}
+//     USING: true
+//     WITH CHECK: true
+// Table: contact_history_audit
 //   Policy "authenticated_all" (ALL, PERMISSIVE) roles={authenticated}
 //     USING: true
 //     WITH CHECK: true
@@ -599,6 +653,24 @@ export const Constants = {
 //     WITH CHECK: true
 
 // --- DATABASE FUNCTIONS ---
+// FUNCTION audit_contact_history_changes()
+//   CREATE OR REPLACE FUNCTION public.audit_contact_history_changes()
+//    RETURNS trigger
+//    LANGUAGE plpgsql
+//    SECURITY DEFINER
+//   AS $function$
+//   BEGIN
+//       INSERT INTO public.contact_history_audit (contact_id, changed_by, old_data, new_data)
+//       VALUES (
+//           NEW.id,
+//           auth.uid(),
+//           row_to_json(OLD),
+//           row_to_json(NEW)
+//       );
+//       RETURN NEW;
+//   END;
+//   $function$
+//
 // FUNCTION handle_new_user()
 //   CREATE OR REPLACE FUNCTION public.handle_new_user()
 //    RETURNS trigger
@@ -634,3 +706,7 @@ export const Constants = {
 //   END;
 //   $function$
 //
+
+// --- TRIGGERS ---
+// Table: contact_history
+//   trg_audit_contact_history: CREATE TRIGGER trg_audit_contact_history AFTER UPDATE ON public.contact_history FOR EACH ROW WHEN ((old.* IS DISTINCT FROM new.*)) EXECUTE FUNCTION audit_contact_history_changes()
