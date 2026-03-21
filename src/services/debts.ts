@@ -71,9 +71,12 @@ export async function getDebts(search?: string, operatorId?: string) {
   let latestContactDates: Record<string, string> = {}
   let globalLatestOperator: Record<string, string> = {}
 
-  const { data: contacts, error: contactsError } = await supabase
+  const contactsQuery: any = supabase
     .from('contact_history')
     .select('uc, cod_pess_fat, created_at, operator_id, profiles(name)')
+
+  const { data: contacts, error: contactsError } = await contactsQuery
+    .eq('is_active', true)
     .order('created_at', { ascending: false })
 
   if (!contactsError && contacts) {
@@ -136,10 +139,11 @@ export async function getDebtByUc(uc: string) {
     .single()
   if (error) throw error
 
-  const { data: contacts } = await supabase
-    .from('contact_history')
-    .select('quality_result')
+  const contactsQuery: any = supabase.from('contact_history').select('quality_result')
+
+  const { data: contacts } = await contactsQuery
     .eq('uc', data.uc)
+    .eq('is_active', true)
     .order('created_at', { ascending: false })
 
   let phoneValidationStatus: 'a_verificar' | 'validado' | 'invalido' = 'a_verificar'
