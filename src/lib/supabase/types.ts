@@ -241,7 +241,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      truncate_pending_debts: { Args: never; Returns: undefined }
     }
     Enums: {
       contact_type_enum:
@@ -498,3 +498,16 @@ export const Constants = {
 //   Policy "authenticated_all" (ALL, PERMISSIVE) roles={authenticated}
 //     USING: true
 //     WITH CHECK: true
+
+// --- DATABASE FUNCTIONS ---
+// FUNCTION truncate_pending_debts()
+//   CREATE OR REPLACE FUNCTION public.truncate_pending_debts()
+//    RETURNS void
+//    LANGUAGE plpgsql
+//    SECURITY DEFINER
+//   AS $function$
+//   BEGIN
+//     TRUNCATE TABLE public.pending_debts;
+//   END;
+//   $function$
+//
