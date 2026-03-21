@@ -96,7 +96,9 @@ export async function getDebtByUc(uc: string) {
             phoneValidationStatus = parsed.validatePhone ? 'validado' : 'a_verificar'
             break
           }
-        } catch (e) {}
+        } catch (e) {
+          // ignore parsing errors for invalid json
+        }
       }
     }
   }
