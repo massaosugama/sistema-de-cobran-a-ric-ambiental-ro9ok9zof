@@ -1,6 +1,14 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { PhoneCall, MessageSquare, Mail, HelpCircle, CheckCircle2, User } from 'lucide-react'
+import {
+  PhoneCall,
+  MessageSquare,
+  Mail,
+  HelpCircle,
+  CheckCircle2,
+  User,
+  XCircle,
+} from 'lucide-react'
 import { getContactHistory } from '@/services/data'
 import type { ParsedDebt } from '@/services/debts'
 
@@ -98,11 +106,29 @@ export function CustomerTimeline({ customer }: { customer?: ParsedDebt }) {
                     {(() => {
                       try {
                         const parsed = JSON.parse(interaction.qualityResult)
+                        const phoneStatus =
+                          parsed.phoneValidationStatus ||
+                          (parsed.validatePhone !== undefined
+                            ? parsed.validatePhone
+                              ? 'validado'
+                              : 'a_verificar'
+                            : null)
+
                         return (
                           <>
-                            {parsed.validatePhone && (
+                            {phoneStatus === 'validado' && (
                               <span className="flex items-center gap-1 text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100">
-                                <CheckCircle2 className="w-3 h-3" /> Telefone Válido
+                                <CheckCircle2 className="w-3 h-3" /> Tel. Validado
+                              </span>
+                            )}
+                            {phoneStatus === 'invalido' && (
+                              <span className="flex items-center gap-1 text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded border border-rose-100">
+                                <XCircle className="w-3 h-3" /> Tel. Inválido
+                              </span>
+                            )}
+                            {phoneStatus === 'a_verificar' && (
+                              <span className="flex items-center gap-1 text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-100">
+                                <HelpCircle className="w-3 h-3" /> Tel. A verificar
                               </span>
                             )}
                             {parsed.talkedToOwner && (

@@ -12,22 +12,26 @@ export interface ParsedDebt {
   status: string
   nextAction?: string
   priority: 'alta' | 'media' | 'baixa'
-  phones: { number: string; isValid: boolean }[]
+  phones: { number: string; status: 'a_verificar' | 'validado' | 'invalido' }[]
   invoices: { ref: string; value: number; days: number }[]
   redundancyAlert?: { operator: string; daysAgo: number }
 }
 
-function parseDebtRow(row: any): ParsedDebt {
+function parseDebtRow(
+  row: any,
+  phoneStatus: 'a_verificar' | 'validado' | 'invalido' = 'a_verificar',
+): ParsedDebt {
   const phones = []
-  if (row.pessoa_fatura_celular) phones.push({ number: row.pessoa_fatura_celular, isValid: true })
+  if (row.pessoa_fatura_celular)
+    phones.push({ number: row.pessoa_fatura_celular, status: phoneStatus })
   if (row.proprietario_celular && row.proprietario_celular !== row.pessoa_fatura_celular)
-    phones.push({ number: row.proprietario_celular, isValid: true })
+    phones.push({ number: row.proprietario_celular, status: phoneStatus })
   if (
     row.responsavel_celular &&
     row.responsavel_celular !== row.pessoa_fatura_celular &&
     row.responsavel_celular !== row.proprietario_celular
   )
-    phones.push({ number: row.responsavel_celular, isValid: true })
+    phones.push({ number: row.responsavel_celular, status: phoneStatus })
 
   const invoices = row.refs
     ? row.refs
@@ -60,7 +64,7 @@ export async function getDebts(search?: string) {
   }
   const { data, error } = await query
   if (error) throw error
-  return (data || []).map(parseDebtRow)
+  return (data || []).map((row) => parseDebtRow(row))
 }
 
 export async function getDebtByUc(uc: string) {
@@ -71,5 +75,31 @@ export async function getDebtByUc(uc: string) {
     .limit(1)
     .single()
   if (error) throw error
-  return parseDebtRow(data)
+
+  const { data: contacts } = await supabase
+    .from('contact_history')
+    .select('quality_result')
+    .eq('uc', data.uc)
+    .order('created_at', { ascending: false })
+
+  let phoneValidationStatus: 'a_verificar' | 'validado' | 'invalido' = 'a_verificar'
+
+  if (contacts && contacts.length > 0) {
+    for (const contact of contacts) {
+      if (contact.quality_result) {
+        try {
+          const parsed = JSON.parse(contact.quality_result)
+          if (parsed.phoneValidationStatus) {
+            phoneValidationStatus = parsed.phoneValidationStatus
+            break
+          } else if (parsed.validatePhone !== undefined) {
+            phoneValidationStatus = parsed.validatePhone ? 'validado' : 'a_verificar'
+            break
+          }
+        } catch (e) {}
+      }
+    }
+  }
+
+  return parseDebtRow(data, phoneValidationStatus)
 }

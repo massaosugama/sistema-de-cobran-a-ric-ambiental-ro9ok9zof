@@ -1,13 +1,17 @@
-import { Phone, MapPin, CheckCircle2, XCircle, FileText } from 'lucide-react'
+import { Phone, MapPin, CheckCircle2, XCircle, FileText, HelpCircle } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import type { ParsedDebt } from '@/services/debts'
 
 export function CustomerInfo({ customer }: { customer: ParsedDebt }) {
-  const validPhones = customer.phones.filter((p) => p.isValid).length
   const totalPhones = customer.phones.length
-  const phoneQuality = totalPhones > 0 ? (validPhones / totalPhones) * 100 : 0
+  let score = 0
+  customer.phones.forEach((p) => {
+    if (p.status === 'validado') score += 100
+    else if (p.status === 'a_verificar') score += 50
+  })
+  const phoneQuality = totalPhones > 0 ? score / totalPhones : 0
 
   return (
     <>
@@ -31,19 +35,28 @@ export function CustomerInfo({ customer }: { customer: ParsedDebt }) {
                     <Phone className="h-4 w-4 text-muted-foreground" />
                     <span className="font-medium">{phone.number}</span>
                   </div>
-                  {phone.isValid ? (
+                  {phone.status === 'validado' && (
                     <Badge
                       variant="outline"
                       className="bg-emerald-50 text-emerald-700 border-emerald-200 gap-1 px-1.5 py-0 rounded-sm"
                     >
-                      <CheckCircle2 className="h-3 w-3" /> Válido
+                      <CheckCircle2 className="h-3 w-3" /> Validado
                     </Badge>
-                  ) : (
+                  )}
+                  {phone.status === 'invalido' && (
                     <Badge
                       variant="outline"
                       className="bg-rose-50 text-rose-700 border-rose-200 gap-1 px-1.5 py-0 rounded-sm"
                     >
                       <XCircle className="h-3 w-3" /> Inválido
+                    </Badge>
+                  )}
+                  {phone.status === 'a_verificar' && (
+                    <Badge
+                      variant="outline"
+                      className="bg-amber-50 text-amber-700 border-amber-200 gap-1 px-1.5 py-0 rounded-sm"
+                    >
+                      <HelpCircle className="h-3 w-3" /> A verificar
                     </Badge>
                   )}
                 </div>
@@ -57,8 +70,8 @@ export function CustomerInfo({ customer }: { customer: ParsedDebt }) {
             <p className="text-xs text-muted-foreground mb-2">Qualidade Cadastral</p>
             <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
               <div
-                className={`h-full ${phoneQuality > 50 ? 'bg-emerald-500' : 'bg-warning'}`}
-                style={{ width: `${phoneQuality}%` }}
+                className={`h-full ${phoneQuality >= 100 ? 'bg-emerald-500' : phoneQuality > 0 ? 'bg-amber-400' : 'bg-rose-500'}`}
+                style={{ width: `${Math.max(phoneQuality, 5)}%` }}
               />
             </div>
           </div>
