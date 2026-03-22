@@ -8,6 +8,7 @@ import { ProtectedRoute } from './components/ProtectedRoute'
 import Layout from './components/Layout'
 import Index from './pages/Index'
 import Queue from './pages/Queue'
+import FollowUp from './pages/FollowUp'
 import CustomerPage from './pages/customer/CustomerPage'
 import Reports from './pages/Reports'
 import ImportData from './pages/ImportData'
@@ -30,6 +31,7 @@ const App = () => (
               <Route element={<Layout />}>
                 <Route path="/" element={<Index />} />
                 <Route path="/queue" element={<Queue />} />
+                <Route path="/follow-up" element={<FollowUp />} />
                 <Route path="/customer/:id" element={<CustomerPage />} />
                 <Route path="/reports" element={<Reports />} />
                 <Route path="/import" element={<ImportData />} />

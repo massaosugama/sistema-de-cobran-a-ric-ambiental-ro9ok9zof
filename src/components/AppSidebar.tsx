@@ -7,6 +7,7 @@ import {
   CreditCard,
   PhoneCall,
   Database,
+  CalendarDays,
 } from 'lucide-react'
 import {
   Sidebar,
@@ -26,6 +27,7 @@ import { SidebarQuote } from './SidebarQuote'
 const navigation = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
   { name: 'Fila Rápida', href: '/queue', icon: PhoneCall },
+  { name: 'Follow-up', href: '/follow-up', icon: CalendarDays },
   { name: 'Baixas', href: '/settlements', icon: CreditCard },
   { name: 'Devedores', href: '/debtors', icon: Users },
   { name: 'Relatórios', href: '/reports', icon: FileText },

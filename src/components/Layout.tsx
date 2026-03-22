@@ -2,10 +2,13 @@ import { Outlet } from 'react-router-dom'
 import { SidebarProvider } from '@/components/ui/sidebar'
 import { AppSidebar } from './AppSidebar'
 import { AppHeader } from './AppHeader'
+import { CompleteProfileDialog } from './CompleteProfileDialog'
 
 export default function Layout() {
   return (
     <>
+      <CompleteProfileDialog />
+
       {/* Brand Accent Top Strip */}
       <div className="h-1 w-full bg-gradient-to-r from-primary via-primary to-[#ff8c00] fixed top-0 left-0 z-50"></div>
 
