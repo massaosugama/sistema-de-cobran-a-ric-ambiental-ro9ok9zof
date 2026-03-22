@@ -190,6 +190,30 @@ export type Database = {
         }
         Relationships: []
       }
+      portfolio_history: {
+        Row: {
+          created_at: string
+          id: string
+          snapshot_date: string
+          total_cases: number
+          total_value: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          snapshot_date: string
+          total_cases?: number
+          total_value?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          snapshot_date?: string
+          total_cases?: number
+          total_value?: number
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
@@ -347,6 +371,8 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_portfolio_stats: { Args: never; Returns: Json }
+      record_portfolio_snapshot: { Args: never; Returns: undefined }
       truncate_pending_debts: { Args: never; Returns: undefined }
     }
     Enums: {
@@ -551,6 +577,12 @@ export const Constants = {
 //   responsavel_nome: text (nullable)
 //   responsavel_cpf_cnpj: text (nullable)
 //   responsavel_celular: text (nullable)
+// Table: portfolio_history
+//   id: uuid (not null, default: gen_random_uuid())
+//   snapshot_date: date (not null)
+//   total_cases: integer (not null, default: 0)
+//   total_value: numeric (not null, default: 0)
+//   created_at: timestamp with time zone (not null, default: now())
 // Table: profiles
 //   id: uuid (not null)
 //   email: text (not null)
@@ -605,6 +637,9 @@ export const Constants = {
 //   PRIMARY KEY follow_up_tasks_pkey: PRIMARY KEY (id)
 // Table: pending_debts
 //   PRIMARY KEY pending_debts_pkey: PRIMARY KEY (uc, cod_pess_fat)
+// Table: portfolio_history
+//   PRIMARY KEY portfolio_history_pkey: PRIMARY KEY (id)
+//   UNIQUE portfolio_history_snapshot_date_key: UNIQUE (snapshot_date)
 // Table: profiles
 //   FOREIGN KEY profiles_id_fkey: FOREIGN KEY (id) REFERENCES auth.users(id) ON DELETE CASCADE
 //   PRIMARY KEY profiles_pkey: PRIMARY KEY (id)
@@ -631,6 +666,10 @@ export const Constants = {
 //     USING: true
 //     WITH CHECK: true
 // Table: pending_debts
+//   Policy "authenticated_all" (ALL, PERMISSIVE) roles={authenticated}
+//     USING: true
+//     WITH CHECK: true
+// Table: portfolio_history
 //   Policy "authenticated_all" (ALL, PERMISSIVE) roles={authenticated}
 //     USING: true
 //     WITH CHECK: true
@@ -671,6 +710,29 @@ export const Constants = {
 //   END;
 //   $function$
 //
+// FUNCTION get_portfolio_stats()
+//   CREATE OR REPLACE FUNCTION public.get_portfolio_stats()
+//    RETURNS json
+//    LANGUAGE plpgsql
+//    SECURITY DEFINER
+//   AS $function$
+//   DECLARE
+//     result json;
+//   BEGIN
+//     SELECT json_build_object(
+//       'total_cases', count(*),
+//       'total_value', COALESCE(sum(valor_total), 0)
+//     ) INTO result
+//     FROM (
+//       SELECT uc, cod_pess_fat, sum(valor_total) as valor_total
+//       FROM public.pending_debts
+//       GROUP BY uc, cod_pess_fat
+//     ) t;
+//
+//     RETURN result;
+//   END;
+//   $function$
+//
 // FUNCTION handle_new_user()
 //   CREATE OR REPLACE FUNCTION public.handle_new_user()
 //    RETURNS trigger
@@ -695,6 +757,41 @@ export const Constants = {
 //   END;
 //   $function$
 //
+// FUNCTION record_portfolio_snapshot()
+//   CREATE OR REPLACE FUNCTION public.record_portfolio_snapshot()
+//    RETURNS void
+//    LANGUAGE plpgsql
+//    SECURITY DEFINER
+//   AS $function$
+//   BEGIN
+//       INSERT INTO public.portfolio_history (snapshot_date, total_cases, total_value)
+//       SELECT
+//           CURRENT_DATE,
+//           COUNT(*),
+//           COALESCE(SUM(valor_total), 0)
+//       FROM (
+//           SELECT uc, cod_pess_fat, SUM(valor_total) as valor_total
+//           FROM public.pending_debts
+//           GROUP BY uc, cod_pess_fat
+//       ) unique_cases
+//       ON CONFLICT (snapshot_date) DO UPDATE
+//       SET total_cases = EXCLUDED.total_cases,
+//           total_value = EXCLUDED.total_value;
+//   END;
+//   $function$
+//
+// FUNCTION trigger_record_snapshot()
+//   CREATE OR REPLACE FUNCTION public.trigger_record_snapshot()
+//    RETURNS trigger
+//    LANGUAGE plpgsql
+//    SECURITY DEFINER
+//   AS $function$
+//   BEGIN
+//       PERFORM public.record_portfolio_snapshot();
+//       RETURN NULL;
+//   END;
+//   $function$
+//
 // FUNCTION truncate_pending_debts()
 //   CREATE OR REPLACE FUNCTION public.truncate_pending_debts()
 //    RETURNS void
@@ -710,3 +807,9 @@ export const Constants = {
 // --- TRIGGERS ---
 // Table: contact_history
 //   trg_audit_contact_history: CREATE TRIGGER trg_audit_contact_history AFTER UPDATE ON public.contact_history FOR EACH ROW WHEN ((old.* IS DISTINCT FROM new.*)) EXECUTE FUNCTION audit_contact_history_changes()
+// Table: pending_debts
+//   on_pending_debts_change: CREATE TRIGGER on_pending_debts_change AFTER INSERT OR DELETE OR UPDATE ON public.pending_debts FOR EACH STATEMENT EXECUTE FUNCTION trigger_record_snapshot()
+
+// --- INDEXES ---
+// Table: portfolio_history
+//   CREATE UNIQUE INDEX portfolio_history_snapshot_date_key ON public.portfolio_history USING btree (snapshot_date)

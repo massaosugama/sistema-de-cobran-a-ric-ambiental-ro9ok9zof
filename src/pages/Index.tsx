@@ -63,7 +63,7 @@ export default function Index() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{portfolioStats.total_cases}</div>
-            <p className="text-xs text-muted-foreground mt-1">Casos únicos (UC + Pessoa)</p>
+            <p className="text-xs text-muted-foreground mt-1">Dívidas</p>
           </CardContent>
         </Card>
         <Card>
