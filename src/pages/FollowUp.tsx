@@ -35,6 +35,7 @@ import {
   ChevronRight,
   FilterX,
   Eye,
+  RotateCcw,
 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import {
@@ -192,6 +193,17 @@ export default function FollowUp() {
     () => filteredTasks.filter((t) => !isTaskOverdue(t.due_date) && !t.completed),
     [filteredTasks],
   )
+  const completedTasks = useMemo(
+    () =>
+      filteredTasks
+        .filter((t) => t.completed)
+        .sort((a, b) => {
+          if (!a.due_date) return 1
+          if (!b.due_date) return -1
+          return new Date(b.due_date).getTime() - new Date(a.due_date).getTime()
+        }),
+    [filteredTasks],
+  )
 
   const openEditTaskModal = async (task: EnrichedTask) => {
     setEditingTask(task)
@@ -241,10 +253,32 @@ export default function FollowUp() {
     try {
       await supabase.from('follow_up_tasks').update({ completed: true }).eq('id', id)
       setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, completed: true } : t)))
-      setEditingTask((prev) => (prev ? { ...prev, completed: true } : null))
+      if (editingTask?.id === id) {
+        setEditingTask((prev) => (prev ? { ...prev, completed: true } : null))
+      }
       toast({ title: 'Sucesso', description: 'Atividade marcada como concluída!' })
     } catch (err) {
       toast({ title: 'Erro', description: 'Erro ao concluir tarefa.', variant: 'destructive' })
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const handleResumeTask = async (id: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation()
+    setIsSaving(true)
+    try {
+      await supabase.from('follow_up_tasks').update({ completed: false }).eq('id', id)
+      setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, completed: false } : t)))
+      if (editingTask?.id === id) {
+        setEditingTask((prev) => (prev ? { ...prev, completed: false } : null))
+      }
+      toast({
+        title: 'Atividade Retomada',
+        description: 'A atividade voltou para suas pendências.',
+      })
+    } catch (err) {
+      toast({ title: 'Erro', description: 'Erro ao retomar tarefa.', variant: 'destructive' })
     } finally {
       setIsSaving(false)
     }
@@ -307,7 +341,7 @@ export default function FollowUp() {
         !task.completed &&
           'cursor-grab active:cursor-grabbing hover:shadow-md hover:border-slate-300',
         task.completed
-          ? 'bg-slate-50/80 border-slate-200 text-slate-500 opacity-80 grayscale hover:grayscale-0'
+          ? 'bg-slate-50 border-slate-200 text-slate-500'
           : 'bg-white border-slate-200',
       )}
     >
@@ -333,7 +367,7 @@ export default function FollowUp() {
         </div>
         <div className="flex items-center gap-2">
           {task.completed && (
-            <div className="flex items-center text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded text-[10px] font-bold">
+            <div className="flex items-center text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded text-[10px] font-bold border border-emerald-100/50">
               <CheckCircle2 className="w-3 h-3 mr-1" /> Concluído
             </div>
           )}
@@ -357,7 +391,7 @@ export default function FollowUp() {
         <h3
           className={cn(
             'font-bold text-sm leading-tight line-clamp-1',
-            task.completed ? 'text-slate-500' : 'text-slate-800',
+            task.completed ? 'text-slate-500 line-through opacity-80' : 'text-slate-800',
           )}
           title={task.debt?.nome}
         >
@@ -383,7 +417,7 @@ export default function FollowUp() {
         className={cn(
           'p-2 rounded-lg border mb-3',
           task.completed
-            ? 'bg-slate-100/50 border-slate-200'
+            ? 'bg-slate-100/50 border-slate-200 opacity-80'
             : 'bg-slate-50/80 border-slate-100/80',
         )}
       >
@@ -398,7 +432,18 @@ export default function FollowUp() {
         </p>
       </div>
 
-      <div className="flex items-center justify-end mt-auto pt-2 border-t border-slate-100">
+      <div className="flex items-center justify-end mt-auto pt-2 border-t border-slate-100 gap-2">
+        {task.completed && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={(e) => handleResumeTask(task.id, e)}
+            className="h-7 px-3 text-xs font-medium text-slate-500 hover:text-slate-800 hover:bg-slate-200/50"
+            disabled={isSaving}
+          >
+            <RotateCcw className="w-3.5 h-3.5 mr-1.5" /> Retomar
+          </Button>
+        )}
         <Button
           variant="ghost"
           size="sm"
@@ -406,7 +451,7 @@ export default function FollowUp() {
           className={cn(
             'h-7 px-3 text-xs font-medium',
             task.completed
-              ? 'text-slate-400 hover:text-slate-600'
+              ? 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'
               : 'text-primary hover:text-primary hover:bg-primary/10',
           )}
         >
@@ -498,6 +543,13 @@ export default function FollowUp() {
               emptyMsg="Nenhum compromisso pendente."
               icon={<Clock className="w-5 h-5" />}
               colorClass="text-blue-700 bg-blue-50"
+            />
+            <TaskList
+              title="Concluídos"
+              tasks={completedTasks}
+              emptyMsg="Nenhum compromisso concluído recentemente."
+              icon={<CheckCircle2 className="w-5 h-5" />}
+              colorClass="text-emerald-700 bg-emerald-50"
             />
           </>
         )}
@@ -612,7 +664,7 @@ export default function FollowUp() {
                       className={cn(
                         'text-[10px] leading-tight px-1.5 py-1 rounded border-l-[3px] truncate flex items-center gap-1.5 transition-all shadow-sm',
                         t.completed
-                          ? 'bg-slate-100/50 text-slate-400 grayscale'
+                          ? 'bg-slate-100/50 text-slate-500'
                           : 'bg-slate-100/80 text-slate-700 hover:brightness-95 cursor-grab active:cursor-grabbing',
                       )}
                       style={{
@@ -628,7 +680,12 @@ export default function FollowUp() {
                           style={{ backgroundColor: t.operator?.color || '#94a3b8' }}
                         />
                       )}
-                      <span className={cn('truncate font-medium', t.completed && 'line-through')}>
+                      <span
+                        className={cn(
+                          'truncate font-medium',
+                          t.completed && 'line-through opacity-80',
+                        )}
+                      >
                         UC {t.uc}
                       </span>
                     </div>
@@ -867,8 +924,18 @@ export default function FollowUp() {
                         </Button>
                       </div>
                     ) : (
-                      <div className="pt-4 border-t mt-auto text-center text-sm font-semibold text-emerald-600 flex items-center justify-center bg-emerald-50 py-3 rounded-lg">
-                        <CheckCircle2 className="w-5 h-5 mr-2" /> Atividade Concluída
+                      <div className="pt-4 border-t mt-auto flex flex-col gap-3">
+                        <div className="text-center text-sm font-semibold text-emerald-600 flex items-center justify-center bg-emerald-50 py-3 rounded-lg border border-emerald-100/50">
+                          <CheckCircle2 className="w-5 h-5 mr-2" /> Atividade Concluída
+                        </div>
+                        <Button
+                          variant="outline"
+                          className="w-full shadow-sm text-slate-600"
+                          onClick={(e) => handleResumeTask(editingTask.id, e)}
+                          disabled={isSaving}
+                        >
+                          <RotateCcw className="w-4 h-4 mr-2" /> Retomar Atividade
+                        </Button>
                       </div>
                     )}
                   </TabsContent>
