@@ -1016,6 +1016,23 @@ export default function FollowUp() {
                   {editingTask?.debt?.nome || 'Não informado'}
                 </strong>
                 <span className="text-slate-500 block mt-1 font-medium">UC: {editingTask?.uc}</span>
+                {editingTask?.debt?.endereco && (
+                  <div className="mt-2 space-y-1">
+                    <div className="flex items-center flex-wrap gap-2">
+                      <p className="text-[12px] text-slate-500 leading-tight">
+                        {editingTask.debt.endereco}
+                      </p>
+                      <a
+                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(editingTask.debt.endereco)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center text-[10px] text-primary hover:text-primary/80 hover:bg-primary/20 bg-primary/10 px-1.5 py-0.5 rounded font-bold transition-colors shrink-0"
+                      >
+                        <MapPin className="w-3 h-3 mr-1" /> Mapa
+                      </a>
+                    </div>
+                  </div>
+                )}
               </div>
               <div>
                 <span className="text-slate-500 block mb-1 text-xs uppercase tracking-wider font-semibold">
