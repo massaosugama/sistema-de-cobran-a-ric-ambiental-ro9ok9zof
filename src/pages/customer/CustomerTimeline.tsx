@@ -80,6 +80,16 @@ export function CustomerTimeline({ customer }: { customer?: ParsedDebt }) {
     fetchData()
   }, [fetchData])
 
+  useEffect(() => {
+    const handleContactAdded = (e: any) => {
+      if (e.detail?.uc === (customer?.uc || id)) {
+        fetchData()
+      }
+    }
+    window.addEventListener('contact-added', handleContactAdded)
+    return () => window.removeEventListener('contact-added', handleContactAdded)
+  }, [fetchData, customer?.uc, id])
+
   const getIcon = (type: string) => {
     if (type?.includes('WTK')) return <MessageSquare className="h-4 w-4" />
     if (type?.includes('E-MAIL')) return <Mail className="h-4 w-4" />

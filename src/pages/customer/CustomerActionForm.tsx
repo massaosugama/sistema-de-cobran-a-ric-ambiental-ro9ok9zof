@@ -22,7 +22,13 @@ import { addContact } from '@/services/data'
 import { cn } from '@/lib/utils'
 import type { ParsedDebt } from '@/services/debts'
 
-export function CustomerActionForm({ customer }: { customer: ParsedDebt }) {
+export function CustomerActionForm({
+  customer,
+  isSheet,
+}: {
+  customer: ParsedDebt
+  isSheet?: boolean
+}) {
   const [date, setDate] = useState<Date>()
   const [channel, setChannel] = useState('TEL ATIVO')
   const [status, setStatus] = useState('')
@@ -91,7 +97,13 @@ export function CustomerActionForm({ customer }: { customer: ParsedDebt }) {
       setDate(undefined)
       setTalkedToOwner(false)
 
-      setTimeout(() => window.location.reload(), 1000)
+      setTimeout(() => {
+        if (isSheet) {
+          window.dispatchEvent(new CustomEvent('contact-added', { detail: { uc: customer.uc } }))
+        } else {
+          window.location.reload()
+        }
+      }, 500)
     } catch (error: any) {
       toast({ title: 'Erro', description: error.message, variant: 'destructive' })
     } finally {

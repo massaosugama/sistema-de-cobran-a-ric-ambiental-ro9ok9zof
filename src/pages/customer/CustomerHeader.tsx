@@ -4,26 +4,52 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 
-export function CustomerHeader({ customer }: { customer: any }) {
+export function CustomerHeader({
+  customer,
+  isSheet,
+  onClose,
+}: {
+  customer: any
+  isSheet?: boolean
+  onClose?: () => void
+}) {
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2 text-sm font-medium text-slate-500 mb-2">
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8 rounded-full hover:bg-slate-200"
-          asChild
-        >
-          <Link to="/queue">
-            <ArrowLeft className="h-4 w-4" />
+      {!isSheet ? (
+        <div className="flex items-center gap-2 text-sm font-medium text-slate-500 mb-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 rounded-full hover:bg-slate-200"
+            asChild
+          >
+            <Link to="/queue">
+              <ArrowLeft className="h-4 w-4" />
+            </Link>
+          </Button>
+          <Link to="/queue" className="hover:text-primary transition-colors">
+            Fila de Atendimento
           </Link>
-        </Button>
-        <Link to="/queue" className="hover:text-primary transition-colors">
-          Fila de Atendimento
-        </Link>
-        <span className="text-slate-300">/</span>
-        <span className="text-slate-900 font-bold">UC {customer.uc}</span>
-      </div>
+          <span className="text-slate-300">/</span>
+          <span className="text-slate-900 font-bold">UC {customer.uc}</span>
+        </div>
+      ) : (
+        <div className="flex items-center gap-2 text-sm font-medium text-slate-500 mb-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 rounded-full hover:bg-slate-200"
+            onClick={onClose}
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <span className="hover:text-primary cursor-pointer transition-colors" onClick={onClose}>
+            Voltar para UC Principal
+          </span>
+          <span className="text-slate-300">/</span>
+          <span className="text-slate-900 font-bold">UC {customer.uc} (Vínculo)</span>
+        </div>
+      )}
 
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden">
         <div className="absolute left-0 top-0 bottom-0 w-2 bg-primary"></div>
