@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
-import { Waves, Eye, EyeOff, ArrowLeft } from 'lucide-react'
+import { Eye, EyeOff, ArrowLeft } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 
 export default function Login() {
@@ -71,10 +71,8 @@ export default function Login() {
               <ArrowLeft className="h-5 w-5" />
             </Button>
           )}
-          <div className="flex justify-center mb-2">
-            <div className="bg-primary/10 p-3 rounded-2xl text-primary">
-              <Waves className="h-8 w-8" strokeWidth={2.5} />
-            </div>
+          <div className="flex justify-center mb-4">
+            <img src="/logo.png" alt="Ric Ambiental" className="h-16 w-auto object-contain" />
           </div>
           <CardTitle className="text-2xl font-black text-slate-900 tracking-tight">
             Ric Recupera & Desenvolve
