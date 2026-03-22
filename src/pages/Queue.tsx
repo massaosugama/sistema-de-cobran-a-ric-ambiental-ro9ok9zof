@@ -18,6 +18,7 @@ import { useDebounce } from '@/hooks/use-debounce'
 import { useAuth } from '@/hooks/use-auth'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { cn } from '@/lib/utils'
 
 const safeText = (text: any): string => (typeof text === 'string' ? text : '')
 const safeSlice = (text: any, start: number, end?: number): string =>
@@ -114,7 +115,7 @@ export default function Queue() {
                 <TableHeader className="bg-slate-50/90 sticky top-0 z-10 outline outline-1 outline-slate-100 shadow-sm backdrop-blur-sm">
                   <TableRow className="border-slate-100 hover:bg-transparent">
                     <TableHead className="font-semibold text-slate-600">Devedor / UC</TableHead>
-                    <TableHead className="font-semibold text-slate-600 w-[120px]">
+                    <TableHead className="font-semibold text-slate-600 w-[180px]">
                       Valor Total
                     </TableHead>
                     <TableHead className="text-right font-semibold text-slate-600 w-[60px]"></TableHead>
@@ -177,20 +178,32 @@ export default function Queue() {
                                 minimumFractionDigits: 2,
                               })}
                             </span>
-                            <div className="flex items-center gap-1.5 mt-0.5">
+                            <div className="flex flex-wrap items-center gap-1.5 mt-1">
                               <Badge
                                 variant={getPriorityColor(customer.priority) as any}
                                 className="w-fit text-[10px] px-1.5 py-0 uppercase tracking-wider shadow-none"
                               >
                                 {customer.priority}
                               </Badge>
-                              {customer.lastOperatorName && (
-                                <Badge
-                                  className="w-fit text-[10px] px-1.5 py-0 uppercase tracking-wider shadow-none bg-slate-600 text-white hover:bg-slate-700"
-                                  title={`Último atendimento por: ${safeText(customer.lastOperatorName)}`}
-                                >
-                                  {safeSlice(customer.lastOperatorName, 0, 4)}
-                                </Badge>
+                              {customer.recentOperators && customer.recentOperators.length > 0 && (
+                                <div className="flex items-center gap-1">
+                                  {customer.recentOperators.map((op, idx) => (
+                                    <Badge
+                                      key={idx}
+                                      className={cn(
+                                        'w-fit text-[9px] px-1.5 py-0 uppercase tracking-wider shadow-none hover:opacity-80 transition-opacity',
+                                        idx === 0
+                                          ? 'bg-slate-600 text-white'
+                                          : idx === 1
+                                            ? 'bg-slate-400 text-white'
+                                            : 'bg-slate-300 text-slate-700',
+                                      )}
+                                      title={`Atendido por: ${op}`}
+                                    >
+                                      {safeSlice(op, 0, 4)}
+                                    </Badge>
+                                  ))}
+                                </div>
                               )}
                             </div>
                           </div>
@@ -297,6 +310,26 @@ export default function Queue() {
                               >
                                 {safeText(customer.address)}
                               </span>
+                            )}
+                            {customer.recentOperators && customer.recentOperators.length > 0 && (
+                              <div className="flex items-center gap-1 mt-1.5">
+                                {customer.recentOperators.map((op, idx) => (
+                                  <Badge
+                                    key={idx}
+                                    className={cn(
+                                      'w-fit text-[9px] px-1.5 py-0 uppercase tracking-wider shadow-none hover:opacity-80 transition-opacity',
+                                      idx === 0
+                                        ? 'bg-slate-600 text-white'
+                                        : idx === 1
+                                          ? 'bg-slate-400 text-white'
+                                          : 'bg-slate-300 text-slate-700',
+                                    )}
+                                    title={`Atendido por: ${op}`}
+                                  >
+                                    {safeSlice(op, 0, 4)}
+                                  </Badge>
+                                ))}
+                              </div>
                             )}
                           </div>
                         </TableCell>

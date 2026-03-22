@@ -17,6 +17,7 @@ export interface ParsedDebt {
   redundancyAlert?: { operator: string; daysAgo: number }
   lastContactDate?: string
   lastOperatorName?: string
+  recentOperators?: string[]
   rawPessoaFaturaNome?: string | null
   rawPessoaFaturaCpfCnpj?: string | null
 }
@@ -113,7 +114,7 @@ export async function getDebts(search?: string, operatorId?: string, searchAddre
 
   let attendedUcs = new Set<string>()
   let latestContactDates: Record<string, string> = {}
-  let globalLatestOperator: Record<string, string> = {}
+  let globalLatestOperators: Record<string, string[]> = {}
 
   const contactsQuery: any = supabase
     .from('contact_history')
@@ -128,11 +129,17 @@ export async function getDebts(search?: string, operatorId?: string, searchAddre
       if (contact.uc && contact.cod_pess_fat) {
         const key = `${contact.uc}_${contact.cod_pess_fat}`
 
-        if (!globalLatestOperator[key]) {
-          const opName = (contact.profiles as any)?.name
-          if (opName) {
-            globalLatestOperator[key] = opName
-          }
+        if (!globalLatestOperators[key]) {
+          globalLatestOperators[key] = []
+        }
+
+        const opName = (contact.profiles as any)?.name
+        if (
+          opName &&
+          !globalLatestOperators[key].includes(opName) &&
+          globalLatestOperators[key].length < 3
+        ) {
+          globalLatestOperators[key].push(opName)
         }
 
         if (operatorId && contact.operator_id === operatorId) {
@@ -152,16 +159,17 @@ export async function getDebts(search?: string, operatorId?: string, searchAddre
 
   for (const debt of parsedDebts) {
     const key = `${debt.uc}_${debt.personCode}`
-    const lastOpName = globalLatestOperator[key]
+    const recentOps = globalLatestOperators[key] || []
 
     if (operatorId && attendedUcs.has(key)) {
       attended.push({
         ...debt,
         lastContactDate: latestContactDates[key],
-        lastOperatorName: lastOpName,
+        lastOperatorName: recentOps[0],
+        recentOperators: recentOps,
       })
     } else {
-      unattended.push({ ...debt, lastOperatorName: lastOpName })
+      unattended.push({ ...debt, lastOperatorName: recentOps[0], recentOperators: recentOps })
     }
   }
 
@@ -183,7 +191,9 @@ export async function getDebtByUc(uc: string) {
     .single()
   if (error) throw error
 
-  const contactsQuery: any = supabase.from('contact_history').select('quality_result')
+  const contactsQuery: any = supabase
+    .from('contact_history')
+    .select('quality_result, profiles(name)')
 
   const { data: contacts } = await contactsQuery
     .eq('uc', data.uc)
@@ -191,6 +201,7 @@ export async function getDebtByUc(uc: string) {
     .order('created_at', { ascending: false })
 
   let phoneValidationStatus: 'a_verificar' | 'validado' | 'invalido' = 'a_verificar'
+  const recentOperators: string[] = []
 
   if (contacts && contacts.length > 0) {
     for (const contact of contacts) {
@@ -199,19 +210,21 @@ export async function getDebtByUc(uc: string) {
           const parsed = JSON.parse(contact.quality_result)
           if (parsed.phoneValidationStatus) {
             phoneValidationStatus = parsed.phoneValidationStatus
-            break
           } else if (parsed.validatePhone !== undefined) {
             phoneValidationStatus = parsed.validatePhone ? 'validado' : 'a_verificar'
-            break
           }
         } catch (e) {
           // ignore parsing errors for invalid json
         }
       }
+      const opName = (contact.profiles as any)?.name
+      if (opName && !recentOperators.includes(opName) && recentOperators.length < 3) {
+        recentOperators.push(opName)
+      }
     }
   }
 
-  return parseDebtRow(data, phoneValidationStatus)
+  return { ...parseDebtRow(data, phoneValidationStatus), recentOperators }
 }
 
 export async function getRelatedDebts(
@@ -268,7 +281,36 @@ export async function getRelatedDebts(
     }
   }
 
-  return Array.from(uniqueDebts.values()).map((row) => parseDebtRow(row))
+  const parsedDebts = Array.from(uniqueDebts.values()).map((row) => parseDebtRow(row))
+  if (parsedDebts.length === 0) return []
+
+  const ucs = parsedDebts.map((d) => d.uc)
+
+  const { data: contacts } = await supabase
+    .from('contact_history')
+    .select('uc, cod_pess_fat, profiles(name)')
+    .in('uc', ucs)
+    .eq('is_active', true)
+    .order('created_at', { ascending: false })
+
+  const opsMap: Record<string, string[]> = {}
+  if (contacts) {
+    for (const c of contacts) {
+      const key = `${c.uc}_${c.cod_pess_fat}`
+      const opName = (c.profiles as any)?.name
+      if (opName) {
+        if (!opsMap[key]) opsMap[key] = []
+        if (!opsMap[key].includes(opName) && opsMap[key].length < 3) {
+          opsMap[key].push(opName)
+        }
+      }
+    }
+  }
+
+  return parsedDebts.map((d) => ({
+    ...d,
+    recentOperators: opsMap[`${d.uc}_${d.personCode}`] || [],
+  }))
 }
 
 export async function getPortfolioStats() {

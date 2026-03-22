@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { AlertTriangle, ExternalLink } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
 import { getRelatedDebts, getDebtByUc, type ParsedDebt } from '@/services/debts'
 import {
   Sheet,
@@ -13,44 +14,59 @@ import { CustomerHeader } from './CustomerHeader'
 import { CustomerInfo } from './CustomerInfo'
 import { CustomerTimeline } from './CustomerTimeline'
 import { CustomerActionForm } from './CustomerActionForm'
+import { cn } from '@/lib/utils'
+
+const safeSlice = (text: any, start: number, end?: number): string =>
+  typeof text === 'string' ? text.slice(start, end) : ''
 
 export function RelatedDebts({ customer }: { customer: ParsedDebt }) {
   const [relatedDebts, setRelatedDebts] = useState<ParsedDebt[]>([])
   const [loading, setLoading] = useState(true)
+  const [visitedUcs, setVisitedUcs] = useState<Set<string>>(new Set())
 
   const [selectedUc, setSelectedUc] = useState<string | null>(null)
   const [sheetCustomer, setSheetCustomer] = useState<ParsedDebt | null>(null)
   const [loadingSheet, setLoadingSheet] = useState(false)
 
+  const fetchRelatedDebts = useCallback(
+    async (isInitial = false) => {
+      if (!customer) return
+      if (isInitial) setLoading(true)
+      try {
+        const data = await getRelatedDebts(
+          customer.uc,
+          customer.personCode,
+          customer.rawPessoaFaturaNome || null,
+          customer.rawPessoaFaturaCpfCnpj || null,
+        )
+        setRelatedDebts(data)
+      } catch (err) {
+        console.error(err)
+      } finally {
+        if (isInitial) setLoading(false)
+      }
+    },
+    [customer],
+  )
+
   useEffect(() => {
     let isMounted = true
-
-    if (customer) {
-      setLoading(true)
-      getRelatedDebts(
-        customer.uc,
-        customer.personCode,
-        customer.rawPessoaFaturaNome || null,
-        customer.rawPessoaFaturaCpfCnpj || null,
-      )
-        .then((data) => {
-          if (isMounted) {
-            setRelatedDebts(data)
-            setLoading(false)
-          }
-        })
-        .catch((err) => {
-          console.error(err)
-          if (isMounted) setLoading(false)
-        })
-    }
-
+    if (isMounted) fetchRelatedDebts(true)
     return () => {
       isMounted = false
     }
-  }, [customer.uc, customer.personCode])
+  }, [fetchRelatedDebts])
+
+  useEffect(() => {
+    const handleContactAdded = () => {
+      fetchRelatedDebts(false)
+    }
+    window.addEventListener('contact-added', handleContactAdded)
+    return () => window.removeEventListener('contact-added', handleContactAdded)
+  }, [fetchRelatedDebts])
 
   const handleOpenSheet = async (uc: string) => {
+    setVisitedUcs((prev) => new Set(prev).add(uc))
     setSelectedUc(uc)
     setLoadingSheet(true)
     try {
@@ -101,28 +117,81 @@ export function RelatedDebts({ customer }: { customer: ParsedDebt }) {
             responsável).
           </p>
           <div className="space-y-2">
-            {relatedDebts.map((debt) => (
-              <button
-                key={`${debt.uc}_${debt.personCode}`}
-                onClick={() => handleOpenSheet(debt.uc)}
-                className="w-full text-left flex items-center justify-between p-2.5 bg-white border border-orange-100 rounded-lg hover:border-orange-300 hover:shadow-md transition-all group focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-1"
-              >
-                <div className="overflow-hidden pr-2">
-                  <div className="flex items-center gap-1.5 mb-0.5">
-                    <span className="font-bold text-slate-800 text-sm">UC {debt.uc}</span>
+            {relatedDebts.map((debt) => {
+              const isVisited = visitedUcs.has(debt.uc)
+              return (
+                <button
+                  key={`${debt.uc}_${debt.personCode}`}
+                  onClick={() => handleOpenSheet(debt.uc)}
+                  className={cn(
+                    'w-full text-left flex flex-col p-2.5 bg-white border rounded-lg transition-all group focus:outline-none focus:ring-2 focus:ring-offset-1',
+                    isVisited
+                      ? 'border-slate-200 bg-slate-50/70 focus:ring-slate-400 opacity-80'
+                      : 'border-orange-100 hover:border-orange-300 hover:shadow-md focus:ring-orange-500',
+                  )}
+                >
+                  <div className="flex items-start justify-between w-full">
+                    <div className="overflow-hidden pr-2">
+                      <div className="flex items-center gap-1.5 mb-0.5">
+                        <span
+                          className={cn(
+                            'font-bold text-sm',
+                            isVisited ? 'text-slate-600' : 'text-slate-800',
+                          )}
+                        >
+                          UC {debt.uc}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-500 truncate">{debt.name}</p>
+                    </div>
+                    <div className="flex flex-col items-end shrink-0">
+                      <span
+                        className={cn(
+                          'font-black',
+                          isVisited ? 'text-slate-600' : 'text-orange-700',
+                        )}
+                      >
+                        R$ {debt.totalDebt.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      </span>
+                      <div
+                        className={cn(
+                          'flex items-center text-[10px] font-semibold uppercase mt-0.5',
+                          isVisited
+                            ? 'text-slate-400 group-hover:text-slate-600'
+                            : 'text-orange-500 group-hover:text-orange-600',
+                        )}
+                      >
+                        Acessar <ExternalLink className="h-3 w-3 ml-1" />
+                      </div>
+                    </div>
                   </div>
-                  <p className="text-[11px] text-slate-500 truncate">{debt.name}</p>
-                </div>
-                <div className="flex flex-col items-end shrink-0">
-                  <span className="font-black text-orange-700">
-                    R$ {debt.totalDebt.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                  </span>
-                  <div className="flex items-center text-[10px] text-orange-500 font-semibold uppercase mt-0.5 group-hover:text-orange-600">
-                    Acessar <ExternalLink className="h-3 w-3 ml-1" />
-                  </div>
-                </div>
-              </button>
-            ))}
+
+                  {debt.recentOperators && debt.recentOperators.length > 0 && (
+                    <div className="flex items-center gap-1 mt-2 pt-2 border-t border-slate-100/50 w-full">
+                      <span className="text-[9px] font-medium text-slate-400 uppercase mr-1">
+                        Histórico:
+                      </span>
+                      {debt.recentOperators.map((op, idx) => (
+                        <Badge
+                          key={idx}
+                          className={cn(
+                            'w-fit text-[9px] px-1.5 py-0 uppercase tracking-wider shadow-none',
+                            idx === 0
+                              ? 'bg-slate-600 text-white'
+                              : idx === 1
+                                ? 'bg-slate-400 text-white'
+                                : 'bg-slate-300 text-slate-700',
+                          )}
+                          title={`Atendido por: ${op}`}
+                        >
+                          {safeSlice(op, 0, 4)}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                </button>
+              )
+            })}
           </div>
         </CardContent>
       </Card>
