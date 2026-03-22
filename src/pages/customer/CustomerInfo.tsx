@@ -125,7 +125,7 @@ export function CustomerInfo({ customer }: { customer: ParsedDebt }) {
 
               <div className="bg-slate-50 p-3 rounded-lg border text-center flex-1 flex flex-col items-center justify-center shadow-subtle">
                 <span className="text-[10px] text-muted-foreground block mb-1 font-bold uppercase tracking-wider">
-                  Valor Médio
+                  Valor Médio das Faturas
                 </span>
                 <span className="text-xl font-black text-blue-600">
                   R${' '}
