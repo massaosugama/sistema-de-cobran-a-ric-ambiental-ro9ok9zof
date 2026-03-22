@@ -135,9 +135,19 @@ function DebtSearch({ onSelect }: { onSelect: (debt: ParsedDebt) => void }) {
             onClick={() => onSelect(r)}
           >
             <p className="font-bold text-sm text-slate-800">{r.name || 'Sem nome'}</p>
-            <p className="text-xs font-medium text-slate-500 mt-1">
-              UC: {r.uc} • R$ {r.totalDebt.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-            </p>
+            <div className="mt-1.5 space-y-0.5">
+              <p className="text-[13px] font-medium text-slate-600">
+                UC: {r.uc} <span className="mx-1 text-slate-300">•</span>{' '}
+                <span className="font-bold text-slate-700">
+                  R$ {r.totalDebt.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                </span>
+              </p>
+              {r.address && (
+                <p className="text-[12px] text-slate-500 line-clamp-1" title={r.address}>
+                  {r.address}
+                </p>
+              )}
+            </div>
           </div>
         ))}
       </div>
@@ -1198,12 +1208,27 @@ export default function FollowUp() {
               <DebtSearch onSelect={setSelectedNewDebt} />
             ) : (
               <div className="space-y-4">
-                <div className="flex items-center justify-between bg-white p-3 rounded-xl border shadow-sm">
-                  <div>
-                    <p className="font-bold text-sm text-slate-800">{selectedNewDebt.name}</p>
-                    <p className="text-xs font-medium text-slate-500">UC: {selectedNewDebt.uc}</p>
+                <div className="flex items-center justify-between bg-white p-4 rounded-xl border border-slate-200 shadow-sm relative overflow-hidden">
+                  <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary/80"></div>
+                  <div className="pl-1">
+                    <p className="font-bold text-sm text-slate-900">{selectedNewDebt.name}</p>
+                    <div className="mt-1 space-y-0.5">
+                      <p className="text-[13px] font-medium text-slate-600">
+                        UC: {selectedNewDebt.uc}
+                      </p>
+                      {selectedNewDebt.address && (
+                        <p className="text-[12px] text-slate-500 leading-tight pr-2">
+                          {selectedNewDebt.address}
+                        </p>
+                      )}
+                    </div>
                   </div>
-                  <Button variant="ghost" size="sm" onClick={() => setSelectedNewDebt(null)}>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setSelectedNewDebt(null)}
+                    className="font-semibold text-slate-600 hover:text-slate-900"
+                  >
                     Trocar
                   </Button>
                 </div>
