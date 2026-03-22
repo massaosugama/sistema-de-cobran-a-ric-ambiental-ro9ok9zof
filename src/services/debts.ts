@@ -38,8 +38,32 @@ function parseDebtRow(
   const invoices = row.refs
     ? row.refs
         .split(' ')
-        .map((ref: string) => ({ ref, value: row.valor_total / (row.qt_fats || 1), days: 30 }))
+        .filter((r: string) => r.trim() !== '')
+        .map((ref: string) => {
+          let days = 0
+          const parts = ref.split('/')
+          if (parts.length === 2) {
+            let y = parseInt(parts[0], 10)
+            let m = parseInt(parts[1], 10)
+            if (parts[1].length === 4) {
+              m = y
+              y = parseInt(parts[1], 10)
+            } else {
+              if (y < 100) y += 2000
+            }
+            const now = new Date()
+            const currentYear = now.getFullYear()
+            const currentMonth = now.getMonth() + 1
+            const monthsDiff = (currentYear - y) * 12 + (currentMonth - m)
+            days = Math.max(0, monthsDiff * 30)
+          }
+          return { ref, value: row.valor_total / (row.qt_fats || 1), days }
+        })
     : []
+
+  invoices.sort((a: any, b: any) => b.days - a.days)
+
+  const maxDays = invoices.length > 0 ? invoices[0].days : 0
 
   return {
     id: row.uc,
@@ -48,7 +72,7 @@ function parseDebtRow(
     name: row.pessoa_fatura_nome || row.ta_nome_de_quem || '',
     document: row.pessoa_fatura_cpf_cnpj || '',
     address: row.endereco || '',
-    overdueDays: 45,
+    overdueDays: maxDays,
     totalDebt: row.valor_total || 0,
     status: 'pendente',
     priority: row.valor_total > 5000 ? 'alta' : row.valor_total > 1000 ? 'media' : 'baixa',

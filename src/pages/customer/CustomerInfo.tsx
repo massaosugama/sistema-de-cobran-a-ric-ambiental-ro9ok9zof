@@ -13,6 +13,11 @@ export function CustomerInfo({ customer }: { customer: ParsedDebt }) {
   })
   const phoneQuality = totalPhones > 0 ? score / totalPhones : 0
 
+  const invoices = customer.invoices || []
+  const minDays = invoices.length > 0 ? Math.min(...invoices.map((i) => i.days)) : 0
+  const maxDays = invoices.length > 0 ? Math.max(...invoices.map((i) => i.days)) : 0
+  const avgValue = invoices.length > 0 ? customer.totalDebt / invoices.length : 0
+
   return (
     <>
       <Card>
@@ -85,40 +90,81 @@ export function CustomerInfo({ customer }: { customer: ParsedDebt }) {
             Resumo da Dívida
           </CardTitle>
         </CardHeader>
-        <CardContent className="pt-4 space-y-4">
-          <div className="grid grid-cols-2 gap-4 text-center">
-            <div className="bg-slate-50 p-3 rounded-lg border">
-              <span className="text-xs text-muted-foreground block mb-1">Dias Atraso</span>
-              <span className="text-xl font-bold text-destructive">{customer.overdueDays}</span>
-            </div>
-            <div className="bg-slate-50 p-3 rounded-lg border">
-              <span className="text-xs text-muted-foreground block mb-1">Faturas Abertas</span>
-              <span className="text-xl font-bold">{customer.invoices.length}</span>
-            </div>
-          </div>
-
-          <div className="space-y-2 mt-4">
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-              Referências em aberto
-            </p>
-            {customer.invoices.length === 0 ? (
-              <p className="text-muted-foreground text-xs text-center py-2">
-                Sem faturas pendentes listadas.
-              </p>
-            ) : (
-              customer.invoices.map((inv, idx) => (
-                <div
-                  key={idx}
-                  className="flex justify-between items-center text-sm p-2 bg-white border rounded-md shadow-subtle"
-                >
-                  <span className="font-medium text-slate-700">{inv.ref}</span>
-                  <div className="flex flex-col text-right">
-                    <span className="font-semibold text-primary">R$ {inv.value.toFixed(2)}</span>
-                    <span className="text-[10px] text-muted-foreground">{inv.days} dias</span>
+        <CardContent className="pt-4">
+          <div className="grid grid-cols-2 gap-4 h-full">
+            <div className="flex flex-col gap-4">
+              <div className="bg-slate-50 p-2.5 rounded-lg border flex flex-col justify-center shadow-subtle">
+                <div className="grid grid-cols-2 gap-1 divide-x divide-slate-200">
+                  <div className="text-center px-1">
+                    <span className="text-[9px] text-muted-foreground font-bold uppercase tracking-tighter leading-tight block mb-1">
+                      Mais Recente
+                    </span>
+                    <span className="text-xl font-bold text-[#ff8c00] leading-none">{minDays}</span>
+                    <span className="text-[9px] text-muted-foreground block mt-0.5">dias</span>
+                  </div>
+                  <div className="text-center px-1">
+                    <span className="text-[9px] text-muted-foreground font-bold uppercase tracking-tighter leading-tight block mb-1">
+                      Mais Antiga
+                    </span>
+                    <span className="text-xl font-bold text-rose-600 leading-none">{maxDays}</span>
+                    <span className="text-[9px] text-muted-foreground block mt-0.5">dias</span>
                   </div>
                 </div>
-              ))
-            )}
+              </div>
+
+              <div className="bg-slate-50 p-3 rounded-lg border text-center flex-1 flex flex-col items-center justify-center shadow-subtle">
+                <span className="text-[10px] text-muted-foreground block mb-1 font-bold uppercase tracking-wider">
+                  Valor Médio
+                </span>
+                <span className="text-xl font-black text-blue-600">
+                  R${' '}
+                  {avgValue.toLocaleString('pt-BR', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-4">
+              <div className="bg-slate-50 p-3 rounded-lg border text-center shrink-0 shadow-subtle">
+                <span className="text-[10px] text-muted-foreground block mb-1 font-bold uppercase tracking-wider">
+                  Faturas Abertas
+                </span>
+                <span className="text-2xl font-black text-slate-800 leading-none">
+                  {invoices.length}
+                </span>
+              </div>
+
+              <div className="bg-white rounded-lg border shadow-subtle flex-1 flex flex-col overflow-hidden max-h-[160px]">
+                <div className="bg-slate-50 py-1.5 border-b text-center shrink-0">
+                  <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                    Referências
+                  </span>
+                </div>
+                <div className="overflow-y-auto p-2 space-y-1.5 flex-1">
+                  {invoices.length === 0 ? (
+                    <p className="text-muted-foreground text-[10px] text-center py-2">
+                      Sem faturas.
+                    </p>
+                  ) : (
+                    invoices.map((inv, idx) => (
+                      <div
+                        key={idx}
+                        className="flex flex-col items-center bg-slate-50 border border-slate-100 rounded py-1"
+                      >
+                        <span className="font-bold text-slate-700 text-sm leading-tight">
+                          {inv.ref}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground font-medium">
+                          {inv.days} dias
+                        </span>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>
