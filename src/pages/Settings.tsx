@@ -45,6 +45,7 @@ import {
 import { supabase } from '@/lib/supabase/client'
 import { useToast } from '@/hooks/use-toast'
 import { useAuth } from '@/hooks/use-auth'
+import { generateQuoteUrl } from '@/lib/utils'
 
 export default function Settings() {
   const { toast } = useToast()
@@ -475,14 +476,14 @@ export default function Settings() {
                             )}
                           </TableCell>
                           <TableCell>
-                            {q.link ? (
+                            {generateQuoteUrl(q.link, q.theory) ? (
                               <a
-                                href={q.link}
+                                href={generateQuoteUrl(q.link, q.theory)!}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="text-primary hover:text-primary/80 flex items-center gap-1 text-sm font-medium"
                               >
-                                Acessar <ExternalLink className="h-3 w-3" />
+                                Saiba mais <ExternalLink className="h-3 w-3" />
                               </a>
                             ) : (
                               '-'
@@ -622,6 +623,9 @@ export default function Settings() {
                 onChange={(e) => setLink(e.target.value)}
                 placeholder="Ex: https://blog.exemplo.com/artigo"
               />
+              <p className="text-xs text-slate-500 mt-1">
+                Se vazio, o botão "Saiba mais" fará uma busca inteligente no Google usando a Teoria.
+              </p>
             </div>
           </div>
           <DialogFooter>
