@@ -3,6 +3,7 @@ import { CustomerHeader } from './CustomerHeader'
 import { CustomerInfo } from './CustomerInfo'
 import { CustomerTimeline } from './CustomerTimeline'
 import { CustomerActionForm } from './CustomerActionForm'
+import { RelatedDebts } from './RelatedDebts'
 import { useEffect, useState } from 'react'
 import { getDebtByUc, ParsedDebt } from '@/services/debts'
 
@@ -39,8 +40,9 @@ export default function CustomerPage() {
       <CustomerHeader customer={customer} />
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        <div className="lg:col-span-3 space-y-6">
+        <div className="lg:col-span-3 space-y-0">
           <CustomerInfo customer={customer} />
+          <RelatedDebts customer={customer} />
         </div>
 
         <div className="lg:col-span-5 h-[calc(100vh-220px)] lg:sticky lg:top-20 overflow-y-auto pr-2 rounded-lg border bg-card shadow-sm">

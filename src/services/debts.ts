@@ -17,9 +17,11 @@ export interface ParsedDebt {
   redundancyAlert?: { operator: string; daysAgo: number }
   lastContactDate?: string
   lastOperatorName?: string
+  rawPessoaFaturaNome?: string | null
+  rawPessoaFaturaCpfCnpj?: string | null
 }
 
-function parseDebtRow(
+export function parseDebtRow(
   row: any,
   phoneStatus: 'a_verificar' | 'validado' | 'invalido' = 'a_verificar',
 ): ParsedDebt {
@@ -90,6 +92,8 @@ function parseDebtRow(
     priority: row.valor_total > 5000 ? 'alta' : row.valor_total > 1000 ? 'media' : 'baixa',
     phones,
     invoices,
+    rawPessoaFaturaNome: row.pessoa_fatura_nome || null,
+    rawPessoaFaturaCpfCnpj: row.pessoa_fatura_cpf_cnpj || null,
   }
 }
 
@@ -208,6 +212,63 @@ export async function getDebtByUc(uc: string) {
   }
 
   return parseDebtRow(data, phoneValidationStatus)
+}
+
+export async function getRelatedDebts(
+  currentUc: string,
+  personCode: string,
+  pessoaFaturaNome: string | null,
+  pessoaFaturaCpfCnpj: string | null,
+) {
+  const promises = []
+
+  if (personCode) {
+    promises.push(supabase.from('pending_debts').select('*').eq('cod_pess_fat', personCode))
+  }
+
+  if (pessoaFaturaNome && pessoaFaturaNome.trim().length > 0) {
+    promises.push(
+      supabase.from('pending_debts').select('*').eq('proprietario_nome', pessoaFaturaNome),
+    )
+    promises.push(
+      supabase.from('pending_debts').select('*').eq('responsavel_nome', pessoaFaturaNome),
+    )
+  }
+
+  if (pessoaFaturaCpfCnpj && pessoaFaturaCpfCnpj.trim().length > 0) {
+    promises.push(
+      supabase.from('pending_debts').select('*').eq('proprietario_cpf_cnpj', pessoaFaturaCpfCnpj),
+    )
+    promises.push(
+      supabase.from('pending_debts').select('*').eq('responsavel_cpf_cnpj', pessoaFaturaCpfCnpj),
+    )
+  }
+
+  if (promises.length === 0) return []
+
+  const results = await Promise.all(promises)
+
+  const uniqueDebts = new Map<string, any>()
+
+  for (const { data, error } of results) {
+    if (error) {
+      console.error('Error fetching related debts', error)
+      continue
+    }
+    if (data) {
+      for (const row of data) {
+        if (row.uc === currentUc && row.cod_pess_fat === personCode) {
+          continue
+        }
+        const key = `${row.uc}_${row.cod_pess_fat}`
+        if (!uniqueDebts.has(key)) {
+          uniqueDebts.set(key, row)
+        }
+      }
+    }
+  }
+
+  return Array.from(uniqueDebts.values()).map((row) => parseDebtRow(row))
 }
 
 export async function getPortfolioStats() {
