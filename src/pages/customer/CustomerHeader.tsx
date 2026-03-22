@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { ArrowLeft, AlertCircle } from 'lucide-react'
+import { ArrowLeft, AlertCircle, MapPin } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
@@ -76,6 +76,16 @@ export function CustomerHeader({
             <span className="truncate max-w-[400px]">
               {customer.address || 'Endereço não cadastrado'}
             </span>
+            {customer.address && (
+              <a
+                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(customer.address)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center text-[11px] text-primary hover:text-primary/80 hover:bg-primary/20 bg-primary/10 px-2 py-1 rounded-full font-bold transition-colors"
+              >
+                <MapPin className="w-3 h-3 mr-1" /> Ver no Mapa
+              </a>
+            )}
           </div>
         </div>
 

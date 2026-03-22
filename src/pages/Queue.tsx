@@ -161,12 +161,24 @@ export default function Queue() {
                               UC: {customer.uc} • {safeText(customer.document)}
                             </span>
                             {customer.address && (
-                              <span
-                                className="text-xs font-medium text-slate-400 truncate mt-0.5"
-                                title={safeText(customer.address)}
-                              >
-                                {safeText(customer.address)}
-                              </span>
+                              <div className="flex items-center flex-wrap gap-1.5 mt-0.5">
+                                <span
+                                  className="text-xs font-medium text-slate-400 truncate max-w-[150px] sm:max-w-[200px]"
+                                  title={safeText(customer.address)}
+                                >
+                                  {safeText(customer.address)}
+                                </span>
+                                <a
+                                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(customer.address)}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="inline-flex items-center text-[10px] text-primary hover:text-primary/80 hover:bg-primary/10 px-1.5 py-0.5 rounded transition-colors shrink-0"
+                                  title="Ver no Mapa"
+                                >
+                                  <MapPin className="w-3 h-3" />
+                                </a>
+                              </div>
                             )}
                           </div>
                         </TableCell>
@@ -304,12 +316,24 @@ export default function Queue() {
                               })}
                             </span>
                             {customer.address && (
-                              <span
-                                className="text-xs font-medium text-slate-400 truncate mt-0.5"
-                                title={safeText(customer.address)}
-                              >
-                                {safeText(customer.address)}
-                              </span>
+                              <div className="flex items-center flex-wrap gap-1.5 mt-0.5">
+                                <span
+                                  className="text-xs font-medium text-slate-400 truncate max-w-[150px] sm:max-w-[200px]"
+                                  title={safeText(customer.address)}
+                                >
+                                  {safeText(customer.address)}
+                                </span>
+                                <a
+                                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(customer.address)}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="inline-flex items-center text-[10px] text-primary hover:text-primary/80 hover:bg-primary/10 px-1.5 py-0.5 rounded transition-colors shrink-0"
+                                  title="Ver no Mapa"
+                                >
+                                  <MapPin className="w-3 h-3" />
+                                </a>
+                              </div>
                             )}
                             {customer.recentOperators && customer.recentOperators.length > 0 && (
                               <div className="flex items-center gap-1 mt-1.5">

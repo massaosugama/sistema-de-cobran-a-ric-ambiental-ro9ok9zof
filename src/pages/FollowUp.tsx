@@ -83,17 +83,26 @@ export interface EnrichedTask {
 
 function DebtSearch({ onSelect }: { onSelect: (debt: ParsedDebt) => void }) {
   const [search, setSearch] = useState('')
+  const [searchAddress, setSearchAddress] = useState('')
   const debouncedSearch = useDebounce(search, 500)
+  const debouncedSearchAddress = useDebounce(searchAddress, 500)
   const [results, setResults] = useState<ParsedDebt[]>([])
   const [loading, setLoading] = useState(false)
 
+  const hasSearch = debouncedSearch.length >= 3
+  const hasAddress = debouncedSearchAddress.length >= 3
+
   useEffect(() => {
-    if (!debouncedSearch || debouncedSearch.length < 3) {
+    if (!hasSearch && !hasAddress) {
       setResults([])
       return
     }
     setLoading(true)
-    getDebts(debouncedSearch)
+    getDebts(
+      hasSearch ? debouncedSearch : undefined,
+      undefined,
+      hasAddress ? debouncedSearchAddress : undefined,
+    )
       .then((data) => {
         const all = [...data.unattended, ...data.attended]
         const unique = Array.from(
@@ -105,26 +114,37 @@ function DebtSearch({ onSelect }: { onSelect: (debt: ParsedDebt) => void }) {
       .catch(() => {
         setLoading(false)
       })
-  }, [debouncedSearch])
+  }, [debouncedSearch, debouncedSearchAddress, hasSearch, hasAddress])
 
   return (
     <div className="space-y-4">
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-        <Input
-          placeholder="Buscar dívida por UC, Nome ou CPF/CNPJ..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="pl-9 bg-white h-11 rounded-xl border-slate-200 shadow-sm"
-        />
+      <div className="flex flex-col sm:flex-row gap-2">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+          <Input
+            placeholder="UC, Nome ou CPF/CNPJ..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-9 bg-white h-11 rounded-xl border-slate-200 shadow-sm"
+          />
+        </div>
+        <div className="relative flex-1">
+          <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+          <Input
+            placeholder="Filtre por Endereço..."
+            value={searchAddress}
+            onChange={(e) => setSearchAddress(e.target.value)}
+            className="pl-9 bg-white h-11 rounded-xl border-slate-200 shadow-sm"
+          />
+        </div>
       </div>
       {loading && <div className="text-sm text-slate-500 text-center py-4">Buscando...</div>}
-      {!loading && debouncedSearch.length >= 3 && results.length === 0 && (
+      {!loading && (hasSearch || hasAddress) && results.length === 0 && (
         <div className="text-sm text-slate-500 text-center py-4">Nenhuma dívida encontrada.</div>
       )}
-      {!loading && debouncedSearch.length < 3 && (
+      {!loading && !hasSearch && !hasAddress && (
         <div className="text-sm text-slate-500 text-center py-8">
-          Digite pelo menos 3 caracteres para buscar uma dívida.
+          Digite pelo menos 3 caracteres em algum dos campos para buscar.
         </div>
       )}
       <div className="space-y-2">
@@ -135,7 +155,7 @@ function DebtSearch({ onSelect }: { onSelect: (debt: ParsedDebt) => void }) {
             onClick={() => onSelect(r)}
           >
             <p className="font-bold text-sm text-slate-800">{r.name || 'Sem nome'}</p>
-            <div className="mt-1.5 space-y-0.5">
+            <div className="mt-1.5 space-y-1">
               <p className="text-[13px] font-medium text-slate-600">
                 UC: {r.uc} <span className="mx-1 text-slate-300">•</span>{' '}
                 <span className="font-bold text-slate-700">
@@ -143,9 +163,20 @@ function DebtSearch({ onSelect }: { onSelect: (debt: ParsedDebt) => void }) {
                 </span>
               </p>
               {r.address && (
-                <p className="text-[12px] text-slate-500 line-clamp-1" title={r.address}>
-                  {r.address}
-                </p>
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-[12px] text-slate-500 line-clamp-1" title={r.address}>
+                    {r.address}
+                  </p>
+                  <a
+                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(r.address)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    className="inline-flex items-center text-[10px] text-primary hover:text-primary/80 hover:bg-primary/20 bg-primary/10 px-1.5 py-0.5 rounded font-bold transition-colors shrink-0"
+                  >
+                    <MapPin className="w-3 h-3 mr-1" /> Mapa
+                  </a>
+                </div>
               )}
             </div>
           </div>
@@ -1210,16 +1241,26 @@ export default function FollowUp() {
               <div className="space-y-4">
                 <div className="flex items-center justify-between bg-white p-4 rounded-xl border border-slate-200 shadow-sm relative overflow-hidden">
                   <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary/80"></div>
-                  <div className="pl-1">
+                  <div className="pl-1 flex-1">
                     <p className="font-bold text-sm text-slate-900">{selectedNewDebt.name}</p>
-                    <div className="mt-1 space-y-0.5">
+                    <div className="mt-1 space-y-1">
                       <p className="text-[13px] font-medium text-slate-600">
                         UC: {selectedNewDebt.uc}
                       </p>
                       {selectedNewDebt.address && (
-                        <p className="text-[12px] text-slate-500 leading-tight pr-2">
-                          {selectedNewDebt.address}
-                        </p>
+                        <div className="flex items-center flex-wrap gap-2 pr-2">
+                          <p className="text-[12px] text-slate-500 leading-tight">
+                            {selectedNewDebt.address}
+                          </p>
+                          <a
+                            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedNewDebt.address)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center text-[10px] text-primary hover:text-primary/80 hover:bg-primary/20 bg-primary/10 px-1.5 py-0.5 rounded font-bold transition-colors shrink-0"
+                          >
+                            <MapPin className="w-3 h-3 mr-1" /> Mapa
+                          </a>
+                        </div>
                       )}
                     </div>
                   </div>
@@ -1227,7 +1268,7 @@ export default function FollowUp() {
                     variant="ghost"
                     size="sm"
                     onClick={() => setSelectedNewDebt(null)}
-                    className="font-semibold text-slate-600 hover:text-slate-900"
+                    className="font-semibold text-slate-600 hover:text-slate-900 shrink-0"
                   >
                     Trocar
                   </Button>
