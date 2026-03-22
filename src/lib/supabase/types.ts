@@ -216,6 +216,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          color: string | null
           created_at: string
           email: string
           first_name: string | null
@@ -226,6 +227,7 @@ export type Database = {
           name: string | null
         }
         Insert: {
+          color?: string | null
           created_at?: string
           email: string
           first_name?: string | null
@@ -236,6 +238,7 @@ export type Database = {
           name?: string | null
         }
         Update: {
+          color?: string | null
           created_at?: string
           email?: string
           first_name?: string | null
@@ -592,6 +595,7 @@ export const Constants = {
 //   first_name: text (nullable)
 //   last_name: text (nullable)
 //   is_admin: boolean (nullable, default: false)
+//   color: text (nullable)
 // Table: quote_clicks
 //   id: uuid (not null, default: gen_random_uuid())
 //   user_id: uuid (not null)
@@ -813,3 +817,5 @@ export const Constants = {
 // --- INDEXES ---
 // Table: portfolio_history
 //   CREATE UNIQUE INDEX portfolio_history_snapshot_date_key ON public.portfolio_history USING btree (snapshot_date)
+// Table: profiles
+//   CREATE INDEX profiles_color_idx ON public.profiles USING btree (color)

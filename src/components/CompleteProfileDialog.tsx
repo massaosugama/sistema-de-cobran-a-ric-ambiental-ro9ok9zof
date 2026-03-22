@@ -16,37 +16,52 @@ import { useToast } from '@/hooks/use-toast'
 import { cn } from '@/lib/utils'
 import { Check } from 'lucide-react'
 
+// Paleta de 30 cores bem distintas, incluindo branco (#FFFFFF) e preto (#000000)
 export const PROFILE_COLORS = [
-  '#22c55e',
-  '#ef4444',
-  '#f97316',
-  '#f59e0b',
-  '#eab308',
-  '#84cc16',
-  '#10b981',
-  '#14b8a6',
-  '#06b6d4',
-  '#0ea5e9',
-  '#3b82f6',
-  '#6366f1',
-  '#8b5cf6',
-  '#a855f7',
-  '#d946ef',
-  '#ec4899',
-  '#f43f5e',
-  '#dc2626',
-  '#ea580c',
-  '#d97706',
-  '#ca8a04',
-  '#65a30d',
-  '#16a34a',
-  '#059669',
-  '#0d9488',
-  '#0891b2',
-  '#0284c7',
-  '#2563eb',
-  '#4f46e5',
-  '#7c3aed',
+  '#FFFFFF', // Branco
+  '#000000', // Preto
+  '#EF4444', // Vermelho
+  '#22C55E', // Verde
+  '#3B82F6', // Azul
+  '#EAB308', // Amarelo
+  '#06B6D4', // Ciano
+  '#D946EF', // Magenta
+  '#64748B', // Cinza
+  '#78310F', // Marrom Escuro
+  '#84CC16', // Verde Limão
+  '#14B8A6', // Verde Água
+  '#8B5CF6', // Roxo
+  '#F97316', // Laranja
+  '#EC4899', // Rosa
+  '#0369A1', // Azul Escuro
+  '#166534', // Verde Escuro
+  '#4C1D95', // Roxo Escuro
+  '#991B1B', // Vermelho Escuro
+  '#B45309', // Ouro Escuro
+  '#FCA5A5', // Vermelho Claro
+  '#86EFAC', // Verde Claro
+  '#93C5FD', // Azul Claro
+  '#FDE047', // Amarelo Claro
+  '#67E8F9', // Ciano Claro
+  '#F0ABFC', // Magenta Claro
+  '#CBD5E1', // Cinza Claro
+  '#FDBA74', // Laranja Claro
+  '#F9A8D4', // Rosa Claro
+  '#333333', // Cinza Escuro
+]
+
+// Lista de cores claras para mudar a cor do ícone de Check para escuro garantindo contraste
+const LIGHT_COLORS = [
+  '#FFFFFF',
+  '#FCA5A5',
+  '#86EFAC',
+  '#93C5FD',
+  '#FDE047',
+  '#67E8F9',
+  '#F0ABFC',
+  '#CBD5E1',
+  '#FDBA74',
+  '#F9A8D4',
 ]
 
 export function CompleteProfileDialog() {
@@ -81,7 +96,7 @@ export function CompleteProfileDialog() {
           .select('color')
           .neq('id', user.id)
         if (allProfiles) {
-          setTakenColors(allProfiles.map((p) => p.color).filter(Boolean) as string[])
+          setTakenColors(allProfiles.map((p) => p.color?.toUpperCase()).filter(Boolean) as string[])
         }
 
         setIsOpen(true)
@@ -164,9 +179,11 @@ export function CompleteProfileDialog() {
             <Label>Escolha sua cor (exclusiva)</Label>
             <div className="flex flex-wrap gap-2">
               {PROFILE_COLORS.map((color) => {
-                const isTaken = takenColors.includes(color)
-                const isSelected = formData.color === color
+                const isTaken = takenColors.includes(color.toUpperCase())
+                const isSelected = formData.color.toUpperCase() === color.toUpperCase()
                 if (isTaken && !isSelected) return null
+
+                const isLight = LIGHT_COLORS.includes(color.toUpperCase())
 
                 return (
                   <button
@@ -174,17 +191,27 @@ export function CompleteProfileDialog() {
                     onClick={() => setFormData({ ...formData, color })}
                     className={cn(
                       'w-8 h-8 rounded-full flex items-center justify-center transition-transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-offset-2',
+                      color.toUpperCase() === '#FFFFFF' ? 'border border-slate-300' : '',
                       isSelected ? 'ring-2 ring-slate-900 ring-offset-2 scale-110' : '',
                     )}
                     style={{ backgroundColor: color }}
                     title={color}
                   >
-                    {isSelected && <Check className="w-4 h-4 text-white" strokeWidth={3} />}
+                    {isSelected && (
+                      <Check
+                        className={cn('w-4 h-4', isLight ? 'text-slate-900' : 'text-white')}
+                        strokeWidth={3}
+                      />
+                    )}
                   </button>
                 )
               })}
             </div>
-            {PROFILE_COLORS.every((c) => takenColors.includes(c) && formData.color !== c) && (
+            {PROFILE_COLORS.every(
+              (c) =>
+                takenColors.includes(c.toUpperCase()) &&
+                formData.color.toUpperCase() !== c.toUpperCase(),
+            ) && (
               <p className="text-sm text-amber-600 font-medium">
                 Todas as cores foram escolhidas! Fale com o administrador.
               </p>

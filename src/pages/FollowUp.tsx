@@ -197,7 +197,7 @@ export default function FollowUp() {
         <div className="flex items-center gap-2">
           {task.operator?.color && (
             <div
-              className="w-3 h-3 rounded-full shadow-inner"
+              className="w-3 h-3 rounded-full shadow-inner border border-slate-200"
               style={{ backgroundColor: task.operator.color }}
             />
           )}
