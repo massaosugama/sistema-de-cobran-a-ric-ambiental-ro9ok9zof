@@ -162,10 +162,10 @@ export function CustomerInfo({ customer }: { customer: ParsedDebt }) {
                     invoices.map((inv, idx) => (
                       <div
                         key={idx}
-                        className="flex flex-col items-center bg-slate-50 border border-slate-100 rounded py-1"
+                        className="flex flex-col items-center bg-slate-50 border border-slate-100 rounded py-1 px-1"
                       >
-                        <span className="font-bold text-slate-700 text-sm leading-tight">
-                          {inv.ref}
+                        <span className="font-bold text-slate-700 text-sm leading-tight text-center">
+                          {inv.ref === 'NEG' ? 'Outras Negociações' : inv.ref}
                         </span>
                         {inv.days !== null && (
                           <span className="text-[10px] text-muted-foreground font-medium">
