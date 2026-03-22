@@ -13,7 +13,7 @@ export interface ParsedDebt {
   nextAction?: string
   priority: 'alta' | 'media' | 'baixa'
   phones: { number: string; status: 'a_verificar' | 'validado' | 'invalido' }[]
-  invoices: { ref: string; value: number; days: number }[]
+  invoices: { ref: string; value: number; days: number | null }[]
   redundancyAlert?: { operator: string; daysAgo: number }
   lastContactDate?: string
   lastOperatorName?: string
@@ -37,33 +37,45 @@ function parseDebtRow(
 
   const invoices = row.refs
     ? row.refs
-        .split(' ')
+        .split(/\s+/)
         .filter((r: string) => r.trim() !== '')
-        .map((ref: string) => {
-          let days = 0
-          const parts = ref.split('/')
-          if (parts.length === 2) {
-            let y = parseInt(parts[0], 10)
-            let m = parseInt(parts[1], 10)
-            if (parts[1].length === 4) {
-              m = y
-              y = parseInt(parts[1], 10)
-            } else {
-              if (y < 100) y += 2000
+        .map((rawRef: string) => {
+          let ref = rawRef.trim()
+          if (ref.startsWith("'")) {
+            ref = ref.substring(1)
+          }
+
+          let days: number | null = null
+
+          if (ref !== 'NEG') {
+            const parts = ref.split('/')
+            if (parts.length === 2) {
+              let y = parseInt(parts[0], 10)
+              let m = parseInt(parts[1], 10)
+              if (!isNaN(y) && !isNaN(m)) {
+                if (y < 100) y += 2000
+                const now = new Date()
+                const currentYear = now.getFullYear()
+                const currentMonth = now.getMonth() + 1
+                const monthsDiff = (currentYear - y) * 12 + (currentMonth - m)
+                days = Math.max(0, monthsDiff * 30)
+              }
             }
-            const now = new Date()
-            const currentYear = now.getFullYear()
-            const currentMonth = now.getMonth() + 1
-            const monthsDiff = (currentYear - y) * 12 + (currentMonth - m)
-            days = Math.max(0, monthsDiff * 30)
           }
           return { ref, value: row.valor_total / (row.qt_fats || 1), days }
         })
     : []
 
-  invoices.sort((a: any, b: any) => b.days - a.days)
+  invoices.sort((a: any, b: any) => {
+    if (a.days === null && b.days === null) return 0
+    if (a.days === null) return 1
+    if (b.days === null) return -1
+    return a.days - b.days
+  })
 
-  const maxDays = invoices.length > 0 ? invoices[0].days : 0
+  const validInvoices = invoices.filter((i: any) => i.days !== null)
+  const overdueDays =
+    validInvoices.length > 0 ? Math.max(...validInvoices.map((i: any) => i.days as number)) : 0
 
   return {
     id: row.uc,
@@ -72,7 +84,7 @@ function parseDebtRow(
     name: row.pessoa_fatura_nome || row.ta_nome_de_quem || '',
     document: row.pessoa_fatura_cpf_cnpj || '',
     address: row.endereco || '',
-    overdueDays: maxDays,
+    overdueDays,
     totalDebt: row.valor_total || 0,
     status: 'pendente',
     priority: row.valor_total > 5000 ? 'alta' : row.valor_total > 1000 ? 'media' : 'baixa',

@@ -14,8 +14,11 @@ export function CustomerInfo({ customer }: { customer: ParsedDebt }) {
   const phoneQuality = totalPhones > 0 ? score / totalPhones : 0
 
   const invoices = customer.invoices || []
-  const minDays = invoices.length > 0 ? Math.min(...invoices.map((i) => i.days)) : 0
-  const maxDays = invoices.length > 0 ? Math.max(...invoices.map((i) => i.days)) : 0
+  const validInvoices = invoices.filter((i) => i.days !== null)
+  const minDays =
+    validInvoices.length > 0 ? Math.min(...validInvoices.map((i) => i.days as number)) : null
+  const maxDays =
+    validInvoices.length > 0 ? Math.max(...validInvoices.map((i) => i.days as number)) : null
   const avgValue = invoices.length > 0 ? customer.totalDebt / invoices.length : 0
 
   return (
@@ -97,17 +100,25 @@ export function CustomerInfo({ customer }: { customer: ParsedDebt }) {
                 <div className="grid grid-cols-2 gap-1 divide-x divide-slate-200">
                   <div className="text-center px-1">
                     <span className="text-[9px] text-muted-foreground font-bold uppercase tracking-tighter leading-tight block mb-1">
-                      Mais Recente
+                      Dívida Mais Recente
                     </span>
-                    <span className="text-xl font-bold text-[#ff8c00] leading-none">{minDays}</span>
-                    <span className="text-[9px] text-muted-foreground block mt-0.5">dias</span>
+                    <span className="text-xl font-bold text-[#ff8c00] leading-none">
+                      {minDays !== null ? minDays : '-'}
+                    </span>
+                    {minDays !== null && (
+                      <span className="text-[9px] text-muted-foreground block mt-0.5">dias</span>
+                    )}
                   </div>
                   <div className="text-center px-1">
                     <span className="text-[9px] text-muted-foreground font-bold uppercase tracking-tighter leading-tight block mb-1">
-                      Mais Antiga
+                      Dívida Mais Antiga
                     </span>
-                    <span className="text-xl font-bold text-rose-600 leading-none">{maxDays}</span>
-                    <span className="text-[9px] text-muted-foreground block mt-0.5">dias</span>
+                    <span className="text-xl font-bold text-rose-600 leading-none">
+                      {maxDays !== null ? maxDays : '-'}
+                    </span>
+                    {maxDays !== null && (
+                      <span className="text-[9px] text-muted-foreground block mt-0.5">dias</span>
+                    )}
                   </div>
                 </div>
               </div>
@@ -156,9 +167,11 @@ export function CustomerInfo({ customer }: { customer: ParsedDebt }) {
                         <span className="font-bold text-slate-700 text-sm leading-tight">
                           {inv.ref}
                         </span>
-                        <span className="text-[10px] text-muted-foreground font-medium">
-                          {inv.days} dias
-                        </span>
+                        {inv.days !== null && (
+                          <span className="text-[10px] text-muted-foreground font-medium">
+                            {inv.days} dias
+                          </span>
+                        )}
                       </div>
                     ))
                   )}
