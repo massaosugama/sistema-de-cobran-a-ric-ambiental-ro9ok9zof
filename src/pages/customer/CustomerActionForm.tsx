@@ -26,12 +26,14 @@ export function CustomerActionForm({
   customer,
   isSheet,
   onClose,
+  initialDate,
 }: {
   customer: ParsedDebt
   isSheet?: boolean
   onClose?: () => void
+  initialDate?: Date
 }) {
-  const [date, setDate] = useState<Date>()
+  const [date, setDate] = useState<Date | undefined>(initialDate)
   const [isCalendarOpen, setIsCalendarOpen] = useState(false)
   const [channel, setChannel] = useState('TEL ATIVO')
   const [status, setStatus] = useState('')
@@ -103,6 +105,7 @@ export function CustomerActionForm({
       setTimeout(() => {
         if (isSheet) {
           window.dispatchEvent(new CustomEvent('contact-added', { detail: { uc: customer.uc } }))
+          if (onClose) onClose()
         } else {
           window.location.reload()
         }
@@ -282,7 +285,7 @@ export function CustomerActionForm({
             onClick={onClose}
             className="w-full h-11 font-semibold border-slate-200 text-slate-600 hover:bg-slate-100 hover:text-slate-800 transition-all rounded-xl"
           >
-            Voltar para UC Anterior
+            Sair
           </Button>
         )}
       </CardFooter>

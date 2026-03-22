@@ -36,6 +36,8 @@ import {
   FilterX,
   Eye,
   RotateCcw,
+  Search,
+  MapPin,
 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import {
@@ -48,6 +50,17 @@ import {
 import { Calendar } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable'
+import { useDebounce } from '@/hooks/use-debounce'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from '@/components/ui/sheet'
+import { CustomerActionForm } from '@/pages/customer/CustomerActionForm'
+import { getDebts, type ParsedDebt } from '@/services/debts'
 
 export interface EnrichedTask {
   id: string
@@ -58,8 +71,78 @@ export interface EnrichedTask {
   operator_id: string
   completed: boolean
   operator?: { name: string; color: string }
-  debt?: { valor_total: number; qt_fats: number; nome: string }
+  debt?: {
+    valor_total: number
+    qt_fats: number
+    nome: string
+    document?: string
+    endereco?: string
+  }
   lastNote?: string
+}
+
+function DebtSearch({ onSelect }: { onSelect: (debt: ParsedDebt) => void }) {
+  const [search, setSearch] = useState('')
+  const debouncedSearch = useDebounce(search, 500)
+  const [results, setResults] = useState<ParsedDebt[]>([])
+  const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    if (!debouncedSearch || debouncedSearch.length < 3) {
+      setResults([])
+      return
+    }
+    setLoading(true)
+    getDebts(debouncedSearch)
+      .then((data) => {
+        const all = [...data.unattended, ...data.attended]
+        const unique = Array.from(
+          new Map(all.map((item) => [`${item.uc}_${item.personCode}`, item])).values(),
+        )
+        setResults(unique)
+        setLoading(false)
+      })
+      .catch(() => {
+        setLoading(false)
+      })
+  }, [debouncedSearch])
+
+  return (
+    <div className="space-y-4">
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+        <Input
+          placeholder="Buscar dívida por UC, Nome ou CPF/CNPJ..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="pl-9 bg-white h-11 rounded-xl border-slate-200 shadow-sm"
+        />
+      </div>
+      {loading && <div className="text-sm text-slate-500 text-center py-4">Buscando...</div>}
+      {!loading && debouncedSearch.length >= 3 && results.length === 0 && (
+        <div className="text-sm text-slate-500 text-center py-4">Nenhuma dívida encontrada.</div>
+      )}
+      {!loading && debouncedSearch.length < 3 && (
+        <div className="text-sm text-slate-500 text-center py-8">
+          Digite pelo menos 3 caracteres para buscar uma dívida.
+        </div>
+      )}
+      <div className="space-y-2">
+        {results.map((r) => (
+          <div
+            key={`${r.uc}_${r.personCode}`}
+            className="p-4 bg-white border border-slate-200 rounded-xl hover:border-primary/50 hover:shadow-sm cursor-pointer transition-all"
+            onClick={() => onSelect(r)}
+          >
+            <p className="font-bold text-sm text-slate-800">{r.name || 'Sem nome'}</p>
+            <p className="text-xs font-medium text-slate-500 mt-1">
+              UC: {r.uc} • R$ {r.totalDebt.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+            </p>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
 }
 
 export default function FollowUp() {
@@ -68,6 +151,12 @@ export default function FollowUp() {
   const [view, setView] = useState<'meus' | 'todos'>('meus')
   const [tasks, setTasks] = useState<EnrichedTask[]>([])
   const [loading, setLoading] = useState(true)
+
+  // Filters State
+  const [search, setSearch] = useState('')
+  const [searchAddress, setSearchAddress] = useState('')
+  const debouncedSearch = useDebounce(search, 500)
+  const debouncedSearchAddress = useDebounce(searchAddress, 500)
 
   // Layout State
   const [isMobile, setIsMobile] = useState(false)
@@ -90,6 +179,11 @@ export default function FollowUp() {
   const [newActionInput, setNewActionInput] = useState('')
   const [newDateInput, setNewDateInput] = useState<Date | undefined>(undefined)
   const [isNewCalendarOpen, setIsNewCalendarOpen] = useState(false)
+
+  // New Activity Sheet State
+  const [isNewActivitySheetOpen, setIsNewActivitySheetOpen] = useState(false)
+  const [preFilledDate, setPreFilledDate] = useState<Date | undefined>(undefined)
+  const [selectedNewDebt, setSelectedNewDebt] = useState<ParsedDebt | null>(null)
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 1024)
@@ -118,7 +212,9 @@ export default function FollowUp() {
       const ucs = [...new Set(rawTasks.map((t) => t.uc).filter(Boolean))]
       const { data: debts } = await supabase
         .from('pending_debts')
-        .select('uc, cod_pess_fat, valor_total, qt_fats, pessoa_fatura_nome, ta_nome_de_quem')
+        .select(
+          'uc, cod_pess_fat, valor_total, qt_fats, pessoa_fatura_nome, ta_nome_de_quem, pessoa_fatura_cpf_cnpj, endereco',
+        )
         .in('uc', ucs)
 
       const enriched = rawTasks.map((t) => {
@@ -134,6 +230,8 @@ export default function FollowUp() {
                 valor_total: debt.valor_total || 0,
                 qt_fats: debt.qt_fats || 1,
                 nome: debt.pessoa_fatura_nome || debt.ta_nome_de_quem || '',
+                document: debt.pessoa_fatura_cpf_cnpj || '',
+                endereco: debt.endereco || '',
               }
             : undefined,
         }
@@ -150,6 +248,16 @@ export default function FollowUp() {
     fetchTasks()
   }, [])
 
+  useEffect(() => {
+    const handleContactAdded = () => {
+      fetchTasks()
+      setIsNewActivitySheetOpen(false)
+      setSelectedNewDebt(null)
+    }
+    window.addEventListener('contact-added', handleContactAdded)
+    return () => window.removeEventListener('contact-added', handleContactAdded)
+  }, [])
+
   const calendarDays = useMemo(() => {
     const monthStart = startOfMonth(currentMonth)
     const monthEnd = endOfMonth(monthStart)
@@ -159,8 +267,27 @@ export default function FollowUp() {
   }, [currentMonth])
 
   const filteredTasks = useMemo(() => {
-    return tasks.filter((t) => view === 'todos' || t.operator_id === user?.id)
-  }, [tasks, view, user?.id])
+    let result = tasks.filter((t) => view === 'todos' || t.operator_id === user?.id)
+
+    if (debouncedSearch) {
+      const lowerSearch = debouncedSearch.toLowerCase()
+      result = result.filter(
+        (t) =>
+          t.uc.toLowerCase().includes(lowerSearch) ||
+          (t.debt?.nome && t.debt.nome.toLowerCase().includes(lowerSearch)) ||
+          (t.debt?.document && t.debt.document.toLowerCase().includes(lowerSearch)),
+      )
+    }
+
+    if (debouncedSearchAddress) {
+      const lowerAddr = debouncedSearchAddress.toLowerCase()
+      result = result.filter(
+        (t) => t.debt?.endereco && t.debt.endereco.toLowerCase().includes(lowerAddr),
+      )
+    }
+
+    return result
+  }, [tasks, view, user?.id, debouncedSearch, debouncedSearchAddress])
 
   const tasksByDate = useMemo(() => {
     return filteredTasks.reduce(
@@ -635,18 +762,32 @@ export default function FollowUp() {
                   isToday && !isSelected && 'bg-slate-50',
                 )}
               >
-                <div
-                  className={cn(
-                    'text-xs font-medium mb-1.5 text-center w-6 h-6 ml-auto flex items-center justify-center rounded-full shrink-0',
-                    isToday
-                      ? 'bg-primary text-white'
-                      : !isCurrentMonth
-                        ? 'text-slate-400'
-                        : 'text-slate-700',
-                  )}
-                >
-                  {format(day, 'd')}
-                </div>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setPreFilledDate(day)
+                        setSelectedNewDebt(null)
+                        setIsNewActivitySheetOpen(true)
+                      }}
+                      className={cn(
+                        'text-xs font-medium mb-1.5 text-center w-6 h-6 ml-auto flex items-center justify-center rounded-full shrink-0 transition-colors cursor-pointer z-20',
+                        isToday
+                          ? 'bg-primary text-white'
+                          : !isCurrentMonth
+                            ? 'text-slate-400'
+                            : 'text-slate-700',
+                        'hover:bg-primary/20 hover:text-primary',
+                      )}
+                    >
+                      {format(day, 'd')}
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent side="top">
+                    <p>Incluir atividade</p>
+                  </TooltipContent>
+                </Tooltip>
 
                 <div className="flex-1 flex flex-col gap-1 overflow-y-auto pb-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
                   {dayTasks.map((t) => (
@@ -708,36 +849,71 @@ export default function FollowUp() {
           : 'flex flex-col h-[calc(100dvh-7.5rem)] min-h-[600px] space-y-4 pb-4',
       )}
     >
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 shrink-0">
+      <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 shrink-0">
         <div>
           <h1 className="text-3xl font-black tracking-tight text-slate-900">Follow-up</h1>
           <p className="text-slate-500 mt-1 font-medium">
-            Painel de gestão de compromissos operacionais.
+            Painel de gestão atividades de follow-up.
           </p>
         </div>
-        <div className="bg-slate-200/50 p-1 rounded-lg inline-flex w-full sm:w-auto">
-          <button
-            onClick={() => setView('meus')}
-            className={cn(
-              'px-4 py-2 rounded-md text-sm font-semibold transition-all flex-1 sm:flex-none',
-              view === 'meus'
-                ? 'bg-white shadow text-primary'
-                : 'text-slate-500 hover:text-slate-700',
-            )}
-          >
-            Meus Compromissos
-          </button>
-          <button
-            onClick={() => setView('todos')}
-            className={cn(
-              'px-4 py-2 rounded-md text-sm font-semibold transition-all flex-1 sm:flex-none',
-              view === 'todos'
-                ? 'bg-white shadow text-primary'
-                : 'text-slate-500 hover:text-slate-700',
-            )}
-          >
-            Equipe (Todos)
-          </button>
+        <div className="flex flex-col sm:flex-row items-center gap-3 w-full xl:w-auto">
+          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+            <div className="relative w-full sm:w-[220px]">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <Input
+                placeholder="Filtre UC, Nome..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-9 rounded-full bg-white border-slate-200 shadow-sm h-10 w-full focus-visible:ring-primary/20"
+              />
+            </div>
+            <div className="relative w-full sm:w-[220px]">
+              <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <Input
+                placeholder="Filtre Endereço"
+                value={searchAddress}
+                onChange={(e) => setSearchAddress(e.target.value)}
+                className="pl-9 rounded-full bg-white border-slate-200 shadow-sm h-10 w-full focus-visible:ring-primary/20"
+              />
+            </div>
+          </div>
+          <div className="flex gap-3 w-full sm:w-auto">
+            <div className="bg-slate-200/50 p-1 rounded-lg inline-flex w-full sm:w-auto">
+              <button
+                onClick={() => setView('meus')}
+                className={cn(
+                  'px-4 py-2 rounded-md text-sm font-semibold transition-all flex-1 sm:flex-none',
+                  view === 'meus'
+                    ? 'bg-white shadow text-primary'
+                    : 'text-slate-500 hover:text-slate-700',
+                )}
+              >
+                Meus
+              </button>
+              <button
+                onClick={() => setView('todos')}
+                className={cn(
+                  'px-4 py-2 rounded-md text-sm font-semibold transition-all flex-1 sm:flex-none',
+                  view === 'todos'
+                    ? 'bg-white shadow text-primary'
+                    : 'text-slate-500 hover:text-slate-700',
+                )}
+              >
+                Todos
+              </button>
+            </div>
+            <Button
+              onClick={() => {
+                setPreFilledDate(undefined)
+                setSelectedNewDebt(null)
+                setIsNewActivitySheetOpen(true)
+              }}
+              className="w-full sm:w-auto px-4"
+            >
+              <Plus className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Nova Atividade</span>
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -778,6 +954,7 @@ export default function FollowUp() {
         </div>
       )}
 
+      {/* Modal Edição Lembrete Existente */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
         <DialogContent className="sm:max-w-[700px] max-h-[90vh] flex flex-col p-0 overflow-hidden bg-slate-50">
           <div className="p-5 pb-4 border-b bg-white shrink-0">
@@ -1006,6 +1183,42 @@ export default function FollowUp() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Gaveta de Inclusão de Nova Atividade */}
+      <Sheet open={isNewActivitySheetOpen} onOpenChange={setIsNewActivitySheetOpen}>
+        <SheetContent className="w-full sm:max-w-xl overflow-y-auto bg-slate-50 p-0 flex flex-col">
+          <SheetHeader className="p-6 bg-white border-b shrink-0">
+            <SheetTitle>Incluir Nova Atividade</SheetTitle>
+            <SheetDescription>
+              Busque uma dívida para vincular o novo registro de atendimento.
+            </SheetDescription>
+          </SheetHeader>
+          <div className="flex-1 p-6 overflow-y-auto">
+            {!selectedNewDebt ? (
+              <DebtSearch onSelect={setSelectedNewDebt} />
+            ) : (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between bg-white p-3 rounded-xl border shadow-sm">
+                  <div>
+                    <p className="font-bold text-sm text-slate-800">{selectedNewDebt.name}</p>
+                    <p className="text-xs font-medium text-slate-500">UC: {selectedNewDebt.uc}</p>
+                  </div>
+                  <Button variant="ghost" size="sm" onClick={() => setSelectedNewDebt(null)}>
+                    Trocar
+                  </Button>
+                </div>
+                <CustomerActionForm
+                  key={`${selectedNewDebt.id}_${preFilledDate ? preFilledDate.toISOString() : 'no_date'}`}
+                  customer={selectedNewDebt}
+                  isSheet={true}
+                  onClose={() => setIsNewActivitySheetOpen(false)}
+                  initialDate={preFilledDate}
+                />
+              </div>
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   )
 }
