@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Label } from '@/components/ui/label'
 import { Eye, EyeOff, ArrowLeft } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
+import logoImg from '@/assets/ricambiental_logo-01-500-porcento-fbb5f.png'
 
 export default function Login() {
   const [mode, setMode] = useState<'login' | 'register' | 'forgot_password'>('login')
@@ -72,7 +73,7 @@ export default function Login() {
             </Button>
           )}
           <div className="flex justify-center mb-4">
-            <img src="/logo.png" alt="Ric Ambiental" className="h-16 w-auto object-contain" />
+            <img src={logoImg} alt="Ric Ambiental" className="h-16 w-auto object-contain" />
           </div>
           <CardTitle className="text-2xl font-black text-slate-900 tracking-tight">
             Ric Recupera & Desenvolve
