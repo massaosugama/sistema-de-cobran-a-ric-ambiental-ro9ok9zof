@@ -4,6 +4,8 @@ import { useAuth } from '@/hooks/use-auth'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { cn } from '@/lib/utils'
 import {
   format,
@@ -32,6 +34,7 @@ import {
   ChevronLeft,
   ChevronRight,
   FilterX,
+  Eye,
 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import {
@@ -39,7 +42,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
   DialogDescription,
 } from '@/components/ui/dialog'
 import { Calendar } from '@/components/ui/calendar'
@@ -53,8 +55,9 @@ export interface EnrichedTask {
   action: string
   due_date: string
   operator_id: string
+  completed: boolean
   operator?: { name: string; color: string }
-  debt?: { valor_total: number; nome: string }
+  debt?: { valor_total: number; qt_fats: number; nome: string }
   lastNote?: string
 }
 
@@ -80,6 +83,13 @@ export default function FollowUp() {
   const [isSaving, setIsSaving] = useState(false)
   const [isCalendarOpen, setIsCalendarOpen] = useState(false)
 
+  // New follow-up inside modal state
+  const [taskHistory, setTaskHistory] = useState<any[]>([])
+  const [loadingHistory, setLoadingHistory] = useState(false)
+  const [newActionInput, setNewActionInput] = useState('')
+  const [newDateInput, setNewDateInput] = useState<Date | undefined>(undefined)
+  const [isNewCalendarOpen, setIsNewCalendarOpen] = useState(false)
+
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 1024)
     checkMobile()
@@ -93,8 +103,8 @@ export default function FollowUp() {
       const { data: rawTasks } = await supabase
         .from('follow_up_tasks')
         .select('*')
-        .eq('completed', false)
         .order('due_date', { ascending: true })
+
       if (!rawTasks || rawTasks.length === 0) {
         setTasks([])
         return
@@ -107,20 +117,12 @@ export default function FollowUp() {
       const ucs = [...new Set(rawTasks.map((t) => t.uc).filter(Boolean))]
       const { data: debts } = await supabase
         .from('pending_debts')
-        .select('uc, cod_pess_fat, valor_total, pessoa_fatura_nome, ta_nome_de_quem')
+        .select('uc, cod_pess_fat, valor_total, qt_fats, pessoa_fatura_nome, ta_nome_de_quem')
         .in('uc', ucs)
-      const { data: contacts } = await supabase
-        .from('contact_history')
-        .select('uc, cod_pess_fat, notes')
-        .in('uc', ucs)
-        .order('created_at', { ascending: false })
 
       const enriched = rawTasks.map((t) => {
         const op = profiles?.find((p) => p.id === t.operator_id)
         const debt = debts?.find((d) => d.uc === t.uc && d.cod_pess_fat === t.cod_pess_fat)
-        const note = contacts?.find(
-          (c) => c.uc === t.uc && c.cod_pess_fat === t.cod_pess_fat && c.notes,
-        )
         return {
           ...t,
           operator: op
@@ -129,10 +131,10 @@ export default function FollowUp() {
           debt: debt
             ? {
                 valor_total: debt.valor_total || 0,
+                qt_fats: debt.qt_fats || 1,
                 nome: debt.pessoa_fatura_nome || debt.ta_nome_de_quem || '',
               }
             : undefined,
-          lastNote: note?.notes || undefined,
         }
       })
       setTasks(enriched as EnrichedTask[])
@@ -183,107 +185,180 @@ export default function FollowUp() {
   }
 
   const overdueTasks = useMemo(
-    () => filteredTasks.filter((t) => isTaskOverdue(t.due_date)),
+    () => filteredTasks.filter((t) => isTaskOverdue(t.due_date) && !t.completed),
     [filteredTasks],
   )
   const upcomingTasks = useMemo(
-    () => filteredTasks.filter((t) => !isTaskOverdue(t.due_date)),
+    () => filteredTasks.filter((t) => !isTaskOverdue(t.due_date) && !t.completed),
     [filteredTasks],
   )
 
-  const handleComplete = async (id: string) => {
-    try {
-      await supabase.from('follow_up_tasks').update({ completed: true }).eq('id', id)
-      setTasks((prev) => prev.filter((t) => t.id !== id))
-      toast({ title: 'Sucesso', description: 'Follow-up marcado como concluído!' })
-    } catch (err) {
-      toast({
-        title: 'Erro',
-        description: 'Não foi possível concluir a tarefa.',
-        variant: 'destructive',
-      })
-    }
-  }
-
-  const openNewTaskModal = (baseTask: EnrichedTask) => {
-    setEditingTask({
-      ...baseTask,
-      id: 'new',
-      action: '',
-      due_date: format(new Date(), 'yyyy-MM-dd'),
-    })
-    setActionInput('')
-    setDateInput(new Date())
-    setModalOpen(true)
-  }
-
-  const openEditTaskModal = (task: EnrichedTask) => {
+  const openEditTaskModal = async (task: EnrichedTask) => {
     setEditingTask(task)
     setActionInput(task.action || '')
     setDateInput(task.due_date ? parseISO(task.due_date) : new Date())
+    setNewActionInput('')
+    setNewDateInput(undefined)
     setModalOpen(true)
+
+    setLoadingHistory(true)
+    const { data: history } = await supabase
+      .from('contact_history')
+      .select('*, profiles(name)')
+      .eq('uc', task.uc)
+      .order('created_at', { ascending: false })
+      .limit(20)
+
+    setTaskHistory(history || [])
+    setLoadingHistory(false)
   }
 
-  const handleSaveModal = async () => {
-    if (!editingTask || !actionInput || !dateInput) {
-      toast({ title: 'Atenção', description: 'Preencha a ação e a data.', variant: 'destructive' })
-      return
-    }
-
+  const handleSaveCurrent = async () => {
+    if (!editingTask || !actionInput || !dateInput) return
     setIsSaving(true)
-    const payload = {
-      uc: editingTask.uc,
-      cod_pess_fat: editingTask.cod_pess_fat,
-      action: actionInput,
-      due_date: format(dateInput, 'yyyy-MM-dd'),
-      operator_id: user?.id,
-    }
-
     try {
-      if (editingTask.id === 'new') {
-        await supabase.from('follow_up_tasks').insert([payload])
-        toast({ title: 'Sucesso', description: 'Novo follow-up criado.' })
-      } else {
-        await supabase.from('follow_up_tasks').update(payload).eq('id', editingTask.id)
-        toast({ title: 'Sucesso', description: 'Follow-up atualizado.' })
-      }
-      setModalOpen(false)
-      fetchTasks()
+      const updatedDate = format(dateInput, 'yyyy-MM-dd')
+      await supabase
+        .from('follow_up_tasks')
+        .update({ action: actionInput, due_date: updatedDate })
+        .eq('id', editingTask.id)
+
+      setTasks((prev) =>
+        prev.map((t) =>
+          t.id === editingTask.id ? { ...t, action: actionInput, due_date: updatedDate } : t,
+        ),
+      )
+      toast({ title: 'Sucesso', description: 'Lembrete atualizado.' })
     } catch (err) {
-      toast({ title: 'Erro', description: 'Erro ao salvar follow-up.', variant: 'destructive' })
+      toast({ title: 'Erro', description: 'Erro ao atualizar lembrete.', variant: 'destructive' })
     } finally {
       setIsSaving(false)
     }
   }
 
+  const handleCompleteCurrent = async (id: string) => {
+    setIsSaving(true)
+    try {
+      await supabase.from('follow_up_tasks').update({ completed: true }).eq('id', id)
+      setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, completed: true } : t)))
+      setEditingTask((prev) => (prev ? { ...prev, completed: true } : null))
+      toast({ title: 'Sucesso', description: 'Atividade marcada como concluída!' })
+    } catch (err) {
+      toast({ title: 'Erro', description: 'Erro ao concluir tarefa.', variant: 'destructive' })
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const handleCreateNew = async () => {
+    if (!editingTask || !newActionInput || !newDateInput) return
+    setIsSaving(true)
+    try {
+      const payload = {
+        uc: editingTask.uc,
+        cod_pess_fat: editingTask.cod_pess_fat,
+        action: newActionInput,
+        due_date: format(newDateInput, 'yyyy-MM-dd'),
+        operator_id: user?.id,
+        completed: false,
+      }
+      await supabase.from('follow_up_tasks').insert([payload])
+      toast({ title: 'Sucesso', description: 'Novo follow-up agendado.' })
+      fetchTasks()
+      setModalOpen(false)
+    } catch (err) {
+      toast({
+        title: 'Erro',
+        description: 'Erro ao criar novo agendamento.',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const handleDropTask = async (taskId: string, newDateStr: string) => {
+    const task = tasks.find((t) => t.id === taskId)
+    if (!task || task.completed || task.due_date === newDateStr) return
+
+    setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, due_date: newDateStr } : t)))
+    try {
+      await supabase.from('follow_up_tasks').update({ due_date: newDateStr }).eq('id', taskId)
+      toast({
+        title: 'Reagendado',
+        description: `Tarefa movida para ${format(parseISO(newDateStr), 'dd/MM/yyyy')}`,
+      })
+    } catch (err) {
+      toast({ title: 'Erro', description: 'Erro ao reagendar tarefa.', variant: 'destructive' })
+      fetchTasks()
+    }
+  }
+
   const TaskCard = ({ task }: { task: EnrichedTask }) => (
-    <div className="bg-white border border-slate-200 rounded-xl p-3 shadow-sm hover:shadow-md hover:border-slate-300 transition-all group flex flex-col relative animate-fade-in">
+    <div
+      draggable={!task.completed}
+      onDragStart={(e) => {
+        if (task.completed) return
+        e.dataTransfer.setData('text/plain', task.id)
+        e.dataTransfer.effectAllowed = 'move'
+      }}
+      className={cn(
+        'border rounded-xl p-3 shadow-sm transition-all group flex flex-col relative animate-fade-in',
+        !task.completed &&
+          'cursor-grab active:cursor-grabbing hover:shadow-md hover:border-slate-300',
+        task.completed
+          ? 'bg-slate-50/80 border-slate-200 text-slate-500 opacity-80 grayscale hover:grayscale-0'
+          : 'bg-white border-slate-200',
+      )}
+    >
       <div className="flex justify-between items-start mb-2">
         <div className="flex items-center gap-2">
           {task.operator?.color && (
             <div
-              className="w-2.5 h-2.5 rounded-full shadow-inner"
+              className={cn(
+                'w-2.5 h-2.5 rounded-full shadow-inner',
+                task.completed && 'opacity-50',
+              )}
               style={{ backgroundColor: task.operator.color }}
             />
           )}
-          <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+          <span
+            className={cn(
+              'text-[11px] font-bold uppercase tracking-wider',
+              task.completed ? 'text-slate-400' : 'text-slate-500',
+            )}
+          >
             {task.operator?.name || 'Desconhecido'}
           </span>
         </div>
-        <div
-          className={cn(
-            'flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-md',
-            isTaskOverdue(task.due_date) ? 'bg-red-50 text-red-700' : 'bg-blue-50 text-blue-700',
+        <div className="flex items-center gap-2">
+          {task.completed && (
+            <div className="flex items-center text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded text-[10px] font-bold">
+              <CheckCircle2 className="w-3 h-3 mr-1" /> Concluído
+            </div>
           )}
-        >
-          <CalendarDays className="w-3 h-3" />
-          {task.due_date ? format(parseISO(task.due_date), 'dd/MM') : '-'}
+          <div
+            className={cn(
+              'flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-md',
+              task.completed
+                ? 'bg-slate-100 text-slate-500'
+                : isTaskOverdue(task.due_date)
+                  ? 'bg-red-50 text-red-700'
+                  : 'bg-blue-50 text-blue-700',
+            )}
+          >
+            <CalendarDays className="w-3 h-3" />
+            {task.due_date ? format(parseISO(task.due_date), 'dd/MM') : '-'}
+          </div>
         </div>
       </div>
 
       <div className="mb-2">
         <h3
-          className="font-bold text-slate-800 text-sm leading-tight line-clamp-1"
+          className={cn(
+            'font-bold text-sm leading-tight line-clamp-1',
+            task.completed ? 'text-slate-500' : 'text-slate-800',
+          )}
           title={task.debt?.nome}
         >
           UC {task.uc}
@@ -291,7 +366,12 @@ export default function FollowUp() {
         <p className="text-xs text-slate-500 line-clamp-1 truncate" title={task.debt?.nome}>
           {task.debt?.nome || 'Cliente'}
         </p>
-        <p className="text-xs font-semibold text-primary mt-0.5">
+        <p
+          className={cn(
+            'text-xs font-semibold mt-0.5',
+            task.completed ? 'text-slate-400' : 'text-primary',
+          )}
+        >
           R${' '}
           {task.debt?.valor_total
             ? task.debt.valor_total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })
@@ -299,42 +379,47 @@ export default function FollowUp() {
         </p>
       </div>
 
-      <div className="bg-slate-50/80 p-2 rounded-lg border border-slate-100/80 mb-3">
+      <div
+        className={cn(
+          'p-2 rounded-lg border mb-3',
+          task.completed
+            ? 'bg-slate-100/50 border-slate-200'
+            : 'bg-slate-50/80 border-slate-100/80',
+        )}
+      >
         <p
-          className="text-[12px] font-medium text-slate-700 line-clamp-2 leading-relaxed"
+          className={cn(
+            'text-[12px] font-medium line-clamp-2 leading-relaxed',
+            task.completed ? 'text-slate-400' : 'text-slate-700',
+          )}
           title={task.action}
         >
           {task.action}
         </p>
       </div>
 
-      <div className="flex items-center justify-between mt-auto pt-2 border-t border-slate-100">
+      <div className="flex items-center justify-end mt-auto pt-2 border-t border-slate-100">
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => handleComplete(task.id)}
-          className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 h-7 px-2 -ml-2 text-xs"
+          onClick={() => openEditTaskModal(task)}
+          className={cn(
+            'h-7 px-3 text-xs font-medium',
+            task.completed
+              ? 'text-slate-400 hover:text-slate-600'
+              : 'text-primary hover:text-primary hover:bg-primary/10',
+          )}
         >
-          <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Concluir
+          {task.completed ? (
+            <>
+              <Eye className="w-3.5 h-3.5 mr-1.5" /> Consultar
+            </>
+          ) : (
+            <>
+              <Edit2 className="w-3.5 h-3.5 mr-1.5" /> Abrir Lembrete
+            </>
+          )}
         </Button>
-        <div className="flex gap-0.5 -mr-2">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => openEditTaskModal(task)}
-            className="h-7 w-7 text-slate-400 hover:text-primary"
-          >
-            <Edit2 className="w-3.5 h-3.5" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => openNewTaskModal(task)}
-            className="h-7 w-7 text-slate-400 hover:text-primary"
-          >
-            <Plus className="w-3.5 h-3.5" />
-          </Button>
-        </div>
       </div>
     </div>
   )
@@ -410,7 +495,7 @@ export default function FollowUp() {
             <TaskList
               title="Próximos"
               tasks={upcomingTasks}
-              emptyMsg="Nenhum compromisso agendado."
+              emptyMsg="Nenhum compromisso pendente."
               icon={<Clock className="w-5 h-5" />}
               colorClass="text-blue-700 bg-blue-50"
             />
@@ -478,6 +563,17 @@ export default function FollowUp() {
               <div
                 key={day.toISOString()}
                 onClick={() => setSelectedDate(day)}
+                onDragOver={(e) => {
+                  e.preventDefault()
+                  e.dataTransfer.dropEffect = 'move'
+                }}
+                onDrop={(e) => {
+                  e.preventDefault()
+                  const taskId = e.dataTransfer.getData('text/plain')
+                  if (taskId) {
+                    handleDropTask(taskId, dateStr)
+                  }
+                }}
                 className={cn(
                   'border-r border-b p-1.5 sm:p-2 flex flex-col cursor-pointer transition-colors relative group overflow-hidden',
                   !isCurrentMonth ? 'bg-slate-50/50' : 'bg-white',
@@ -504,15 +600,37 @@ export default function FollowUp() {
                   {dayTasks.map((t) => (
                     <div
                       key={t.id}
-                      className="text-[10px] leading-tight px-1.5 py-1 rounded bg-slate-100/80 border-l-[3px] truncate shadow-sm flex items-center gap-1.5 transition-all hover:brightness-95"
-                      style={{ borderLeftColor: t.operator?.color || '#94a3b8' }}
+                      draggable={!t.completed}
+                      onDragStart={(e) => {
+                        e.dataTransfer.setData('text/plain', t.id)
+                        e.dataTransfer.effectAllowed = 'move'
+                      }}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        openEditTaskModal(t)
+                      }}
+                      className={cn(
+                        'text-[10px] leading-tight px-1.5 py-1 rounded border-l-[3px] truncate flex items-center gap-1.5 transition-all shadow-sm',
+                        t.completed
+                          ? 'bg-slate-100/50 text-slate-400 grayscale'
+                          : 'bg-slate-100/80 text-slate-700 hover:brightness-95 cursor-grab active:cursor-grabbing',
+                      )}
+                      style={{
+                        borderLeftColor: t.completed ? '#cbd5e1' : t.operator?.color || '#94a3b8',
+                      }}
                       title={`${t.debt?.nome || 'Cliente'} - ${t.action}`}
                     >
-                      <div
-                        className="w-1.5 h-1.5 rounded-full shrink-0"
-                        style={{ backgroundColor: t.operator?.color || '#94a3b8' }}
-                      />
-                      <span className="truncate text-slate-700 font-medium">UC {t.uc}</span>
+                      {t.completed ? (
+                        <CheckCircle2 className="w-2.5 h-2.5 text-emerald-500 shrink-0" />
+                      ) : (
+                        <div
+                          className="w-1.5 h-1.5 rounded-full shrink-0"
+                          style={{ backgroundColor: t.operator?.color || '#94a3b8' }}
+                        />
+                      )}
+                      <span className={cn('truncate font-medium', t.completed && 'line-through')}>
+                        UC {t.uc}
+                      </span>
                     </div>
                   ))}
                 </div>
@@ -604,63 +722,221 @@ export default function FollowUp() {
       )}
 
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>
-              {editingTask?.id === 'new' ? 'Novo Follow-up' : 'Editar Follow-up'}
-            </DialogTitle>
-            <DialogDescription>
-              {editingTask?.id === 'new'
-                ? `Agendando para UC ${editingTask?.uc}`
-                : 'Atualize os detalhes do compromisso abaixo.'}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label>Ação / Lembrete</Label>
-              <Input
-                value={actionInput}
-                onChange={(e) => setActionInput(e.target.value)}
-                placeholder="Ex: Retornar para negociar entrada"
-              />
+        <DialogContent className="sm:max-w-[700px] max-h-[90vh] flex flex-col p-0 overflow-hidden bg-slate-50">
+          <div className="p-5 pb-4 border-b bg-white shrink-0">
+            <DialogTitle className="text-xl">Central de Decisão</DialogTitle>
+            <DialogDescription>Detalhes do follow-up e histórico de atendimento.</DialogDescription>
+          </div>
+
+          <div className="flex-1 overflow-y-auto p-5 space-y-6">
+            <div className="bg-white p-4 rounded-xl border shadow-sm grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <span className="text-slate-500 block mb-1 text-xs uppercase tracking-wider font-semibold">
+                  Cliente
+                </span>
+                <strong
+                  className="text-slate-800 block truncate text-base"
+                  title={editingTask?.debt?.nome}
+                >
+                  {editingTask?.debt?.nome || 'Não informado'}
+                </strong>
+                <span className="text-slate-500 block mt-1 font-medium">UC: {editingTask?.uc}</span>
+              </div>
+              <div>
+                <span className="text-slate-500 block mb-1 text-xs uppercase tracking-wider font-semibold">
+                  Dívida Relacionada
+                </span>
+                <strong className="text-rose-600 block text-base">
+                  R${' '}
+                  {editingTask?.debt?.valor_total?.toLocaleString('pt-BR', {
+                    minimumFractionDigits: 2,
+                  }) || '0,00'}
+                </strong>
+                <span className="text-slate-500 block mt-1 font-medium">
+                  Quantidade de Parcelas: {editingTask?.debt?.qt_fats || 1}
+                </span>
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label>Data do Retorno</Label>
-              <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant={'outline'}
-                    className={cn(
-                      'w-full justify-start text-left font-medium h-10',
-                      !dateInput && 'text-slate-400',
-                    )}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 h-auto min-h-[350px]">
+              <div className="flex flex-col space-y-3 h-full">
+                <h4 className="font-semibold text-sm flex items-center text-slate-800 shrink-0">
+                  <Clock className="w-4 h-4 mr-2 text-slate-500" /> Histórico de Atendimentos
+                </h4>
+                <div className="bg-white border rounded-xl p-3 flex-1 overflow-y-auto shadow-sm">
+                  {loadingHistory ? (
+                    <div className="text-sm text-slate-500 text-center py-8">
+                      Carregando histórico...
+                    </div>
+                  ) : taskHistory.length === 0 ? (
+                    <div className="text-sm text-slate-400 text-center py-8">
+                      Nenhum atendimento registrado.
+                    </div>
+                  ) : (
+                    <div className="space-y-4 relative before:absolute before:inset-0 before:ml-2 before:-translate-x-px before:h-full before:w-0.5 before:bg-slate-100">
+                      {taskHistory.map((h) => (
+                        <div key={h.id} className="relative pl-6">
+                          <div className="absolute left-0 top-1 w-4 h-4 rounded-full border-2 border-white bg-primary/20 shadow-sm" />
+                          <div className="flex items-center justify-between text-xs text-slate-500 mb-1">
+                            <span className="font-semibold text-slate-700">{h.contact_type}</span>
+                            <span>{format(parseISO(h.created_at), 'dd/MM/yyyy HH:mm')}</span>
+                          </div>
+                          <p className="text-xs text-slate-600 mb-1.5 leading-relaxed bg-slate-50 p-2.5 rounded-md border border-slate-100">
+                            {h.notes || 'Nenhuma observação registrada.'}
+                          </p>
+                          <div className="text-[10px] text-slate-400 font-medium">
+                            <span className="text-slate-500 font-semibold">{h.status}</span> •{' '}
+                            {h.profiles?.name || 'Sistema'}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex flex-col h-full">
+                <Tabs defaultValue="actions" className="flex-1 flex flex-col">
+                  <TabsList className="grid grid-cols-2 shrink-0 h-10">
+                    <TabsTrigger value="actions">Tarefa Atual</TabsTrigger>
+                    <TabsTrigger value="new">Nova Tarefa</TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent
+                    value="actions"
+                    className="flex-1 overflow-y-auto bg-white border rounded-xl p-4 mt-2 shadow-sm space-y-4 data-[state=inactive]:hidden flex flex-col"
                   >
-                    <CalendarIcon className="mr-2 h-4 w-4 text-primary" />
-                    {dateInput ? format(dateInput, 'PPP', { locale: ptBR }) : 'Selecione uma data'}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={dateInput}
-                    onSelect={(d) => {
-                      setDateInput(d)
-                      setIsCalendarOpen(false)
-                    }}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
+                    <div className="space-y-2">
+                      <Label>Ação / Lembrete Atual</Label>
+                      <Textarea
+                        value={actionInput}
+                        onChange={(e) => setActionInput(e.target.value)}
+                        className="resize-none h-24 text-sm"
+                        disabled={editingTask?.completed}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Data do Retorno</Label>
+                      <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant={'outline'}
+                            disabled={editingTask?.completed}
+                            className={cn(
+                              'w-full justify-start text-left font-medium h-9',
+                              !dateInput && 'text-slate-400',
+                            )}
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4 text-primary" />
+                            {dateInput
+                              ? format(dateInput, 'PPP', { locale: ptBR })
+                              : 'Selecione uma data'}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={dateInput}
+                            onSelect={(d) => {
+                              setDateInput(d)
+                              setIsCalendarOpen(false)
+                            }}
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+
+                    {!editingTask?.completed ? (
+                      <div className="flex flex-col gap-2 pt-2 border-t mt-auto">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handleSaveCurrent}
+                          disabled={isSaving}
+                        >
+                          Salvar Alterações
+                        </Button>
+                        <Button
+                          size="sm"
+                          className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
+                          onClick={() => handleCompleteCurrent(editingTask?.id!)}
+                          disabled={isSaving}
+                        >
+                          <CheckCircle2 className="w-4 h-4 mr-2" /> Concluir Atividade
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="pt-4 border-t mt-auto text-center text-sm font-semibold text-emerald-600 flex items-center justify-center bg-emerald-50 py-3 rounded-lg">
+                        <CheckCircle2 className="w-5 h-5 mr-2" /> Atividade Concluída
+                      </div>
+                    )}
+                  </TabsContent>
+
+                  <TabsContent
+                    value="new"
+                    className="flex-1 overflow-y-auto bg-white border rounded-xl p-4 mt-2 shadow-sm space-y-4 data-[state=inactive]:hidden flex flex-col"
+                  >
+                    <div className="space-y-2">
+                      <Label>Observação do Novo Lembrete</Label>
+                      <Textarea
+                        value={newActionInput}
+                        onChange={(e) => setNewActionInput(e.target.value)}
+                        placeholder="Ex: Retornar para confirmar pagamento..."
+                        className="resize-none h-24 text-sm"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Nova Data do Retorno</Label>
+                      <Popover open={isNewCalendarOpen} onOpenChange={setIsNewCalendarOpen}>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant={'outline'}
+                            className={cn(
+                              'w-full justify-start text-left font-medium h-9',
+                              !newDateInput && 'text-slate-400',
+                            )}
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4 text-primary" />
+                            {newDateInput
+                              ? format(newDateInput, 'PPP', { locale: ptBR })
+                              : 'Selecione uma data'}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={newDateInput}
+                            onSelect={(d) => {
+                              setNewDateInput(d)
+                              setIsNewCalendarOpen(false)
+                            }}
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                    <div className="pt-2 border-t mt-auto">
+                      <Button
+                        className="w-full shadow-sm"
+                        size="sm"
+                        onClick={handleCreateNew}
+                        disabled={isSaving || !newActionInput || !newDateInput}
+                      >
+                        <Plus className="w-4 h-4 mr-2" /> Adicionar Novo Follow-up
+                      </Button>
+                    </div>
+                  </TabsContent>
+                </Tabs>
+              </div>
             </div>
           </div>
-          <DialogFooter>
+
+          <div className="p-4 border-t bg-white shrink-0 flex justify-end">
             <Button variant="outline" onClick={() => setModalOpen(false)}>
-              Cancelar
+              Sair
             </Button>
-            <Button onClick={handleSaveModal} disabled={isSaving}>
-              {isSaving ? 'Salvando...' : 'Salvar'}
-            </Button>
-          </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
