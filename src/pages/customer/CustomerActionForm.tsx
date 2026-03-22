@@ -25,11 +25,14 @@ import type { ParsedDebt } from '@/services/debts'
 export function CustomerActionForm({
   customer,
   isSheet,
+  onClose,
 }: {
   customer: ParsedDebt
   isSheet?: boolean
+  onClose?: () => void
 }) {
   const [date, setDate] = useState<Date>()
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false)
   const [channel, setChannel] = useState('TEL ATIVO')
   const [status, setStatus] = useState('')
   const [notes, setNotes] = useState('')
@@ -222,7 +225,7 @@ export function CustomerActionForm({
 
         <div className="space-y-2.5">
           <Label className="font-bold text-slate-700">Agendar Próxima Ação</Label>
-          <Popover>
+          <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
             <PopoverTrigger asChild>
               <Button
                 variant={'outline'}
@@ -243,7 +246,10 @@ export function CustomerActionForm({
               <Calendar
                 mode="single"
                 selected={date}
-                onSelect={setDate}
+                onSelect={(newDate) => {
+                  setDate(newDate)
+                  setIsCalendarOpen(false)
+                }}
                 initialFocus
                 className="p-3"
               />
@@ -261,7 +267,7 @@ export function CustomerActionForm({
           />
         </div>
       </CardContent>
-      <CardFooter className="bg-slate-50/80 border-t border-slate-100 p-6">
+      <CardFooter className="bg-slate-50/80 border-t border-slate-100 p-6 flex flex-col gap-3">
         <Button
           onClick={handleSave}
           disabled={isSubmitting}
@@ -270,6 +276,15 @@ export function CustomerActionForm({
           <Send className="mr-2 h-4 w-4" />
           {isSubmitting ? 'Salvando...' : 'Salvar Atendimento'}
         </Button>
+        {isSheet && onClose && (
+          <Button
+            variant="outline"
+            onClick={onClose}
+            className="w-full h-11 font-semibold border-slate-200 text-slate-600 hover:bg-slate-100 hover:text-slate-800 transition-all rounded-xl"
+          >
+            Voltar para UC Anterior
+          </Button>
+        )}
       </CardFooter>
     </Card>
   )

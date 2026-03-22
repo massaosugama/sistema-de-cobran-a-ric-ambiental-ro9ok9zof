@@ -44,7 +44,7 @@ export function CustomerHeader({
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <span className="hover:text-primary cursor-pointer transition-colors" onClick={onClose}>
-            Voltar para UC Principal
+            Voltar para UC Anterior
           </span>
           <span className="text-slate-300">/</span>
           <span className="text-slate-900 font-bold">UC {customer.uc} (Vínculo)</span>

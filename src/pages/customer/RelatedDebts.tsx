@@ -227,7 +227,11 @@ export function RelatedDebts({ customer }: { customer: ParsedDebt }) {
                   <CustomerTimeline customer={sheetCustomer} />
                 </div>
                 <div className="lg:col-span-4 space-y-6 h-auto">
-                  <CustomerActionForm customer={sheetCustomer} isSheet={true} />
+                  <CustomerActionForm
+                    customer={sheetCustomer}
+                    isSheet={true}
+                    onClose={() => setSelectedUc(null)}
+                  />
                 </div>
               </div>
             </div>
