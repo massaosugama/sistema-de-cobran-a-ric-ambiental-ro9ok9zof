@@ -79,7 +79,7 @@ export default function Login() {
             Ric Recupera & Desenvolve
           </CardTitle>
           <CardDescription>
-            {mode === 'login' && 'Acesse a plataforma'}
+            {mode === 'login' && 'Acesse a Plataforma de Gestão de Follow-Up do Setor de Cobrança'}
             {mode === 'register' && 'Crie sua conta de operador'}
             {mode === 'forgot_password' && 'Recuperação de Senha'}
           </CardDescription>
