@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Search, ArrowRight, Clock, MapPin, Info } from 'lucide-react'
+import { Search, ArrowRight, Clock, MapPin, Info, Download } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -24,6 +24,7 @@ import {
 import { getDebts, ParsedDebt } from '@/services/debts'
 import { useDebounce } from '@/hooks/use-debounce'
 import { useAuth } from '@/hooks/use-auth'
+import { useToast } from '@/hooks/use-toast'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
@@ -34,6 +35,7 @@ const safeSlice = (text: any, start: number, end?: number): string =>
 
 export default function Queue() {
   const { user } = useAuth()
+  const { toast } = useToast()
   const [search, setSearch] = useState('')
   const [searchAddress, setSearchAddress] = useState('')
   const [debtStatus, setDebtStatus] = useState<'vencido' | 'a_vencer' | 'ambos'>('vencido')
@@ -47,14 +49,67 @@ export default function Queue() {
   useEffect(() => {
     if (!user?.id) return
     setLoading(true)
+    setUnattended([])
+    setAttended([])
     getDebts(debouncedSearch, user.id, debouncedSearchAddress, debtStatus)
       .then((data) => {
         setUnattended(data.unattended)
         setAttended(data.attended)
         setLoading(false)
       })
-      .catch(console.error)
+      .catch((err) => {
+        console.error(err)
+        setLoading(false)
+      })
   }, [debouncedSearch, debouncedSearchAddress, debtStatus, user?.id])
+
+  const handleExportCSV = () => {
+    const allDebts = [...unattended, ...attended]
+    if (allDebts.length === 0) {
+      toast({
+        title: 'Atenção',
+        description: 'Não há dados para exportar.',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    const headers = [
+      'UC',
+      'Nome',
+      'Documento',
+      'Status',
+      'Valor Total',
+      'Valor Vencido',
+      'Valor A Vencer',
+      'Endereço',
+    ]
+    const rows = allDebts.map((d) =>
+      [
+        d.uc,
+        d.name || '',
+        d.document || '',
+        d.status,
+        d.totalDebt.toFixed(2).replace('.', ','),
+        d.valorVencido.toFixed(2).replace('.', ','),
+        d.valorAVencer.toFixed(2).replace('.', ','),
+        d.address || '',
+      ]
+        .map((field) => `"${String(field).replace(/"/g, '""')}"`)
+        .join(';'),
+    )
+
+    const csvContent = [headers.join(';'), ...rows].join('\n')
+    const blob = new Blob([`\uFEFF${csvContent}`], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.setAttribute('download', `relatorio_fila_${format(new Date(), 'yyyyMMdd_HHmm')}.csv`)
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    toast({ title: 'Sucesso', description: 'Relatório exportado com sucesso!' })
+  }
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
@@ -78,6 +133,14 @@ export default function Queue() {
         </div>
 
         <div className="flex flex-col sm:flex-row gap-3 w-full xl:w-auto">
+          <Button
+            variant="outline"
+            onClick={handleExportCSV}
+            className="w-full sm:w-auto px-4 bg-white shrink-0 shadow-sm border-slate-200"
+          >
+            <Download className="w-4 h-4 mr-2" />
+            Exportar CSV
+          </Button>
           <Select value={debtStatus} onValueChange={(v: any) => setDebtStatus(v)}>
             <SelectTrigger className="w-full sm:w-[130px] h-10 rounded-full bg-white border-slate-200 shadow-sm focus-visible:ring-primary/20 shrink-0">
               <SelectValue placeholder="Status" />
