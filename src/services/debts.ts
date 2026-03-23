@@ -63,7 +63,7 @@ export function parseDebtRow(
                 const currentYear = now.getFullYear()
                 const currentMonth = now.getMonth() + 1
                 const monthsDiff = (currentYear - y) * 12 + (currentMonth - m)
-                days = Math.max(0, monthsDiff * 30)
+                days = monthsDiff * 30
               }
             }
           }
@@ -80,7 +80,30 @@ export function parseDebtRow(
 
   const validInvoices = invoices.filter((i: any) => i.days !== null)
   const overdueDays =
-    validInvoices.length > 0 ? Math.max(...validInvoices.map((i: any) => i.days as number)) : 0
+    validInvoices.length > 0 ? Math.max(0, ...validInvoices.map((i: any) => i.days as number)) : 0
+
+  let calcVencido = 0
+  let calcAVencer = 0
+  validInvoices.forEach((i: any) => {
+    if (i.days > 0) calcVencido += i.value
+    else calcAVencer += i.value
+  })
+
+  const dbVencido = Number(row.valor_vencido) || 0
+  const dbAVencer = Number(row.valor_a_vencer) || 0
+  const total = Number(row.valor_total) || 0
+
+  let valorVencido = dbVencido
+  let valorAVencer = dbAVencer
+
+  if (dbVencido === 0 && dbAVencer === 0 && total > 0) {
+    if (validInvoices.length > 0) {
+      valorVencido = calcVencido
+      valorAVencer = calcAVencer
+    } else {
+      valorVencido = total
+    }
+  }
 
   return {
     id: `${row.uc}_${row.cod_pess_fat || ''}`,
@@ -90,11 +113,11 @@ export function parseDebtRow(
     document: row.pessoa_fatura_cpf_cnpj || '',
     address: row.endereco || '',
     overdueDays,
-    totalDebt: Number(row.valor_total) || 0,
-    valorVencido: Number(row.valor_vencido) || 0,
-    valorAVencer: Number(row.valor_a_vencer) || 0,
+    totalDebt: total,
+    valorVencido,
+    valorAVencer,
     status: 'pendente',
-    priority: row.valor_total > 5000 ? 'alta' : row.valor_total > 1000 ? 'media' : 'baixa',
+    priority: total > 5000 ? 'alta' : total > 1000 ? 'media' : 'baixa',
     phones,
     invoices,
     rawPessoaFaturaNome: row.pessoa_fatura_nome || null,
@@ -109,12 +132,6 @@ export async function getDebts(
   debtStatus?: 'vencido' | 'a_vencer' | 'ambos',
 ) {
   let query = supabase.from('pending_debts').select('*').order('valor_total', { ascending: false })
-
-  if (debtStatus === 'vencido') {
-    query = query.gt('valor_vencido', 0)
-  } else if (debtStatus === 'a_vencer') {
-    query = query.gt('valor_a_vencer', 0)
-  }
 
   if (search) {
     query = query.or(
@@ -168,7 +185,13 @@ export async function getDebts(
     }
   }
 
-  const parsedDebts = (debts || []).map((row) => parseDebtRow(row))
+  let parsedDebts = (debts || []).map((row) => parseDebtRow(row))
+
+  if (debtStatus === 'vencido') {
+    parsedDebts = parsedDebts.filter((d) => d.valorVencido > 0)
+  } else if (debtStatus === 'a_vencer') {
+    parsedDebts = parsedDebts.filter((d) => d.valorAVencer > 0)
+  }
 
   const unattended: ParsedDebt[] = []
   const attended: ParsedDebt[] = []

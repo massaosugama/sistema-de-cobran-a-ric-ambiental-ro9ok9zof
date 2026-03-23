@@ -68,7 +68,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { CustomerActionForm } from '@/pages/customer/CustomerActionForm'
-import { getDebts, type ParsedDebt } from '@/services/debts'
+import { getDebts, parseDebtRow, type ParsedDebt } from '@/services/debts'
 
 export interface EnrichedTask {
   id: string
@@ -274,30 +274,27 @@ export default function FollowUp() {
         .select('id, name, color, first_name, last_name')
 
       const ucs = [...new Set(rawTasks.map((t) => t.uc).filter(Boolean))]
-      const { data: debts } = await supabase
-        .from('pending_debts')
-        .select(
-          'uc, cod_pess_fat, valor_total, valor_vencido, valor_a_vencer, qt_fats, pessoa_fatura_nome, ta_nome_de_quem, pessoa_fatura_cpf_cnpj, endereco',
-        )
-        .in('uc', ucs)
+      const { data: debts } = await supabase.from('pending_debts').select('*').in('uc', ucs)
 
       const enriched = rawTasks.map((t) => {
         const op = profiles?.find((p) => p.id === t.operator_id)
-        const debt = debts?.find((d) => d.uc === t.uc && d.cod_pess_fat === t.cod_pess_fat)
+        const debtRow = debts?.find((d) => d.uc === t.uc && d.cod_pess_fat === t.cod_pess_fat)
+        const parsedDebt = debtRow ? parseDebtRow(debtRow) : undefined
+
         return {
           ...t,
           operator: op
             ? { name: op.first_name || op.name || 'Operador', color: op.color || '#94a3b8' }
             : undefined,
-          debt: debt
+          debt: parsedDebt
             ? {
-                valor_total: debt.valor_total || 0,
-                valor_vencido: debt.valor_vencido || 0,
-                valor_a_vencer: debt.valor_a_vencer || 0,
-                qt_fats: debt.qt_fats || 1,
-                nome: debt.pessoa_fatura_nome || debt.ta_nome_de_quem || '',
-                document: debt.pessoa_fatura_cpf_cnpj || '',
-                endereco: debt.endereco || '',
+                valor_total: parsedDebt.totalDebt,
+                valor_vencido: parsedDebt.valorVencido,
+                valor_a_vencer: parsedDebt.valorAVencer,
+                qt_fats: debtRow?.qt_fats || 1,
+                nome: parsedDebt.name,
+                document: parsedDebt.document,
+                endereco: parsedDebt.address,
               }
             : undefined,
         }
