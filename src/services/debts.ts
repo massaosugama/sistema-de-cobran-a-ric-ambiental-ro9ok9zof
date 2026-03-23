@@ -24,6 +24,23 @@ export interface ParsedDebt {
   rawPessoaFaturaCpfCnpj?: string | null
 }
 
+function parseSafeNumber(val: any): number {
+  if (val === null || val === undefined) return 0
+  if (typeof val === 'number') return val
+  if (typeof val === 'string') {
+    if (val.trim() === '') return 0
+    // Lida com formato "1.867,49" ou "940,64"
+    if (val.includes(',') && !val.includes('.')) {
+      return parseFloat(val.replace(',', '.')) || 0
+    }
+    if (val.includes(',') && val.includes('.')) {
+      return parseFloat(val.replace(/\./g, '').replace(',', '.')) || 0
+    }
+    return parseFloat(val) || 0
+  }
+  return 0
+}
+
 export function parseDebtRow(
   row: any,
   phoneStatus: 'a_verificar' | 'validado' | 'invalido' = 'a_verificar',
@@ -67,7 +84,7 @@ export function parseDebtRow(
               }
             }
           }
-          return { ref, value: row.valor_total / (row.qt_fats || 1), days }
+          return { ref, value: parseSafeNumber(row.valor_total) / (row.qt_fats || 1), days }
         })
     : []
 
@@ -89,9 +106,9 @@ export function parseDebtRow(
     else calcAVencer += i.value
   })
 
-  const dbVencido = Number(row.valor_vencido) || 0
-  const dbAVencer = Number(row.valor_a_vencer) || 0
-  const total = Number(row.valor_total) || 0
+  const dbVencido = parseSafeNumber(row.valor_vencido)
+  const dbAVencer = parseSafeNumber(row.valor_a_vencer)
+  const total = parseSafeNumber(row.valor_total)
 
   let valorVencido = dbVencido
   let valorAVencer = dbAVencer
@@ -140,6 +157,16 @@ export async function getDebts(
   }
   if (searchAddress) {
     query = query.ilike('endereco', `%${searchAddress}%`)
+  }
+
+  if (debtStatus === 'vencido') {
+    query = query.or(
+      'valor_vencido.gt.0,valor_vencido.is.null,and(valor_vencido.eq.0,valor_a_vencer.eq.0,valor_total.gt.0)',
+    )
+  } else if (debtStatus === 'a_vencer') {
+    query = query.or(
+      'valor_a_vencer.gt.0,valor_a_vencer.is.null,and(valor_vencido.eq.0,valor_a_vencer.eq.0,valor_total.gt.0)',
+    )
   }
 
   const { data: debts, error } = await query
