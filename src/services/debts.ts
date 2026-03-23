@@ -29,7 +29,6 @@ function parseSafeNumber(val: any): number {
   if (typeof val === 'number') return val
   if (typeof val === 'string') {
     if (val.trim() === '') return 0
-    // Lida com formato "1.867,49" ou "940,64"
     if (val.includes(',') && !val.includes('.')) {
       return parseFloat(val.replace(',', '.')) || 0
     }
@@ -115,12 +114,31 @@ export function parseDebtRow(
 
   if (dbVencido === 0 && dbAVencer === 0 && total > 0) {
     if (validInvoices.length > 0) {
-      valorVencido = calcVencido
-      valorAVencer = calcAVencer
+      const calcTotal = calcVencido + calcAVencer
+      if (calcTotal > 0 && Math.abs(calcTotal - total) > 0.05) {
+        const ratio = total / calcTotal
+        valorVencido = calcVencido * ratio
+        valorAVencer = calcAVencer * ratio
+      } else {
+        valorVencido = calcVencido
+        valorAVencer = calcAVencer
+      }
     } else {
       valorVencido = total
     }
+  } else if (total > 0) {
+    const sum = dbVencido + dbAVencer
+    if (Math.abs(total - sum) > 0.05) {
+      if (dbVencido > 0 && dbAVencer === 0) {
+        valorAVencer = total - dbVencido
+      } else if (dbAVencer > 0 && dbVencido === 0) {
+        valorVencido = total - dbAVencer
+      }
+    }
   }
+
+  valorVencido = Math.max(0, valorVencido)
+  valorAVencer = Math.max(0, valorAVencer)
 
   return {
     id: `${row.uc}_${row.cod_pess_fat || ''}`,
@@ -148,7 +166,11 @@ export async function getDebts(
   searchAddress?: string,
   debtStatus?: 'vencido' | 'a_vencer' | 'ambos',
 ) {
-  let query = supabase.from('pending_debts').select('*').order('valor_total', { ascending: false })
+  let query = supabase
+    .from('pending_debts')
+    .select('*')
+    .order('valor_total', { ascending: false })
+    .limit(3000)
 
   if (search) {
     query = query.or(
@@ -157,16 +179,6 @@ export async function getDebts(
   }
   if (searchAddress) {
     query = query.ilike('endereco', `%${searchAddress}%`)
-  }
-
-  if (debtStatus === 'vencido') {
-    query = query.or(
-      'valor_vencido.gt.0,valor_vencido.is.null,and(valor_vencido.eq.0,valor_a_vencer.eq.0,valor_total.gt.0)',
-    )
-  } else if (debtStatus === 'a_vencer') {
-    query = query.or(
-      'valor_a_vencer.gt.0,valor_a_vencer.is.null,and(valor_vencido.eq.0,valor_a_vencer.eq.0,valor_total.gt.0)',
-    )
   }
 
   const { data: debts, error } = await query
