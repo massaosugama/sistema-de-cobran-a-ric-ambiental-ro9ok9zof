@@ -48,3 +48,12 @@ export async function updateContact(id: string, updates: any) {
   if (error) throw error
   return data
 }
+
+export async function getProfiles() {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('id, name, email')
+    .order('name', { ascending: true })
+  if (error) throw error
+  return data || []
+}

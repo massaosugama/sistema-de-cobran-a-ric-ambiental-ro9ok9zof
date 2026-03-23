@@ -1,34 +1,17 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { CalendarDays, TrendingUp, Users, Target, ArrowRight } from 'lucide-react'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { getDebts, getPortfolioStats, ParsedDebt } from '@/services/debts'
+import { getProfiles } from '@/services/data'
 import { useAuth } from '@/hooks/use-auth'
-
-const LEADERBOARD = [
-  {
-    name: 'Ana Costa',
-    points: 1245,
-    avatar: 'https://img.usecurling.com/ppl/thumbnail?gender=female&seed=12',
-  },
-  {
-    name: 'Marcos P.',
-    points: 1102,
-    avatar: 'https://img.usecurling.com/ppl/thumbnail?gender=male&seed=3',
-  },
-  {
-    name: 'Juliana S.',
-    points: 980,
-    avatar: 'https://img.usecurling.com/ppl/thumbnail?gender=female&seed=5',
-  },
-]
 
 export default function Index() {
   const [queue, setQueue] = useState<ParsedDebt[]>([])
   const [portfolioStats, setPortfolioStats] = useState({ total_cases: 0, total_value: 0 })
+  const [profiles, setProfiles] = useState<any[]>([])
   const { user } = useAuth()
   const name = user?.user_metadata?.name || user?.email?.split('@')[0] || 'Operador'
 
@@ -44,6 +27,7 @@ export default function Index() {
       .catch(console.error)
 
     getPortfolioStats().then(setPortfolioStats).catch(console.error)
+    getProfiles().then(setProfiles).catch(console.error)
   }, [])
 
   return (
@@ -140,33 +124,42 @@ export default function Index() {
 
         <Card className="col-span-3">
           <CardHeader>
-            <CardTitle>Ranking de Qualidade</CardTitle>
-            <CardDescription>Baseado no sistema de pontos (Esforço + Resultado)</CardDescription>
+            <CardTitle>Equipe Operacional</CardTitle>
+            <CardDescription>Status atual de conexão (Provisório)</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-6">
-              {LEADERBOARD.map((u, idx) => (
-                <div key={idx} className="flex items-center">
-                  <div className="flex-1 flex items-center gap-3">
-                    <span
-                      className={`font-bold w-4 text-center ${idx === 0 ? 'text-warning' : 'text-muted-foreground'}`}
-                    >
-                      {idx + 1}
-                    </span>
-                    <Avatar className="h-8 w-8">
-                      <AvatarImage src={u.avatar} />
-                      <AvatarFallback>{u.name.charAt(0)}</AvatarFallback>
-                    </Avatar>
-                    <span className="text-sm font-medium">{u.name}</span>
-                  </div>
-                  <Badge
-                    variant={idx === 0 ? 'default' : 'secondary'}
-                    className={idx === 0 ? 'bg-primary' : ''}
-                  >
-                    {u.points} pts
-                  </Badge>
-                </div>
-              ))}
+            <div className="space-y-4">
+              {profiles.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Carregando usuários...</p>
+              ) : (
+                profiles.map((p) => {
+                  const isOnline = p.id === user?.id
+                  const displayName = p.name || p.email.split('@')[0]
+
+                  return (
+                    <div key={p.id} className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <Avatar className="h-8 w-8">
+                          <AvatarFallback className="bg-primary/10 text-primary text-xs">
+                            {displayName.substring(0, 2).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex flex-col">
+                          <span className="text-sm font-medium">
+                            {displayName} {isOnline && '(Você)'}
+                          </span>
+                          <span className="text-xs text-muted-foreground flex items-center gap-1.5">
+                            <span
+                              className={`h-1.5 w-1.5 rounded-full ${isOnline ? 'bg-emerald-500' : 'bg-slate-300'}`}
+                            />
+                            {isOnline ? 'Online' : 'Offline'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })
+              )}
             </div>
           </CardContent>
         </Card>
