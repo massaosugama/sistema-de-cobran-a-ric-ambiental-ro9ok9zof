@@ -25,6 +25,23 @@ export default function Login() {
   if (loading) return null
   if (user) return <Navigate to="/" replace />
 
+  const getErrorMessage = (errorMsg: string) => {
+    const lowerMsg = errorMsg.toLowerCase()
+    if (lowerMsg.includes('rate limit exceeded') || lowerMsg.includes('too many requests')) {
+      return 'Muitas tentativas em pouco tempo. Por favor, aguarde cerca de 15 a 20 minutos antes de tentar novamente.'
+    }
+    if (lowerMsg.includes('invalid login credentials')) {
+      return 'E-mail ou senha inválidos.'
+    }
+    if (lowerMsg.includes('user already registered') || lowerMsg.includes('already exists')) {
+      return 'Este e-mail já está cadastrado na plataforma.'
+    }
+    if (lowerMsg.includes('password should be at least')) {
+      return 'A senha deve ter pelo menos 6 caracteres.'
+    }
+    return errorMsg
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
@@ -88,7 +105,7 @@ export default function Login() {
           <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
               <div className="p-3 text-sm text-red-600 bg-red-50 rounded-md border border-red-100 font-medium">
-                {error === 'Invalid login credentials' ? 'E-mail ou senha inválidos.' : error}
+                {getErrorMessage(error)}
               </div>
             )}
 
