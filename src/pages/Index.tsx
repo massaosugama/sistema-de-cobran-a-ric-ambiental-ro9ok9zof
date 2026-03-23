@@ -2,16 +2,25 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 import { CalendarDays, TrendingUp, Users, Target, ArrowRight } from 'lucide-react'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { getDebts, getPortfolioStats, ParsedDebt } from '@/services/debts'
-import { getProfiles } from '@/services/data'
+import { getProfiles, getOperatorStats } from '@/services/data'
 import { useAuth } from '@/hooks/use-auth'
 
 export default function Index() {
   const [queue, setQueue] = useState<ParsedDebt[]>([])
   const [portfolioStats, setPortfolioStats] = useState({ total_cases: 0, total_value: 0 })
   const [profiles, setProfiles] = useState<any[]>([])
+  const [operatorStats, setOperatorStats] = useState<Record<string, any>>({})
   const { user } = useAuth()
   const name = user?.user_metadata?.name || user?.email?.split('@')[0] || 'Operador'
 
@@ -27,7 +36,17 @@ export default function Index() {
       .catch(console.error)
 
     getPortfolioStats().then(setPortfolioStats).catch(console.error)
+
     getProfiles().then(setProfiles).catch(console.error)
+    getOperatorStats()
+      .then((stats) => {
+        const statsMap: Record<string, any> = {}
+        stats.forEach((s: any) => {
+          statsMap[s.operator_id] = s
+        })
+        setOperatorStats(statsMap)
+      })
+      .catch(console.error)
   }, [])
 
   return (
@@ -82,8 +101,8 @@ export default function Index() {
         </Card>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-7">
-        <Card className="col-span-4">
+      <div className="flex flex-col gap-6">
+        <Card>
           <CardHeader>
             <CardTitle>Fila Rápida</CardTitle>
             <CardDescription>Próximas ações agendadas para o seu turno.</CardDescription>
@@ -122,45 +141,81 @@ export default function Index() {
           </CardContent>
         </Card>
 
-        <Card className="col-span-3">
+        <Card>
           <CardHeader>
             <CardTitle>Equipe Operacional</CardTitle>
-            <CardDescription>Status atual de conexão (Provisório)</CardDescription>
+            <CardDescription>
+              Status atual de conexão e indicadores de produtividade
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {profiles.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Carregando usuários...</p>
-              ) : (
-                profiles.map((p) => {
-                  const isOnline = p.id === user?.id
-                  const displayName = p.name || p.email.split('@')[0]
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Colaborador</TableHead>
+                  <TableHead className="text-center">Atend. (Hoje)</TableHead>
+                  <TableHead className="text-center">Atend. (Total)</TableHead>
+                  <TableHead className="text-center">Follow-ups (Hoje)</TableHead>
+                  <TableHead className="text-center">Follow-ups (Total)</TableHead>
+                  <TableHead className="text-right">Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {profiles.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center text-muted-foreground py-4">
+                      Carregando usuários...
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  profiles.map((p) => {
+                    const isOnline = p.id === user?.id
+                    const displayName = p.name || p.email.split('@')[0]
+                    const stats = operatorStats[p.id] || {
+                      today_contacts: 0,
+                      total_contacts: 0,
+                      today_followups: 0,
+                      total_followups: 0,
+                    }
 
-                  return (
-                    <div key={p.id} className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <Avatar className="h-8 w-8">
-                          <AvatarFallback className="bg-primary/10 text-primary text-xs">
-                            {displayName.substring(0, 2).toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex flex-col">
-                          <span className="text-sm font-medium">
-                            {displayName} {isOnline && '(Você)'}
-                          </span>
-                          <span className="text-xs text-muted-foreground flex items-center gap-1.5">
+                    return (
+                      <TableRow key={p.id}>
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            <Avatar className="h-8 w-8">
+                              <AvatarFallback className="bg-primary/10 text-primary text-xs">
+                                {displayName.substring(0, 2).toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                            <span className="font-medium text-sm">
+                              {displayName} {isOnline && '(Você)'}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-center">{stats.today_contacts}</TableCell>
+                        <TableCell className="text-center">{stats.total_contacts}</TableCell>
+                        <TableCell className="text-center">{stats.today_followups}</TableCell>
+                        <TableCell className="text-center">{stats.total_followups}</TableCell>
+                        <TableCell className="text-right">
+                          <span
+                            className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium ${
+                              isOnline
+                                ? 'bg-emerald-100 text-emerald-700'
+                                : 'bg-slate-100 text-slate-700'
+                            }`}
+                          >
                             <span
-                              className={`h-1.5 w-1.5 rounded-full ${isOnline ? 'bg-emerald-500' : 'bg-slate-300'}`}
+                              className={`h-1.5 w-1.5 rounded-full ${isOnline ? 'bg-emerald-500' : 'bg-slate-400'}`}
                             />
                             {isOnline ? 'Online' : 'Offline'}
                           </span>
-                        </div>
-                      </div>
-                    </div>
-                  )
-                })
-              )}
-            </div>
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })
+                )}
+              </TableBody>
+            </Table>
           </CardContent>
         </Card>
       </div>

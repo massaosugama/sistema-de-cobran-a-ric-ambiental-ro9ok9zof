@@ -57,3 +57,12 @@ export async function getProfiles() {
   if (error) throw error
   return data || []
 }
+
+export async function getOperatorStats() {
+  const { data, error } = await (supabase as any).rpc('get_operator_stats')
+  if (error) {
+    console.error('Error fetching operator stats:', error)
+    return []
+  }
+  return data || []
+}
