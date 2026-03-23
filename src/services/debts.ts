@@ -83,7 +83,7 @@ export function parseDebtRow(
     validInvoices.length > 0 ? Math.max(...validInvoices.map((i: any) => i.days as number)) : 0
 
   return {
-    id: row.uc,
+    id: `${row.uc}_${row.cod_pess_fat || ''}`,
     uc: row.uc,
     personCode: row.cod_pess_fat || '',
     name: row.pessoa_fatura_nome || row.ta_nome_de_quem || '',

@@ -127,7 +127,7 @@ export default function Index() {
                       </span>
                     </div>
                     <Button size="sm" variant="secondary" asChild>
-                      <Link to={`/customer/${debt.uc}`}>Atender</Link>
+                      <Link to={`/customer/${debt.id}`}>Atender</Link>
                     </Button>
                   </div>
                 ))

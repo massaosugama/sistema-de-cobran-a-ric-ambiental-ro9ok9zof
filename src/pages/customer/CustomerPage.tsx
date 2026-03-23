@@ -14,8 +14,9 @@ export default function CustomerPage() {
 
   useEffect(() => {
     if (id) {
+      const [uc, personCode] = id.split('_')
       setLoading(true)
-      getDebtByUc(id)
+      getDebtByUc(uc, personCode)
         .then((data) => {
           setCustomer(data)
           setLoading(false)
