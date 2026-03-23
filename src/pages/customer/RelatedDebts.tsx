@@ -1,7 +1,8 @@
 import { useEffect, useState, useCallback } from 'react'
-import { AlertTriangle, ExternalLink } from 'lucide-react'
+import { AlertTriangle, ExternalLink, Info } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { getRelatedDebts, getDebtByUc, type ParsedDebt } from '@/services/debts'
 import {
   Sheet,
@@ -124,11 +125,19 @@ export function RelatedDebts({ customer }: { customer: ParsedDebt }) {
               const key = `${debt.uc}_${debt.personCode}`
               const isVisited = visitedUcs.has(key)
               return (
-                <button
+                <div
                   key={key}
                   onClick={() => handleOpenSheet(debt.uc, debt.personCode)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault()
+                      handleOpenSheet(debt.uc, debt.personCode)
+                    }
+                  }}
                   className={cn(
-                    'w-full text-left flex flex-col p-2.5 bg-white border rounded-lg transition-all group focus:outline-none focus:ring-2 focus:ring-offset-1',
+                    'w-full text-left flex flex-col p-2.5 bg-white border rounded-lg transition-all group focus:outline-none focus:ring-2 focus:ring-offset-1 cursor-pointer',
                     isVisited
                       ? 'border-slate-200 bg-slate-50/70 focus:ring-slate-400 opacity-80'
                       : 'border-orange-100 hover:border-orange-300 hover:shadow-md focus:ring-orange-500',
@@ -149,14 +158,53 @@ export function RelatedDebts({ customer }: { customer: ParsedDebt }) {
                       <p className="text-[11px] text-slate-500 truncate">{debt.name}</p>
                     </div>
                     <div className="flex flex-col items-end shrink-0">
-                      <span
-                        className={cn(
-                          'font-black',
-                          isVisited ? 'text-slate-600' : 'text-orange-700',
+                      <div className="flex items-center gap-1">
+                        <span
+                          className={cn(
+                            'font-black',
+                            isVisited ? 'text-slate-600' : 'text-orange-700',
+                          )}
+                        >
+                          R$ {debt.totalDebt.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        </span>
+                        {(debt.valorVencido > 0 || debt.valorAVencer > 0) && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div
+                                className="cursor-help inline-flex"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <Info className="h-3 w-3 text-slate-400 hover:text-primary" />
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent
+                              side="left"
+                              className="p-2 bg-white border border-slate-200 shadow-lg rounded-lg text-xs"
+                            >
+                              <div className="space-y-1">
+                                <div className="flex justify-between gap-3">
+                                  <span className="text-slate-500">Vencido:</span>
+                                  <span className="font-bold text-rose-600">
+                                    R${' '}
+                                    {(debt.valorVencido || 0).toLocaleString('pt-BR', {
+                                      minimumFractionDigits: 2,
+                                    })}
+                                  </span>
+                                </div>
+                                <div className="flex justify-between gap-3">
+                                  <span className="text-slate-500">A Vencer:</span>
+                                  <span className="font-bold text-emerald-600">
+                                    R${' '}
+                                    {(debt.valorAVencer || 0).toLocaleString('pt-BR', {
+                                      minimumFractionDigits: 2,
+                                    })}
+                                  </span>
+                                </div>
+                              </div>
+                            </TooltipContent>
+                          </Tooltip>
                         )}
-                      >
-                        R$ {debt.totalDebt.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                      </span>
+                      </div>
                       <div
                         className={cn(
                           'flex items-center text-[10px] font-semibold uppercase mt-0.5',
@@ -193,7 +241,7 @@ export function RelatedDebts({ customer }: { customer: ParsedDebt }) {
                       ))}
                     </div>
                   )}
-                </button>
+                </div>
               )
             })}
           </div>

@@ -1,0 +1,3 @@
+ALTER TABLE public.pending_debts 
+ADD COLUMN IF NOT EXISTS valor_vencido NUMERIC DEFAULT 0,
+ADD COLUMN IF NOT EXISTS valor_a_vencer NUMERIC DEFAULT 0;

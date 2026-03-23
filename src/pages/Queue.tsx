@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Search, ArrowRight, Clock, MapPin } from 'lucide-react'
+import { Search, ArrowRight, Clock, MapPin, Info } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import {
   Table,
   TableBody,
@@ -155,7 +156,7 @@ export default function Queue() {
                               {safeText(customer.name)}
                             </span>
                             <span
-                              className="text-xs font-medium text-slate-500 truncate"
+                              className="text-xs font-medium text-slate-500 truncate flex items-center gap-1"
                               title={`${customer.uc} • ${safeText(customer.document)}`}
                             >
                               UC: {customer.uc} • {safeText(customer.document)}
@@ -184,12 +185,43 @@ export default function Queue() {
                         </TableCell>
                         <TableCell>
                           <div className="flex flex-col items-start">
-                            <span className="font-bold text-slate-900 whitespace-nowrap">
-                              R${' '}
-                              {customer.totalDebt.toLocaleString('pt-BR', {
-                                minimumFractionDigits: 2,
-                              })}
-                            </span>
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-bold text-slate-900 whitespace-nowrap">
+                                R${' '}
+                                {customer.totalDebt.toLocaleString('pt-BR', {
+                                  minimumFractionDigits: 2,
+                                })}
+                              </span>
+                              {(customer.valorVencido > 0 || customer.valorAVencer > 0) && (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Info className="h-3.5 w-3.5 text-slate-400 hover:text-primary cursor-help" />
+                                  </TooltipTrigger>
+                                  <TooltipContent className="p-2 bg-white border border-slate-200 shadow-lg rounded-lg text-xs">
+                                    <div className="space-y-1">
+                                      <div className="flex justify-between gap-3">
+                                        <span className="text-slate-500">Vencido:</span>
+                                        <span className="font-bold text-rose-600">
+                                          R${' '}
+                                          {(customer.valorVencido || 0).toLocaleString('pt-BR', {
+                                            minimumFractionDigits: 2,
+                                          })}
+                                        </span>
+                                      </div>
+                                      <div className="flex justify-between gap-3">
+                                        <span className="text-slate-500">A Vencer:</span>
+                                        <span className="font-bold text-emerald-600">
+                                          R${' '}
+                                          {(customer.valorAVencer || 0).toLocaleString('pt-BR', {
+                                            minimumFractionDigits: 2,
+                                          })}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  </TooltipContent>
+                                </Tooltip>
+                              )}
+                            </div>
                             <div className="flex flex-wrap items-center gap-1.5 mt-1">
                               <Badge
                                 variant={getPriorityColor(customer.priority) as any}
@@ -307,13 +339,42 @@ export default function Queue() {
                               {safeText(customer.name)}
                             </span>
                             <span
-                              className="text-xs font-medium text-slate-500 truncate"
+                              className="text-xs font-medium text-slate-500 truncate flex items-center gap-1"
                               title={`UC: ${customer.uc} • R$ ${customer.totalDebt.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
                             >
                               UC: {customer.uc} • R${' '}
                               {customer.totalDebt.toLocaleString('pt-BR', {
                                 minimumFractionDigits: 2,
                               })}
+                              {(customer.valorVencido > 0 || customer.valorAVencer > 0) && (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Info className="h-3 w-3 text-slate-400 hover:text-primary cursor-help shrink-0" />
+                                  </TooltipTrigger>
+                                  <TooltipContent className="p-2 bg-white border border-slate-200 shadow-lg rounded-lg text-xs">
+                                    <div className="space-y-1">
+                                      <div className="flex justify-between gap-3">
+                                        <span className="text-slate-500">Vencido:</span>
+                                        <span className="font-bold text-rose-600">
+                                          R${' '}
+                                          {(customer.valorVencido || 0).toLocaleString('pt-BR', {
+                                            minimumFractionDigits: 2,
+                                          })}
+                                        </span>
+                                      </div>
+                                      <div className="flex justify-between gap-3">
+                                        <span className="text-slate-500">A Vencer:</span>
+                                        <span className="font-bold text-emerald-600">
+                                          R${' '}
+                                          {(customer.valorAVencer || 0).toLocaleString('pt-BR', {
+                                            minimumFractionDigits: 2,
+                                          })}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  </TooltipContent>
+                                </Tooltip>
+                              )}
                             </span>
                             {customer.address && (
                               <div className="flex items-center flex-wrap gap-1.5 mt-0.5">

@@ -1,15 +1,17 @@
 import { Link } from 'react-router-dom'
-import { ArrowLeft, AlertCircle, MapPin } from 'lucide-react'
+import { ArrowLeft, AlertCircle, MapPin, Info } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import type { ParsedDebt } from '@/services/debts'
 
 export function CustomerHeader({
   customer,
   isSheet,
   onClose,
 }: {
-  customer: any
+  customer: ParsedDebt
   isSheet?: boolean
   onClose?: () => void
 }) {
@@ -97,9 +99,40 @@ export function CustomerHeader({
             <span className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-0.5">
               Dívida Total
             </span>
-            <span className="text-3xl font-black text-slate-900 leading-none">
-              R$ {customer.totalDebt.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-3xl font-black text-slate-900 leading-none">
+                R$ {customer.totalDebt.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+              </span>
+              {(customer.valorVencido > 0 || customer.valorAVencer > 0) && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-5 w-5 text-slate-400 hover:text-primary transition-colors cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent className="p-3 bg-white border border-slate-200 shadow-xl rounded-xl">
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between gap-4">
+                        <span className="text-slate-500 font-medium">Vencido:</span>
+                        <span className="font-bold text-rose-600">
+                          R${' '}
+                          {customer.valorVencido.toLocaleString('pt-BR', {
+                            minimumFractionDigits: 2,
+                          })}
+                        </span>
+                      </div>
+                      <div className="flex justify-between gap-4">
+                        <span className="text-slate-500 font-medium">A Vencer:</span>
+                        <span className="font-bold text-emerald-600">
+                          R${' '}
+                          {customer.valorAVencer.toLocaleString('pt-BR', {
+                            minimumFractionDigits: 2,
+                          })}
+                        </span>
+                      </div>
+                    </div>
+                  </TooltipContent>
+                </Tooltip>
+              )}
+            </div>
           </div>
         </div>
       </div>

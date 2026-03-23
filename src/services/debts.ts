@@ -9,6 +9,8 @@ export interface ParsedDebt {
   address: string
   overdueDays: number
   totalDebt: number
+  valorVencido: number
+  valorAVencer: number
   status: string
   nextAction?: string
   priority: 'alta' | 'media' | 'baixa'
@@ -88,7 +90,9 @@ export function parseDebtRow(
     document: row.pessoa_fatura_cpf_cnpj || '',
     address: row.endereco || '',
     overdueDays,
-    totalDebt: row.valor_total || 0,
+    totalDebt: Number(row.valor_total) || 0,
+    valorVencido: Number(row.valor_vencido) || 0,
+    valorAVencer: Number(row.valor_a_vencer) || 0,
     status: 'pendente',
     priority: row.valor_total > 5000 ? 'alta' : row.valor_total > 1000 ? 'media' : 'baixa',
     phones,

@@ -374,6 +374,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_operator_stats: {
+        Args: never
+        Returns: {
+          operator_id: string
+          today_contacts: number
+          today_followups: number
+          total_contacts: number
+          total_followups: number
+        }[]
+      }
       get_portfolio_stats: { Args: never; Returns: Json }
       record_portfolio_snapshot: { Args: never; Returns: undefined }
       truncate_pending_debts: { Args: never; Returns: undefined }
@@ -711,6 +721,24 @@ export const Constants = {
 //           row_to_json(NEW)
 //       );
 //       RETURN NEW;
+//   END;
+//   $function$
+//
+// FUNCTION get_operator_stats()
+//   CREATE OR REPLACE FUNCTION public.get_operator_stats()
+//    RETURNS TABLE(operator_id uuid, total_contacts bigint, today_contacts bigint, total_followups bigint, today_followups bigint)
+//    LANGUAGE plpgsql
+//    SECURITY DEFINER
+//   AS $function$
+//   BEGIN
+//       RETURN QUERY
+//       SELECT
+//           p.id as operator_id,
+//           (SELECT count(*) FROM public.contact_history ch WHERE ch.operator_id = p.id) as total_contacts,
+//           (SELECT count(*) FROM public.contact_history ch WHERE ch.operator_id = p.id AND date(ch.created_at AT TIME ZONE 'America/Sao_Paulo') = date(now() AT TIME ZONE 'America/Sao_Paulo')) as today_contacts,
+//           (SELECT count(*) FROM public.follow_up_tasks ft WHERE ft.operator_id = p.id) as total_followups,
+//           (SELECT count(*) FROM public.follow_up_tasks ft WHERE ft.operator_id = p.id AND date(ft.created_at AT TIME ZONE 'America/Sao_Paulo') = date(now() AT TIME ZONE 'America/Sao_Paulo')) as today_followups
+//       FROM public.profiles p;
 //   END;
 //   $function$
 //
