@@ -37,7 +37,10 @@ const pendingDebtsColumns = [
   'uc',
   'uc_repete',
   'valor_total',
+  'valor_vencido',
+  'valor_a_vencer',
 ]
+
 const settlementsColumns = [
   'id',
   'cod_pess_fat',
@@ -74,6 +77,21 @@ const parseCSV = async (file: File) => {
         // Sanitização: Converte a string "NULL" literal para o valor null nativo do JS
         if (typeof val === 'string' && val.trim().toUpperCase() === 'NULL') {
           val = null
+        }
+
+        // Sanitização de valores numéricos para evitar falhas de insert no supabase se houver vírgula
+        if (
+          typeof val === 'string' &&
+          ['valor_total', 'valor_vencido', 'valor_a_vencer'].includes(h)
+        ) {
+          if (val.includes(',') && !val.includes('.')) {
+            val = parseFloat(val.replace(',', '.'))
+          } else if (val.includes(',') && val.includes('.')) {
+            val = parseFloat(val.replace(/\./g, '').replace(',', '.'))
+          } else {
+            val = parseFloat(val)
+          }
+          if (isNaN(val)) val = null
         }
 
         acc[h] = val
