@@ -10,7 +10,15 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { CalendarDays, TrendingUp, Users, Target, ArrowRight } from 'lucide-react'
+import {
+  Briefcase,
+  CircleDollarSign,
+  Split,
+  Headphones,
+  ListTodo,
+  UserCheck,
+  ArrowRight,
+} from 'lucide-react'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { getDebts, getPortfolioStats, ParsedDebt } from '@/services/debts'
 import { getProfiles, getOperatorStats } from '@/services/data'
@@ -18,9 +26,15 @@ import { useAuth } from '@/hooks/use-auth'
 
 export default function Index() {
   const [queue, setQueue] = useState<ParsedDebt[]>([])
-  const [portfolioStats, setPortfolioStats] = useState({ total_cases: 0, total_value: 0 })
+  const [portfolioStats, setPortfolioStats] = useState({
+    total_cases: 0,
+    total_value: 0,
+    total_vencido: 0,
+    total_a_vencer: 0,
+  })
   const [profiles, setProfiles] = useState<any[]>([])
   const [operatorStats, setOperatorStats] = useState<Record<string, any>>({})
+  const [totals, setTotals] = useState({ atendimentos: 0, followups: 0 })
   const { user } = useAuth()
   const name = user?.user_metadata?.name || user?.email?.split('@')[0] || 'Operador'
 
@@ -41,10 +55,16 @@ export default function Index() {
     getOperatorStats()
       .then((stats) => {
         const statsMap: Record<string, any> = {}
+        let sumAtendimentos = 0
+        let sumFollowups = 0
+
         stats.forEach((s: any) => {
           statsMap[s.operator_id] = s
+          sumAtendimentos += Number(s.total_contacts || 0)
+          sumFollowups += Number(s.total_followups || 0)
         })
         setOperatorStats(statsMap)
+        setTotals({ atendimentos: sumAtendimentos, followups: sumFollowups })
       })
       .catch(console.error)
   }, [])
@@ -52,51 +72,102 @@ export default function Index() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight text-primary">Dashboard Operacional</h1>
+        <h1 className="text-3xl font-bold tracking-tight text-primary">Visão da Carteira</h1>
         <p className="text-muted-foreground mt-1">
-          Bem-vindo(a) de volta, {name}. Aqui está o resumo do seu dia.
+          Bem-vindo(a) de volta, {name}. Aqui está o panorama estratégico de recuperação.
         </p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
             <CardTitle className="text-sm font-medium">Total da Carteira</CardTitle>
-            <CalendarDays className="h-4 w-4 text-muted-foreground" />
+            <Briefcase className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{portfolioStats.total_cases}</div>
-            <p className="text-xs text-muted-foreground mt-1">Dívida (relação UC + pessoa)</p>
+            <p className="text-xs text-muted-foreground mt-1">Volume de casos (UC + Pessoa)</p>
           </CardContent>
         </Card>
+
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-sm font-medium">Pontos Acumulados</CardTitle>
-            <Target className="h-4 w-4 text-warning" />
+            <CardTitle className="text-sm font-medium">Valor Total da Carteira</CardTitle>
+            <CircleDollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-primary">1245</div>
-            <p className="text-xs text-muted-foreground mt-1">+120 desde ontem</p>
+            <div className="text-2xl font-bold text-primary">
+              R${' '}
+              {portfolioStats.total_value.toLocaleString('pt-BR', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">Montante financeiro sob gestão</p>
           </CardContent>
         </Card>
+
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-sm font-medium">Recuperação (R$)</CardTitle>
-            <TrendingUp className="h-4 w-4 text-emerald-500" />
+            <CardTitle className="text-sm font-medium">Saldo Vencido vs. A Vencer</CardTitle>
+            <Split className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-emerald-600">R$ 14.500</div>
-            <p className="text-xs text-muted-foreground mt-1">Nesta semana</p>
+            <div className="flex justify-between items-end mt-1">
+              <div>
+                <div className="text-lg font-bold text-destructive">
+                  R${' '}
+                  {portfolioStats.total_vencido.toLocaleString('pt-BR', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
+                </div>
+                <p className="text-xs text-muted-foreground">Vencido</p>
+              </div>
+              <div className="text-right">
+                <div className="text-lg font-bold text-emerald-600">
+                  R${' '}
+                  {portfolioStats.total_a_vencer.toLocaleString('pt-BR', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
+                </div>
+                <p className="text-xs text-muted-foreground">A Vencer</p>
+              </div>
+            </div>
           </CardContent>
         </Card>
+
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-sm font-medium">Contatos Realizados</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Total de Atendimentos</CardTitle>
+            <Headphones className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">89</div>
-            <p className="text-xs text-muted-foreground mt-1">Meta diária: 120</p>
+            <div className="text-2xl font-bold">{totals.atendimentos}</div>
+            <p className="text-xs text-muted-foreground mt-1">Registrados por toda a equipe</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+            <CardTitle className="text-sm font-medium">Total de Follow-ups</CardTitle>
+            <ListTodo className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{totals.followups}</div>
+            <p className="text-xs text-muted-foreground mt-1">Atividades de retorno agendadas</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+            <CardTitle className="text-sm font-medium">Cadastros Atualizados</CardTitle>
+            <UserCheck className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-muted-foreground">0</div>
+            <p className="text-xs text-muted-foreground mt-1">Bases higienizadas ou validadas</p>
           </CardContent>
         </Card>
       </div>

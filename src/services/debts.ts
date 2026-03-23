@@ -361,5 +361,15 @@ export async function getPortfolioStats() {
   const { data, error } = await (supabase as any).rpc('get_portfolio_stats')
   if (error) throw error
 
-  return data as { total_cases: number; total_value: number }
+  return {
+    total_cases: data?.total_cases || 0,
+    total_value: data?.total_value || 0,
+    total_vencido: data?.total_vencido || 0,
+    total_a_vencer: data?.total_a_vencer || 0,
+  } as {
+    total_cases: number
+    total_value: number
+    total_vencido: number
+    total_a_vencer: number
+  }
 }
