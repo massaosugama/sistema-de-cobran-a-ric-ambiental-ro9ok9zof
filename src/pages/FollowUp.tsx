@@ -38,6 +38,7 @@ import {
   RotateCcw,
   Search,
   MapPin,
+  Info,
 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import {
@@ -59,6 +60,13 @@ import {
   SheetTitle,
   SheetDescription,
 } from '@/components/ui/sheet'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { CustomerActionForm } from '@/pages/customer/CustomerActionForm'
 import { getDebts, type ParsedDebt } from '@/services/debts'
 
@@ -73,6 +81,8 @@ export interface EnrichedTask {
   operator?: { name: string; color: string }
   debt?: {
     valor_total: number
+    valor_vencido: number
+    valor_a_vencer: number
     qt_fats: number
     nome: string
     document?: string
@@ -84,6 +94,7 @@ export interface EnrichedTask {
 function DebtSearch({ onSelect }: { onSelect: (debt: ParsedDebt) => void }) {
   const [search, setSearch] = useState('')
   const [searchAddress, setSearchAddress] = useState('')
+  const [debtStatus, setDebtStatus] = useState<'vencido' | 'a_vencer' | 'ambos'>('vencido')
   const debouncedSearch = useDebounce(search, 500)
   const debouncedSearchAddress = useDebounce(searchAddress, 500)
   const [results, setResults] = useState<ParsedDebt[]>([])
@@ -102,6 +113,7 @@ function DebtSearch({ onSelect }: { onSelect: (debt: ParsedDebt) => void }) {
       hasSearch ? debouncedSearch : undefined,
       undefined,
       hasAddress ? debouncedSearchAddress : undefined,
+      debtStatus,
     )
       .then((data) => {
         const all = [...data.unattended, ...data.attended]
@@ -114,11 +126,21 @@ function DebtSearch({ onSelect }: { onSelect: (debt: ParsedDebt) => void }) {
       .catch(() => {
         setLoading(false)
       })
-  }, [debouncedSearch, debouncedSearchAddress, hasSearch, hasAddress])
+  }, [debouncedSearch, debouncedSearchAddress, debtStatus, hasSearch, hasAddress])
 
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row gap-2">
+        <Select value={debtStatus} onValueChange={(v: any) => setDebtStatus(v)}>
+          <SelectTrigger className="w-full sm:w-[140px] h-11 rounded-xl bg-white border-slate-200 shadow-sm shrink-0">
+            <SelectValue placeholder="Status" />
+          </SelectTrigger>
+          <SelectContent className="rounded-xl">
+            <SelectItem value="vencido">Vencidos</SelectItem>
+            <SelectItem value="a_vencer">A Vencer</SelectItem>
+            <SelectItem value="ambos">Ambos</SelectItem>
+          </SelectContent>
+        </Select>
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
           <Input
@@ -196,6 +218,7 @@ export default function FollowUp() {
   // Filters State
   const [search, setSearch] = useState('')
   const [searchAddress, setSearchAddress] = useState('')
+  const [debtStatus, setDebtStatus] = useState<'vencido' | 'a_vencer' | 'ambos'>('vencido')
   const debouncedSearch = useDebounce(search, 500)
   const debouncedSearchAddress = useDebounce(searchAddress, 500)
 
@@ -254,7 +277,7 @@ export default function FollowUp() {
       const { data: debts } = await supabase
         .from('pending_debts')
         .select(
-          'uc, cod_pess_fat, valor_total, qt_fats, pessoa_fatura_nome, ta_nome_de_quem, pessoa_fatura_cpf_cnpj, endereco',
+          'uc, cod_pess_fat, valor_total, valor_vencido, valor_a_vencer, qt_fats, pessoa_fatura_nome, ta_nome_de_quem, pessoa_fatura_cpf_cnpj, endereco',
         )
         .in('uc', ucs)
 
@@ -269,6 +292,8 @@ export default function FollowUp() {
           debt: debt
             ? {
                 valor_total: debt.valor_total || 0,
+                valor_vencido: debt.valor_vencido || 0,
+                valor_a_vencer: debt.valor_a_vencer || 0,
                 qt_fats: debt.qt_fats || 1,
                 nome: debt.pessoa_fatura_nome || debt.ta_nome_de_quem || '',
                 document: debt.pessoa_fatura_cpf_cnpj || '',
@@ -310,6 +335,12 @@ export default function FollowUp() {
   const filteredTasks = useMemo(() => {
     let result = tasks.filter((t) => view === 'todos' || t.operator_id === user?.id)
 
+    if (debtStatus === 'vencido') {
+      result = result.filter((t) => (t.debt?.valor_vencido || 0) > 0)
+    } else if (debtStatus === 'a_vencer') {
+      result = result.filter((t) => (t.debt?.valor_a_vencer || 0) > 0)
+    }
+
     if (debouncedSearch) {
       const lowerSearch = debouncedSearch.toLowerCase()
       result = result.filter(
@@ -328,7 +359,7 @@ export default function FollowUp() {
     }
 
     return result
-  }, [tasks, view, user?.id, debouncedSearch, debouncedSearchAddress])
+  }, [tasks, view, user?.id, debtStatus, debouncedSearch, debouncedSearchAddress])
 
   const tasksByDate = useMemo(() => {
     return filteredTasks.reduce(
@@ -568,17 +599,48 @@ export default function FollowUp() {
         <p className="text-xs text-slate-500 line-clamp-1 truncate" title={task.debt?.nome}>
           {task.debt?.nome || 'Cliente'}
         </p>
-        <p
-          className={cn(
-            'text-xs font-semibold mt-0.5',
-            task.completed ? 'text-slate-400' : 'text-primary',
+        <div className="flex items-center gap-1.5 mt-0.5">
+          <p
+            className={cn(
+              'text-xs font-semibold',
+              task.completed ? 'text-slate-400' : 'text-primary',
+            )}
+          >
+            R${' '}
+            {task.debt?.valor_total
+              ? task.debt.valor_total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })
+              : '0,00'}
+          </p>
+          {((task.debt?.valor_vencido || 0) > 0 || (task.debt?.valor_a_vencer || 0) > 0) && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Info className="h-3.5 w-3.5 text-slate-400 hover:text-primary cursor-help" />
+              </TooltipTrigger>
+              <TooltipContent className="p-2 bg-white border border-slate-200 shadow-lg rounded-lg text-xs">
+                <div className="space-y-1">
+                  <div className="flex justify-between gap-3">
+                    <span className="text-slate-500">Vencido:</span>
+                    <span className="font-bold text-rose-600">
+                      R${' '}
+                      {(task.debt?.valor_vencido || 0).toLocaleString('pt-BR', {
+                        minimumFractionDigits: 2,
+                      })}
+                    </span>
+                  </div>
+                  <div className="flex justify-between gap-3">
+                    <span className="text-slate-500">A Vencer:</span>
+                    <span className="font-bold text-emerald-600">
+                      R${' '}
+                      {(task.debt?.valor_a_vencer || 0).toLocaleString('pt-BR', {
+                        minimumFractionDigits: 2,
+                      })}
+                    </span>
+                  </div>
+                </div>
+              </TooltipContent>
+            </Tooltip>
           )}
-        >
-          R${' '}
-          {task.debt?.valor_total
-            ? task.debt.valor_total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })
-            : '0,00'}
-        </p>
+        </div>
       </div>
 
       <div
@@ -899,6 +961,16 @@ export default function FollowUp() {
         </div>
         <div className="flex flex-col sm:flex-row items-center gap-3 w-full xl:w-auto">
           <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+            <Select value={debtStatus} onValueChange={(v: any) => setDebtStatus(v)}>
+              <SelectTrigger className="w-full sm:w-[130px] h-10 rounded-full bg-white border-slate-200 shadow-sm focus-visible:ring-primary/20 shrink-0">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent className="rounded-xl">
+                <SelectItem value="vencido">Vencidos</SelectItem>
+                <SelectItem value="a_vencer">A Vencer</SelectItem>
+                <SelectItem value="ambos">Ambos</SelectItem>
+              </SelectContent>
+            </Select>
             <div className="relative w-full sm:w-[220px]">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
               <Input
@@ -1038,12 +1110,44 @@ export default function FollowUp() {
                 <span className="text-slate-500 block mb-1 text-xs uppercase tracking-wider font-semibold">
                   Dívida Relacionada
                 </span>
-                <strong className="text-rose-600 block text-base">
-                  R${' '}
-                  {editingTask?.debt?.valor_total?.toLocaleString('pt-BR', {
-                    minimumFractionDigits: 2,
-                  }) || '0,00'}
-                </strong>
+                <div className="flex items-center gap-1.5">
+                  <strong className="text-rose-600 block text-base">
+                    R${' '}
+                    {editingTask?.debt?.valor_total?.toLocaleString('pt-BR', {
+                      minimumFractionDigits: 2,
+                    }) || '0,00'}
+                  </strong>
+                  {((editingTask?.debt?.valor_vencido || 0) > 0 ||
+                    (editingTask?.debt?.valor_a_vencer || 0) > 0) && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="h-4 w-4 text-slate-400 hover:text-primary cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent className="p-2 bg-white border border-slate-200 shadow-lg rounded-lg text-xs">
+                        <div className="space-y-1">
+                          <div className="flex justify-between gap-3">
+                            <span className="text-slate-500">Vencido:</span>
+                            <span className="font-bold text-rose-600">
+                              R${' '}
+                              {(editingTask?.debt?.valor_vencido || 0).toLocaleString('pt-BR', {
+                                minimumFractionDigits: 2,
+                              })}
+                            </span>
+                          </div>
+                          <div className="flex justify-between gap-3">
+                            <span className="text-slate-500">A Vencer:</span>
+                            <span className="font-bold text-emerald-600">
+                              R${' '}
+                              {(editingTask?.debt?.valor_a_vencer || 0).toLocaleString('pt-BR', {
+                                minimumFractionDigits: 2,
+                              })}
+                            </span>
+                          </div>
+                        </div>
+                      </TooltipContent>
+                    </Tooltip>
+                  )}
+                </div>
                 <span className="text-slate-500 block mt-1 font-medium">
                   Quantidade de Parcelas: {editingTask?.debt?.qt_fats || 1}
                 </span>

@@ -102,8 +102,20 @@ export function parseDebtRow(
   }
 }
 
-export async function getDebts(search?: string, operatorId?: string, searchAddress?: string) {
+export async function getDebts(
+  search?: string,
+  operatorId?: string,
+  searchAddress?: string,
+  debtStatus: 'vencido' | 'a_vencer' | 'ambos' = 'vencido',
+) {
   let query = supabase.from('pending_debts').select('*').order('valor_total', { ascending: false })
+
+  if (debtStatus === 'vencido') {
+    query = query.gt('valor_vencido', 0)
+  } else if (debtStatus === 'a_vencer') {
+    query = query.gt('valor_a_vencer', 0)
+  }
+
   if (search) {
     query = query.or(
       `uc.ilike.%${search}%,pessoa_fatura_nome.ilike.%${search}%,pessoa_fatura_cpf_cnpj.ilike.%${search}%`,

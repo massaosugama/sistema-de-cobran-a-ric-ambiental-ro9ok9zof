@@ -144,7 +144,9 @@ export type Database = {
           ta_nome_de_quem: string | null
           uc: string
           uc_repete: string | null
+          valor_a_vencer: number | null
           valor_total: number | null
+          valor_vencido: number | null
         }
         Insert: {
           cod_pess_fat: string
@@ -165,7 +167,9 @@ export type Database = {
           ta_nome_de_quem?: string | null
           uc: string
           uc_repete?: string | null
+          valor_a_vencer?: number | null
           valor_total?: number | null
+          valor_vencido?: number | null
         }
         Update: {
           cod_pess_fat?: string
@@ -186,7 +190,9 @@ export type Database = {
           ta_nome_de_quem?: string | null
           uc?: string
           uc_repete?: string | null
+          valor_a_vencer?: number | null
           valor_total?: number | null
+          valor_vencido?: number | null
         }
         Relationships: []
       }
@@ -590,6 +596,8 @@ export const Constants = {
 //   responsavel_nome: text (nullable)
 //   responsavel_cpf_cnpj: text (nullable)
 //   responsavel_celular: text (nullable)
+//   valor_vencido: numeric (nullable, default: 0)
+//   valor_a_vencer: numeric (nullable, default: 0)
 // Table: portfolio_history
 //   id: uuid (not null, default: gen_random_uuid())
 //   snapshot_date: date (not null)

@@ -14,6 +14,13 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { getDebts, ParsedDebt } from '@/services/debts'
 import { useDebounce } from '@/hooks/use-debounce'
 import { useAuth } from '@/hooks/use-auth'
@@ -29,6 +36,7 @@ export default function Queue() {
   const { user } = useAuth()
   const [search, setSearch] = useState('')
   const [searchAddress, setSearchAddress] = useState('')
+  const [debtStatus, setDebtStatus] = useState<'vencido' | 'a_vencer' | 'ambos'>('vencido')
   const debouncedSearch = useDebounce(search, 500)
   const debouncedSearchAddress = useDebounce(searchAddress, 500)
 
@@ -39,14 +47,14 @@ export default function Queue() {
   useEffect(() => {
     if (!user?.id) return
     setLoading(true)
-    getDebts(debouncedSearch, user.id, debouncedSearchAddress)
+    getDebts(debouncedSearch, user.id, debouncedSearchAddress, debtStatus)
       .then((data) => {
         setUnattended(data.unattended)
         setAttended(data.attended)
         setLoading(false)
       })
       .catch(console.error)
-  }, [debouncedSearch, debouncedSearchAddress, user?.id])
+  }, [debouncedSearch, debouncedSearchAddress, debtStatus, user?.id])
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
@@ -70,7 +78,17 @@ export default function Queue() {
         </div>
 
         <div className="flex flex-col sm:flex-row gap-3 w-full xl:w-auto">
-          <div className="relative w-full sm:w-[280px]">
+          <Select value={debtStatus} onValueChange={(v: any) => setDebtStatus(v)}>
+            <SelectTrigger className="w-full sm:w-[130px] h-10 rounded-full bg-white border-slate-200 shadow-sm focus-visible:ring-primary/20 shrink-0">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent className="rounded-xl">
+              <SelectItem value="vencido">Vencidos</SelectItem>
+              <SelectItem value="a_vencer">A Vencer</SelectItem>
+              <SelectItem value="ambos">Ambos</SelectItem>
+            </SelectContent>
+          </Select>
+          <div className="relative w-full sm:w-[260px]">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
             <Input
               placeholder="Filtre UC, Nome ou Cpf/Cnpj"
@@ -79,7 +97,7 @@ export default function Queue() {
               className="pl-9 rounded-full bg-white border-slate-200 shadow-sm h-10 w-full focus-visible:ring-primary/20"
             />
           </div>
-          <div className="relative w-full sm:w-[240px]">
+          <div className="relative w-full sm:w-[220px]">
             <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
             <Input
               placeholder="Filtre Endereço"
@@ -340,12 +358,17 @@ export default function Queue() {
                             </span>
                             <span
                               className="text-xs font-medium text-slate-500 truncate flex items-center gap-1"
-                              title={`UC: ${customer.uc} • R$ ${customer.totalDebt.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
+                              title={`UC: ${customer.uc}`}
                             >
-                              UC: {customer.uc} • R${' '}
-                              {customer.totalDebt.toLocaleString('pt-BR', {
-                                minimumFractionDigits: 2,
-                              })}
+                              UC: {customer.uc}
+                            </span>
+                            <div className="flex items-center gap-1 mt-0.5">
+                              <span className="text-xs font-semibold text-slate-700">
+                                R${' '}
+                                {customer.totalDebt.toLocaleString('pt-BR', {
+                                  minimumFractionDigits: 2,
+                                })}
+                              </span>
                               {(customer.valorVencido > 0 || customer.valorAVencer > 0) && (
                                 <Tooltip>
                                   <TooltipTrigger asChild>
@@ -375,7 +398,7 @@ export default function Queue() {
                                   </TooltipContent>
                                 </Tooltip>
                               )}
-                            </span>
+                            </div>
                             {customer.address && (
                               <div className="flex items-center flex-wrap gap-1.5 mt-0.5">
                                 <span
