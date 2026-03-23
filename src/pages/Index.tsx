@@ -18,8 +18,10 @@ import {
   ListTodo,
   UserCheck,
   ArrowRight,
+  Info,
 } from 'lucide-react'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { getDebts, getPortfolioStats, ParsedDebt } from '@/services/debts'
 import { getProfiles, getOperatorStats } from '@/services/data'
 import { useAuth } from '@/hooks/use-auth'
@@ -92,7 +94,17 @@ export default function Index() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-sm font-medium">Valor Total da Carteira</CardTitle>
+            <CardTitle className="text-sm font-medium flex items-center gap-1.5">
+              Valor Total da Carteira
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Info className="h-4 w-4 text-muted-foreground/70 hover:text-foreground transition-colors cursor-help" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Atenção: considera valores de faturas retidas (remoção em desenvolvimento).</p>
+                </TooltipContent>
+              </Tooltip>
+            </CardTitle>
             <CircleDollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -109,7 +121,17 @@ export default function Index() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-sm font-medium">Saldo Vencido vs. A Vencer</CardTitle>
+            <CardTitle className="text-sm font-medium flex items-center gap-1.5">
+              Saldo Vencido vs. A Vencer
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Info className="h-4 w-4 text-muted-foreground/70 hover:text-foreground transition-colors cursor-help" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Atenção: considera valores de faturas retidas (remoção em desenvolvimento).</p>
+                </TooltipContent>
+              </Tooltip>
+            </CardTitle>
             <Split className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
