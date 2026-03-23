@@ -98,54 +98,9 @@ export function parseDebtRow(
   const overdueDays =
     validInvoices.length > 0 ? Math.max(0, ...validInvoices.map((i: any) => i.days as number)) : 0
 
-  let calcVencido = 0
-  let calcAVencer = 0
-  validInvoices.forEach((i: any) => {
-    if (i.days > 0) calcVencido += i.value
-    else calcAVencer += i.value
-  })
-
-  const dbVencido = parseSafeNumber(row.valor_vencido)
-  const dbAVencer = parseSafeNumber(row.valor_a_vencer)
-  let total = parseSafeNumber(row.valor_total)
-
-  let valorVencido = dbVencido
-  let valorAVencer = dbAVencer
-
-  if (dbVencido === 0 && dbAVencer === 0 && total > 0) {
-    if (validInvoices.length > 0) {
-      const calcTotal = calcVencido + calcAVencer
-      if (calcTotal > 0 && Math.abs(calcTotal - total) > 0.05) {
-        const ratio = total / calcTotal
-        valorVencido = calcVencido * ratio
-        valorAVencer = calcAVencer * ratio
-      } else {
-        valorVencido = calcVencido
-        valorAVencer = calcAVencer
-      }
-    } else {
-      valorVencido = total
-    }
-  } else {
-    // Caso em que um dos valores está populado e o outro está zerado no banco, mas a soma não bate com o total.
-    // Isso garante que dívidas que não tiveram 'valor_a_vencer' ou 'valor_vencido' importados corretamente apareçam nos filtros.
-    const sum = dbVencido + dbAVencer
-    if (total > 0 && Math.abs(total - sum) > 0.05) {
-      if (dbVencido > 0 && dbAVencer === 0 && total > dbVencido) {
-        valorAVencer = total - dbVencido
-      } else if (dbAVencer > 0 && dbVencido === 0 && total > dbAVencer) {
-        valorVencido = total - dbAVencer
-      } else {
-        total = sum // Confia na soma se ambos estiverem preenchidos mas divergem do total
-      }
-    } else if (total === 0 && sum > 0) {
-      total = sum
-    }
-  }
-
-  valorVencido = Number(Math.max(0, valorVencido).toFixed(2))
-  valorAVencer = Number(Math.max(0, valorAVencer).toFixed(2))
-  total = Number(Math.max(0, total).toFixed(2))
+  const valorVencido = Number(Math.max(0, parseSafeNumber(row.valor_vencido)).toFixed(2))
+  const valorAVencer = Number(Math.max(0, parseSafeNumber(row.valor_a_vencer)).toFixed(2))
+  const total = Number(Math.max(0, parseSafeNumber(row.valor_total)).toFixed(2))
 
   return {
     id: `${row.uc}_${row.cod_pess_fat || ''}`,
@@ -178,10 +133,6 @@ export async function getDebts(
     .select('*')
     .order('valor_total', { ascending: false })
     .limit(3000)
-
-  // Filtro de banco de dados removido para 'debtStatus' porque a lógica de inferência
-  // de valores na parseDebtRow precisa avaliar registros onde valor_a_vencer é zero no DB.
-  // A filtragem foi movida estritamente para memória logo abaixo.
 
   if (search) {
     query = query.or(
@@ -237,7 +188,6 @@ export async function getDebts(
 
   let parsedDebts = (debts || []).map((row) => parseDebtRow(row))
 
-  // Filtra em memória usando os valores perfeitamente computados na view
   if (debtStatus === 'vencido') {
     parsedDebts = parsedDebts.filter((d) => d.valorVencido > 0)
   } else if (debtStatus === 'a_vencer') {

@@ -122,6 +122,12 @@ export default function Queue() {
     }
   }
 
+  const getDisplayedValue = (customer: ParsedDebt) => {
+    if (debtStatus === 'vencido') return customer.valorVencido
+    if (debtStatus === 'a_vencer') return customer.valorAVencer
+    return customer.totalDebt
+  }
+
   return (
     <div className="space-y-6 animate-fade-in-up">
       <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
@@ -198,7 +204,11 @@ export default function Queue() {
                   <TableRow className="border-slate-100 hover:bg-transparent">
                     <TableHead className="font-semibold text-slate-600">Devedor / UC</TableHead>
                     <TableHead className="font-semibold text-slate-600 w-[180px]">
-                      Valor Total
+                      {debtStatus === 'vencido'
+                        ? 'Valor Vencido'
+                        : debtStatus === 'a_vencer'
+                          ? 'Valor A Vencer'
+                          : 'Valor Total'}
                     </TableHead>
                     <TableHead className="text-right font-semibold text-slate-600 w-[60px]"></TableHead>
                   </TableRow>
@@ -269,7 +279,7 @@ export default function Queue() {
                             <div className="flex items-center gap-1.5">
                               <span className="font-bold text-slate-900 whitespace-nowrap">
                                 R${' '}
-                                {customer.totalDebt.toLocaleString('pt-BR', {
+                                {getDisplayedValue(customer).toLocaleString('pt-BR', {
                                   minimumFractionDigits: 2,
                                 })}
                               </span>
@@ -428,7 +438,7 @@ export default function Queue() {
                             <div className="flex items-center gap-1 mt-0.5">
                               <span className="text-xs font-semibold text-slate-700">
                                 R${' '}
-                                {customer.totalDebt.toLocaleString('pt-BR', {
+                                {getDisplayedValue(customer).toLocaleString('pt-BR', {
                                   minimumFractionDigits: 2,
                                 })}
                               </span>
