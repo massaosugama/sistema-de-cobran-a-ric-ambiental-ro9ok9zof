@@ -69,7 +69,14 @@ const parseCSV = async (file: File) => {
     const values = l.split(separator).map((v) => v.trim().replace(/^"|"$/g, ''))
     return headers.reduce(
       (acc, h, i) => {
-        acc[h] = values[i] !== undefined && values[i] !== '' ? values[i] : null
+        let val: any = values[i] !== undefined && values[i] !== '' ? values[i] : null
+
+        // Sanitização: Converte a string "NULL" literal para o valor null nativo do JS
+        if (typeof val === 'string' && val.trim().toUpperCase() === 'NULL') {
+          val = null
+        }
+
+        acc[h] = val
         return acc
       },
       {} as Record<string, any>,
