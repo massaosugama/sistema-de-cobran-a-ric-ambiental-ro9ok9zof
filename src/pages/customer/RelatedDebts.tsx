@@ -24,7 +24,9 @@ export function RelatedDebts({ customer }: { customer: ParsedDebt }) {
   const [loading, setLoading] = useState(true)
   const [visitedUcs, setVisitedUcs] = useState<Set<string>>(new Set())
 
-  const [selectedUc, setSelectedUc] = useState<string | null>(null)
+  const [selectedDebtKey, setSelectedDebtKey] = useState<{ uc: string; personCode: string } | null>(
+    null,
+  )
   const [sheetCustomer, setSheetCustomer] = useState<ParsedDebt | null>(null)
   const [loadingSheet, setLoadingSheet] = useState(false)
 
@@ -65,12 +67,13 @@ export function RelatedDebts({ customer }: { customer: ParsedDebt }) {
     return () => window.removeEventListener('contact-added', handleContactAdded)
   }, [fetchRelatedDebts])
 
-  const handleOpenSheet = async (uc: string) => {
-    setVisitedUcs((prev) => new Set(prev).add(uc))
-    setSelectedUc(uc)
+  const handleOpenSheet = async (uc: string, personCode: string) => {
+    const key = `${uc}_${personCode}`
+    setVisitedUcs((prev) => new Set(prev).add(key))
+    setSelectedDebtKey({ uc, personCode })
     setLoadingSheet(true)
     try {
-      const data = await getDebtByUc(uc)
+      const data = await getDebtByUc(uc, personCode)
       setSheetCustomer(data)
     } catch (e) {
       console.error(e)
@@ -118,11 +121,12 @@ export function RelatedDebts({ customer }: { customer: ParsedDebt }) {
           </p>
           <div className="space-y-2">
             {relatedDebts.map((debt) => {
-              const isVisited = visitedUcs.has(debt.uc)
+              const key = `${debt.uc}_${debt.personCode}`
+              const isVisited = visitedUcs.has(key)
               return (
                 <button
-                  key={`${debt.uc}_${debt.personCode}`}
-                  onClick={() => handleOpenSheet(debt.uc)}
+                  key={key}
+                  onClick={() => handleOpenSheet(debt.uc, debt.personCode)}
                   className={cn(
                     'w-full text-left flex flex-col p-2.5 bg-white border rounded-lg transition-all group focus:outline-none focus:ring-2 focus:ring-offset-1',
                     isVisited
@@ -196,7 +200,7 @@ export function RelatedDebts({ customer }: { customer: ParsedDebt }) {
         </CardContent>
       </Card>
 
-      <Sheet open={!!selectedUc} onOpenChange={(open) => !open && setSelectedUc(null)}>
+      <Sheet open={!!selectedDebtKey} onOpenChange={(open) => !open && setSelectedDebtKey(null)}>
         <SheetContent
           className="w-full sm:max-w-none md:max-w-none lg:max-w-[85vw] xl:max-w-[1200px] overflow-y-auto bg-slate-50 p-0 sm:p-6 border-l shadow-2xl"
           side="right"
@@ -217,7 +221,7 @@ export function RelatedDebts({ customer }: { customer: ParsedDebt }) {
               <CustomerHeader
                 customer={sheetCustomer}
                 isSheet={true}
-                onClose={() => setSelectedUc(null)}
+                onClose={() => setSelectedDebtKey(null)}
               />
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
                 <div className="lg:col-span-3 space-y-6">
@@ -230,7 +234,7 @@ export function RelatedDebts({ customer }: { customer: ParsedDebt }) {
                   <CustomerActionForm
                     customer={sheetCustomer}
                     isSheet={true}
-                    onClose={() => setSelectedUc(null)}
+                    onClose={() => setSelectedDebtKey(null)}
                   />
                 </div>
               </div>

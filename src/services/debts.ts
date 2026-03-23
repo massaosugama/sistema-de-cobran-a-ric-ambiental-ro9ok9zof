@@ -182,23 +182,27 @@ export async function getDebts(search?: string, operatorId?: string, searchAddre
   return { unattended, attended }
 }
 
-export async function getDebtByUc(uc: string) {
-  const { data, error } = await supabase
-    .from('pending_debts')
-    .select('*')
-    .eq('uc', uc)
-    .limit(1)
-    .single()
+export async function getDebtByUc(uc: string, personCode?: string) {
+  let query = supabase.from('pending_debts').select('*').eq('uc', uc)
+
+  if (personCode) {
+    query = query.eq('cod_pess_fat', personCode)
+  }
+
+  const { data, error } = await query.limit(1).single()
   if (error) throw error
 
-  const contactsQuery: any = supabase
+  let contactsQuery: any = supabase
     .from('contact_history')
     .select('quality_result, profiles(name)')
-
-  const { data: contacts } = await contactsQuery
     .eq('uc', data.uc)
     .eq('is_active', true)
-    .order('created_at', { ascending: false })
+
+  if (personCode) {
+    contactsQuery = contactsQuery.eq('cod_pess_fat', personCode)
+  }
+
+  const { data: contacts } = await contactsQuery.order('created_at', { ascending: false })
 
   let phoneValidationStatus: 'a_verificar' | 'validado' | 'invalido' = 'a_verificar'
   const recentOperators: string[] = []
