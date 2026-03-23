@@ -41,7 +41,11 @@ export function CustomerTimeline({ customer }: { customer?: ParsedDebt }) {
   const [selectedContact, setSelectedContact] = useState<any>(null)
 
   const fetchData = useCallback(async () => {
-    const targetUc = customer?.uc || id
+    const routeUc = id?.split('_')[0]
+    const routePersonCode = id?.split('_')[1]
+    const targetUc = customer?.uc || routeUc
+    const targetPersonCode = customer?.personCode || routePersonCode
+
     if (!targetUc) return
     setLoading(true)
     try {
@@ -54,7 +58,7 @@ export function CustomerTimeline({ customer }: { customer?: ParsedDebt }) {
         setIsAdmin(!!profile?.is_admin)
       }
 
-      const contacts = await getContactHistory(targetUc, customer?.personCode, user?.id)
+      const contacts = await getContactHistory(targetUc, targetPersonCode, user?.id)
 
       const formattedContacts = contacts.map((c: any) => ({
         id: c.id,
@@ -82,7 +86,8 @@ export function CustomerTimeline({ customer }: { customer?: ParsedDebt }) {
 
   useEffect(() => {
     const handleContactAdded = (e: any) => {
-      if (e.detail?.uc === (customer?.uc || id)) {
+      const routeUc = id?.split('_')[0]
+      if (e.detail?.uc === (customer?.uc || routeUc)) {
         fetchData()
       }
     }

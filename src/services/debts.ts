@@ -106,7 +106,7 @@ export async function getDebts(
   search?: string,
   operatorId?: string,
   searchAddress?: string,
-  debtStatus: 'vencido' | 'a_vencer' | 'ambos' = 'vencido',
+  debtStatus?: 'vencido' | 'a_vencer' | 'ambos',
 ) {
   let query = supabase.from('pending_debts').select('*').order('valor_total', { ascending: false })
 
