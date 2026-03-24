@@ -159,6 +159,7 @@ export function CustomerActionForm({
               <SelectContent className="rounded-xl">
                 <SelectItem value="Promessa de Pagamento">Promessa de Pagamento</SelectItem>
                 <SelectItem value="Em Negociação">Em Negociação</SelectItem>
+                <SelectItem value="Já Pagou / Quitou">Já Pagou / Quitou</SelectItem>
                 <SelectItem value="Recusa">Recusa/Sem Condições</SelectItem>
                 <SelectItem value="Desconhece Dívida">Desconhece Dívida</SelectItem>
                 <SelectItem value="Outro">Outro (Especificar)</SelectItem>
