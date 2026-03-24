@@ -43,18 +43,24 @@ function parseSafeNumber(val: any): number {
 export function parseDebtRow(
   row: any,
   phoneStatus: 'a_verificar' | 'validado' | 'invalido' = 'a_verificar',
+  individualPhoneStatuses?: Record<string, 'a_verificar' | 'validado' | 'invalido'>,
 ): ParsedDebt {
-  const phones = []
-  if (row.pessoa_fatura_celular)
-    phones.push({ number: row.pessoa_fatura_celular, status: phoneStatus })
-  if (row.proprietario_celular && row.proprietario_celular !== row.pessoa_fatura_celular)
-    phones.push({ number: row.proprietario_celular, status: phoneStatus })
-  if (
-    row.responsavel_celular &&
-    row.responsavel_celular !== row.pessoa_fatura_celular &&
-    row.responsavel_celular !== row.proprietario_celular
-  )
-    phones.push({ number: row.responsavel_celular, status: phoneStatus })
+  const phones: { number: string; status: 'a_verificar' | 'validado' | 'invalido' }[] = []
+
+  const addPhone = (num: string) => {
+    if (!num) return
+    const exists = phones.find((p) => p.number === num)
+    if (!exists) {
+      phones.push({
+        number: num,
+        status: individualPhoneStatuses?.[num] || phoneStatus,
+      })
+    }
+  }
+
+  addPhone(row.pessoa_fatura_celular)
+  addPhone(row.proprietario_celular)
+  addPhone(row.responsavel_celular)
 
   const invoices = row.refs
     ? row.refs
@@ -245,6 +251,8 @@ export async function getDebtByUc(uc: string, personCode?: string) {
   const { data: contacts } = await contactsQuery.order('created_at', { ascending: false })
 
   let phoneValidationStatus: 'a_verificar' | 'validado' | 'invalido' = 'a_verificar'
+  let hasGlobalPhoneStatus = false
+  let phoneStatuses: Record<string, 'a_verificar' | 'validado' | 'invalido'> = {}
   const recentOperators: string[] = []
 
   if (contacts && contacts.length > 0) {
@@ -252,10 +260,23 @@ export async function getDebtByUc(uc: string, personCode?: string) {
       if (contact.quality_result) {
         try {
           const parsed = JSON.parse(contact.quality_result)
-          if (parsed.phoneValidationStatus) {
-            phoneValidationStatus = parsed.phoneValidationStatus
-          } else if (parsed.validatePhone !== undefined) {
-            phoneValidationStatus = parsed.validatePhone ? 'validado' : 'a_verificar'
+
+          if (parsed.phoneStatuses) {
+            for (const [num, stat] of Object.entries(parsed.phoneStatuses)) {
+              if (!phoneStatuses[num]) {
+                phoneStatuses[num] = stat as any
+              }
+            }
+          }
+
+          if (!hasGlobalPhoneStatus) {
+            if (parsed.phoneValidationStatus) {
+              phoneValidationStatus = parsed.phoneValidationStatus
+              hasGlobalPhoneStatus = true
+            } else if (parsed.validatePhone !== undefined) {
+              phoneValidationStatus = parsed.validatePhone ? 'validado' : 'a_verificar'
+              hasGlobalPhoneStatus = true
+            }
           }
         } catch (e) {
           // ignore parsing errors for invalid json
@@ -268,7 +289,7 @@ export async function getDebtByUc(uc: string, personCode?: string) {
     }
   }
 
-  return { ...parseDebtRow(data, phoneValidationStatus), recentOperators }
+  return { ...parseDebtRow(data, phoneValidationStatus, phoneStatuses), recentOperators }
 }
 
 export async function getRelatedDebts(

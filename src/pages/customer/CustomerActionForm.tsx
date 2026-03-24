@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { CalendarIcon, Send, Sparkles, CheckSquare } from 'lucide-react'
+import { CalendarIcon, Send, Sparkles, CheckSquare, Phone } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import {
@@ -38,9 +38,10 @@ export function CustomerActionForm({
   const [channel, setChannel] = useState('TEL ATIVO')
   const [status, setStatus] = useState('')
   const [notes, setNotes] = useState('')
-  const [phoneValidationStatus, setPhoneValidationStatus] = useState<
-    'a_verificar' | 'validado' | 'invalido'
-  >('a_verificar')
+
+  const [phoneStatuses, setPhoneStatuses] = useState<
+    Record<string, 'a_verificar' | 'validado' | 'invalido'>
+  >({})
   const [talkedToOwner, setTalkedToOwner] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const { toast } = useToast()
@@ -48,7 +49,11 @@ export function CustomerActionForm({
 
   useEffect(() => {
     if (customer.phones && customer.phones.length > 0) {
-      setPhoneValidationStatus(customer.phones[0].status)
+      const initial: Record<string, 'a_verificar' | 'validado' | 'invalido'> = {}
+      customer.phones.forEach((p) => {
+        initial[p.number] = p.status
+      })
+      setPhoneStatuses(initial)
     }
   }, [customer])
 
@@ -70,7 +75,7 @@ export function CustomerActionForm({
         operator_id: user?.id,
         contact_type: channel,
         status,
-        quality_result: JSON.stringify({ phoneValidationStatus, talkedToOwner }),
+        quality_result: JSON.stringify({ phoneStatuses, talkedToOwner }),
         notes,
       }
 
@@ -169,45 +174,76 @@ export function CustomerActionForm({
           </h4>
 
           <div className="space-y-3">
-            <Label className="font-semibold text-sm text-slate-700">Status do Telefone</Label>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => setPhoneValidationStatus('a_verificar')}
-                className={cn(
-                  'flex flex-col items-center gap-1.5 px-3 py-2 rounded-xl border bg-white text-slate-600 transition-all flex-1',
-                  phoneValidationStatus === 'a_verificar' &&
-                    'bg-amber-50 border-amber-300 text-amber-800 shadow-sm ring-1 ring-amber-300',
-                )}
-              >
-                <div className="w-3 h-3 rounded-full bg-amber-400 shadow-inner"></div>
-                <span className="text-[11px] font-bold uppercase tracking-wider">A verificar</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setPhoneValidationStatus('validado')}
-                className={cn(
-                  'flex flex-col items-center gap-1.5 px-3 py-2 rounded-xl border bg-white text-slate-600 transition-all flex-1',
-                  phoneValidationStatus === 'validado' &&
-                    'bg-emerald-50 border-emerald-300 text-emerald-800 shadow-sm ring-1 ring-emerald-300',
-                )}
-              >
-                <div className="w-3 h-3 rounded-full bg-emerald-500 shadow-inner"></div>
-                <span className="text-[11px] font-bold uppercase tracking-wider">Validado</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setPhoneValidationStatus('invalido')}
-                className={cn(
-                  'flex flex-col items-center gap-1.5 px-3 py-2 rounded-xl border bg-white text-slate-600 transition-all flex-1',
-                  phoneValidationStatus === 'invalido' &&
-                    'bg-rose-50 border-rose-300 text-rose-800 shadow-sm ring-1 ring-rose-300',
-                )}
-              >
-                <div className="w-3 h-3 rounded-full bg-rose-500 shadow-inner"></div>
-                <span className="text-[11px] font-bold uppercase tracking-wider">Inválido</span>
-              </button>
-            </div>
+            <Label className="font-semibold text-sm text-slate-700">Status dos Telefones</Label>
+
+            {customer.phones && customer.phones.length > 0 ? (
+              <div className="space-y-3">
+                {customer.phones.map((phone, idx) => (
+                  <div
+                    key={idx}
+                    className="flex flex-col gap-2 p-2.5 bg-white rounded-lg border border-slate-200 shadow-sm"
+                  >
+                    <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                      <Phone className="w-3.5 h-3.5 text-slate-400" /> {phone.number}
+                    </span>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setPhoneStatuses({ ...phoneStatuses, [phone.number]: 'a_verificar' })
+                        }
+                        className={cn(
+                          'flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg border bg-white text-slate-600 transition-all flex-1',
+                          phoneStatuses[phone.number] === 'a_verificar' &&
+                            'bg-amber-50 border-amber-300 text-amber-800 shadow-sm ring-1 ring-amber-300',
+                        )}
+                      >
+                        <div className="w-2.5 h-2.5 rounded-full bg-amber-400 shadow-inner"></div>
+                        <span className="text-[10px] font-bold uppercase tracking-wider">
+                          A verificar
+                        </span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setPhoneStatuses({ ...phoneStatuses, [phone.number]: 'validado' })
+                        }
+                        className={cn(
+                          'flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg border bg-white text-slate-600 transition-all flex-1',
+                          phoneStatuses[phone.number] === 'validado' &&
+                            'bg-emerald-50 border-emerald-300 text-emerald-800 shadow-sm ring-1 ring-emerald-300',
+                        )}
+                      >
+                        <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-inner"></div>
+                        <span className="text-[10px] font-bold uppercase tracking-wider">
+                          Validado
+                        </span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setPhoneStatuses({ ...phoneStatuses, [phone.number]: 'invalido' })
+                        }
+                        className={cn(
+                          'flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg border bg-white text-slate-600 transition-all flex-1',
+                          phoneStatuses[phone.number] === 'invalido' &&
+                            'bg-rose-50 border-rose-300 text-rose-800 shadow-sm ring-1 ring-rose-300',
+                        )}
+                      >
+                        <div className="w-2.5 h-2.5 rounded-full bg-rose-500 shadow-inner"></div>
+                        <span className="text-[10px] font-bold uppercase tracking-wider">
+                          Inválido
+                        </span>
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-xs text-slate-500 italic p-2">
+                Nenhum telefone registrado para classificação.
+              </div>
+            )}
           </div>
 
           <div className="flex items-center justify-between pt-2 border-t border-slate-200">

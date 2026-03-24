@@ -78,7 +78,7 @@ export function CustomerInfo({ customer }: { customer: ParsedDebt }) {
             <p className="text-xs text-muted-foreground mb-2">Qualidade Cadastral</p>
             <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
               <div
-                className={`h-full ${phoneQuality >= 100 ? 'bg-emerald-500' : phoneQuality > 0 ? 'bg-amber-400' : 'bg-rose-500'}`}
+                className={`h-full transition-all duration-500 ${phoneQuality >= 100 ? 'bg-emerald-500' : phoneQuality > 0 ? 'bg-amber-400' : 'bg-rose-500'}`}
                 style={{ width: `${Math.max(phoneQuality, 5)}%` }}
               />
             </div>
