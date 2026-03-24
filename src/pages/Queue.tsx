@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { Search, ArrowRight, Clock, MapPin, Info } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
@@ -44,7 +44,7 @@ export default function Queue() {
   const [attended, setAttended] = useState<ParsedDebt[]>([])
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
+  const fetchQueue = useCallback(() => {
     if (!user?.id) return
     setLoading(true)
     setUnattended([])
@@ -60,6 +60,15 @@ export default function Queue() {
         setLoading(false)
       })
   }, [debouncedSearch, debouncedSearchAddress, debtStatus, user?.id])
+
+  useEffect(() => {
+    fetchQueue()
+  }, [fetchQueue])
+
+  useEffect(() => {
+    window.addEventListener('contact-added', fetchQueue)
+    return () => window.removeEventListener('contact-added', fetchQueue)
+  }, [fetchQueue])
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {

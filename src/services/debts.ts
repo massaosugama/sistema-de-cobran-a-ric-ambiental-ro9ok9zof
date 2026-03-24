@@ -134,6 +134,7 @@ export async function getDebts(
   searchAddress?: string,
   debtStatus?: 'vencido' | 'a_vencer' | 'ambos',
 ) {
+  // 1. Construct the base query for pending debts
   let query = supabase
     .from('pending_debts')
     .select('*')
@@ -152,52 +153,116 @@ export async function getDebts(
   const { data: debts, error } = await query
   if (error) throw error
 
+  let fetchedDebts = debts || []
+
+  // 2. Fetch the operator's wallet (contact history for operator)
   let attendedUcs = new Set<string>()
   let latestContactDates: Record<string, string> = {}
-  let globalLatestOperators: Record<string, string[]> = {}
+  let walletKeysToFetch: { uc: string; cod_pess_fat: string }[] = []
 
-  const contactsQuery: any = supabase
-    .from('contact_history')
-    .select('uc, cod_pess_fat, created_at, operator_id, profiles(name)')
+  if (operatorId) {
+    const { data: myContacts } = await supabase
+      .from('contact_history')
+      .select('uc, cod_pess_fat, created_at')
+      .eq('operator_id', operatorId)
+      .eq('is_active', true)
+      .order('created_at', { ascending: false })
 
-  const { data: contacts, error: contactsError } = await contactsQuery
-    .eq('is_active', true)
-    .order('created_at', { ascending: false })
+    if (myContacts) {
+      for (const c of myContacts) {
+        if (c.uc && c.cod_pess_fat) {
+          const key = `${c.uc}_${c.cod_pess_fat}`
+          if (!attendedUcs.has(key)) {
+            attendedUcs.add(key)
+            latestContactDates[key] = c.created_at
 
-  if (!contactsError && contacts) {
-    for (const contact of contacts) {
-      if (contact.uc && contact.cod_pess_fat) {
-        const key = `${contact.uc}_${contact.cod_pess_fat}`
-
-        if (!globalLatestOperators[key]) {
-          globalLatestOperators[key] = []
-        }
-
-        const opName = (contact.profiles as any)?.name
-        if (
-          opName &&
-          !globalLatestOperators[key].includes(opName) &&
-          globalLatestOperators[key].length < 3
-        ) {
-          globalLatestOperators[key].push(opName)
-        }
-
-        if (operatorId && contact.operator_id === operatorId) {
-          attendedUcs.add(key)
-          if (!latestContactDates[key]) {
-            latestContactDates[key] = contact.created_at
+            const alreadyFetched = fetchedDebts.some(
+              (d) => d.uc === c.uc && d.cod_pess_fat === c.cod_pess_fat,
+            )
+            if (!alreadyFetched) {
+              walletKeysToFetch.push({ uc: c.uc, cod_pess_fat: c.cod_pess_fat })
+            }
           }
         }
       }
     }
   }
 
-  let parsedDebts = (debts || []).map((row) => parseDebtRow(row))
+  // 3. Fetch the wallet items that weren't in the initial 3000 results
+  if (walletKeysToFetch.length > 0) {
+    const sliced = walletKeysToFetch.slice(0, 500)
+    const ucsToFetch = Array.from(new Set(sliced.map((k) => k.uc)))
+
+    let walletQuery = supabase.from('pending_debts').select('*').in('uc', ucsToFetch)
+
+    if (search) {
+      walletQuery = walletQuery.or(
+        `uc.ilike.%${search}%,pessoa_fatura_nome.ilike.%${search}%,pessoa_fatura_cpf_cnpj.ilike.%${search}%`,
+      )
+    }
+    if (searchAddress) {
+      walletQuery = walletQuery.ilike('endereco', `%${searchAddress}%`)
+    }
+
+    const { data: missingWalletDebts } = await walletQuery
+    if (missingWalletDebts) {
+      const validMissing = missingWalletDebts.filter((d) =>
+        sliced.some((s) => s.uc === d.uc && s.cod_pess_fat === d.cod_pess_fat),
+      )
+      fetchedDebts = [...fetchedDebts, ...validMissing]
+    }
+  }
+
+  // 4. Parse debts
+  let parsedDebts = fetchedDebts.map((row) => parseDebtRow(row))
 
   if (debtStatus === 'vencido') {
     parsedDebts = parsedDebts.filter((d) => d.valorVencido > 0)
   } else if (debtStatus === 'a_vencer') {
     parsedDebts = parsedDebts.filter((d) => d.valorAVencer > 0)
+  }
+
+  // 5. Get recent operators for fetched debts
+  let globalLatestOperators: Record<string, string[]> = {}
+
+  if (parsedDebts.length > 0) {
+    const ucs = Array.from(new Set(parsedDebts.map((d) => d.uc)))
+    const chunks = []
+    for (let i = 0; i < ucs.length; i += 500) {
+      chunks.push(ucs.slice(i, i + 500))
+    }
+
+    const contactsPromises = chunks.map((chunk) =>
+      supabase
+        .from('contact_history')
+        .select('uc, cod_pess_fat, profiles(name)')
+        .in('uc', chunk)
+        .eq('is_active', true)
+        .order('created_at', { ascending: false }),
+    )
+
+    const contactsResults = await Promise.all(contactsPromises)
+
+    for (const result of contactsResults) {
+      if (result.data) {
+        for (const contact of result.data) {
+          if (contact.uc && contact.cod_pess_fat) {
+            const key = `${contact.uc}_${contact.cod_pess_fat}`
+            if (!globalLatestOperators[key]) {
+              globalLatestOperators[key] = []
+            }
+            const opName = (contact.profiles as any)?.name
+            if (
+              opName &&
+              !globalLatestOperators[key].includes(opName) &&
+              globalLatestOperators[key].length < 3
+            ) {
+              globalLatestOperators[key].push(opName)
+            }
+          }
+        }
+      }
+    }
   }
 
   const unattended: ParsedDebt[] = []
@@ -219,13 +284,16 @@ export async function getDebts(
     }
   }
 
-  attended.sort((a, b) => {
+  const uniqueAttended = Array.from(new Map(attended.map((item) => [item.id, item])).values())
+  const uniqueUnattended = Array.from(new Map(unattended.map((item) => [item.id, item])).values())
+
+  uniqueAttended.sort((a, b) => {
     const dateA = a.lastContactDate ? new Date(a.lastContactDate).getTime() : 0
     const dateB = b.lastContactDate ? new Date(b.lastContactDate).getTime() : 0
     return dateB - dateA
   })
 
-  return { unattended, attended }
+  return { unattended: uniqueUnattended, attended: uniqueAttended }
 }
 
 export async function getDebtByUc(uc: string, personCode?: string) {
