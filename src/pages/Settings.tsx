@@ -19,6 +19,9 @@ import {
   UserCircle,
   Eye,
   EyeOff,
+  CheckCircle,
+  XCircle,
+  UserCheck,
 } from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
@@ -42,10 +45,26 @@ import {
   DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { supabase } from '@/lib/supabase/client'
 import { useToast } from '@/hooks/use-toast'
 import { useAuth } from '@/hooks/use-auth'
-import { generateQuoteUrl } from '@/lib/utils'
+import { cn, generateQuoteUrl } from '@/lib/utils'
+
+const PROFILE_COLORS = [
+  { label: 'Slate', value: '#64748b' },
+  { label: 'Red', value: '#ef4444' },
+  { label: 'Orange', value: '#f97316' },
+  { label: 'Amber', value: '#f59e0b' },
+  { label: 'Emerald', value: '#10b981' },
+  { label: 'Cyan', value: '#06b6d4' },
+  { label: 'Blue', value: '#3b82f6' },
+  { label: 'Indigo', value: '#6366f1' },
+  { label: 'Violet', value: '#8b5cf6' },
+  { label: 'Fuchsia', value: '#d946ef' },
+  { label: 'Pink', value: '#ec4899' },
+  { label: 'Rose', value: '#f43f5e' },
+]
 
 export default function Settings() {
   const { toast } = useToast()
@@ -76,7 +95,10 @@ export default function Settings() {
   const [editingOperator, setEditingOperator] = useState<any>(null)
   const [opFirstName, setOpFirstName] = useState('')
   const [opLastName, setOpLastName] = useState('')
+  const [opEmail, setOpEmail] = useState('')
+  const [opColor, setOpColor] = useState('')
   const [opIsAdmin, setOpIsAdmin] = useState(false)
+  const [opIsActive, setOpIsActive] = useState(true)
   const [copied, setCopied] = useState(false)
 
   const fetchQuotes = async () => {
@@ -175,7 +197,10 @@ export default function Settings() {
     setEditingOperator(op)
     setOpFirstName(op.first_name || '')
     setOpLastName(op.last_name || '')
+    setOpEmail(op.email || '')
+    setOpColor(op.color || '#64748b')
     setOpIsAdmin(!!op.is_admin)
+    setOpIsActive(op.is_active !== false)
     setIsOperatorModalOpen(true)
   }
 
@@ -186,8 +211,12 @@ export default function Settings() {
       .update({
         first_name: opFirstName,
         last_name: opLastName,
+        email: opEmail,
+        color: opColor,
         name: `${opFirstName} ${opLastName}`.trim(),
         is_admin: opIsAdmin,
+        is_active: opIsActive,
+        updated_at: new Date().toISOString(),
       })
       .eq('id', editingOperator.id)
 
@@ -348,21 +377,22 @@ export default function Settings() {
                   <TableHeader className="bg-slate-50">
                     <TableRow>
                       <TableHead>Operador</TableHead>
-                      <TableHead>E-mail</TableHead>
+                      <TableHead className="hidden lg:table-cell">E-mail</TableHead>
                       <TableHead>Perfil</TableHead>
+                      <TableHead>Status</TableHead>
                       <TableHead className="text-right">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {loading ? (
                       <TableRow>
-                        <TableCell colSpan={4} className="text-center py-8 text-slate-500">
+                        <TableCell colSpan={5} className="text-center py-8 text-slate-500">
                           Carregando...
                         </TableCell>
                       </TableRow>
                     ) : operators.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={4} className="text-center py-8 text-slate-500">
+                        <TableCell colSpan={5} className="text-center py-8 text-slate-500">
                           Nenhum operador encontrado.
                         </TableCell>
                       </TableRow>
@@ -370,22 +400,48 @@ export default function Settings() {
                       operators.map((op) => (
                         <TableRow key={op.id}>
                           <TableCell className="font-medium text-sm text-slate-800">
-                            <div className="flex items-center gap-2">
-                              <div className="bg-slate-100 p-1.5 rounded-full">
-                                <User className="h-3 w-3 text-slate-500" />
+                            <div className="flex items-center gap-3">
+                              <Avatar
+                                className="h-8 w-8 shadow-sm"
+                                style={{ backgroundColor: op.color || '#cbd5e1' }}
+                              >
+                                <AvatarFallback className="text-xs text-white bg-transparent font-medium uppercase">
+                                  {op.first_name?.[0] || ''}
+                                  {op.last_name?.[0] || ''}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div className="flex flex-col">
+                                <span>
+                                  {op.first_name} {op.last_name}
+                                </span>
+                                <span className="text-[11px] text-slate-500 font-normal lg:hidden">
+                                  {op.email}
+                                </span>
                               </div>
-                              {op.first_name} {op.last_name}
                             </div>
                           </TableCell>
-                          <TableCell className="text-sm text-slate-600">{op.email}</TableCell>
+                          <TableCell className="text-sm text-slate-600 hidden lg:table-cell">
+                            {op.email}
+                          </TableCell>
                           <TableCell>
                             {op.is_admin ? (
-                              <span className="inline-flex items-center gap-1 bg-purple-50 text-purple-700 px-2.5 py-0.5 rounded-full text-xs font-semibold tracking-wide">
+                              <span className="inline-flex items-center gap-1 bg-purple-50 text-purple-700 px-2.5 py-0.5 rounded-full text-[10px] font-semibold tracking-wide border border-purple-100 uppercase">
                                 <Shield className="h-3 w-3" /> Admin
                               </span>
                             ) : (
-                              <span className="inline-flex items-center gap-1 bg-slate-100 text-slate-700 px-2.5 py-0.5 rounded-full text-xs font-semibold tracking-wide">
+                              <span className="inline-flex items-center gap-1 bg-slate-50 text-slate-600 px-2.5 py-0.5 rounded-full text-[10px] font-semibold tracking-wide border border-slate-200 uppercase">
                                 Operador
+                              </span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {op.is_active !== false ? (
+                              <span className="inline-flex items-center gap-1 text-emerald-700 text-xs font-medium">
+                                <CheckCircle className="h-3.5 w-3.5" /> Ativo
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 text-slate-400 text-xs font-medium">
+                                <XCircle className="h-3.5 w-3.5" /> Inativo
                               </span>
                             )}
                           </TableCell>
@@ -396,7 +452,7 @@ export default function Settings() {
                                 size="icon"
                                 title="Resetar Senha"
                                 onClick={() => handleResetPassword(op.email)}
-                                className="h-8 w-8 text-slate-500 hover:text-amber-600"
+                                className="h-8 w-8 text-slate-400 hover:text-amber-600 hover:bg-amber-50"
                               >
                                 <KeyRound className="h-4 w-4" />
                               </Button>
@@ -405,7 +461,7 @@ export default function Settings() {
                                 size="icon"
                                 title="Editar Operador"
                                 onClick={() => openEditOperator(op)}
-                                className="h-8 w-8 text-slate-500 hover:text-primary"
+                                className="h-8 w-8 text-slate-400 hover:text-primary hover:bg-primary/10"
                               >
                                 <Edit2 className="h-4 w-4" />
                               </Button>
@@ -638,46 +694,187 @@ export default function Settings() {
       </Dialog>
 
       <Dialog open={isOperatorModalOpen} onOpenChange={setIsOperatorModalOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Editar Operador</DialogTitle>
-            <DialogDescription>Atualize os dados e permissões do operador.</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="opFirstName">Nome</Label>
-                <Input
-                  id="opFirstName"
-                  value={opFirstName}
-                  onChange={(e) => setOpFirstName(e.target.value)}
-                />
+        <DialogContent className="sm:max-w-[700px] p-0 overflow-hidden bg-white gap-0">
+          <div className="flex flex-col sm:flex-row h-full max-h-[90vh]">
+            {/* Sidebar */}
+            <div className="bg-slate-50 w-full sm:w-[280px] p-6 flex flex-col items-center border-r border-slate-100 shrink-0">
+              <Avatar
+                className="w-24 h-24 mb-4 border-4 border-white shadow-md"
+                style={{ backgroundColor: opColor || '#cbd5e1' }}
+              >
+                <AvatarFallback className="text-3xl text-white bg-transparent font-medium uppercase">
+                  {opFirstName?.[0] || ''}
+                  {opLastName?.[0] || ''}
+                </AvatarFallback>
+              </Avatar>
+              <h3 className="font-semibold text-lg text-center text-slate-800 line-clamp-1 w-full">
+                {opFirstName} {opLastName}
+              </h3>
+              <p
+                className="text-sm text-slate-500 mb-6 truncate w-full text-center"
+                title={opEmail}
+              >
+                {opEmail}
+              </p>
+
+              <div className="w-full space-y-4 text-sm mt-auto mb-6">
+                <div className="flex justify-between items-center border-b border-slate-200 pb-2">
+                  <span className="text-slate-500 text-xs font-semibold uppercase tracking-wider">
+                    Status
+                  </span>
+                  {opIsActive ? (
+                    <span className="text-emerald-600 font-semibold flex items-center gap-1">
+                      <CheckCircle className="w-3.5 h-3.5" /> Ativo
+                    </span>
+                  ) : (
+                    <span className="text-slate-400 font-semibold flex items-center gap-1">
+                      <XCircle className="w-3.5 h-3.5" /> Inativo
+                    </span>
+                  )}
+                </div>
+                <div className="flex justify-between items-center border-b border-slate-200 pb-2">
+                  <span className="text-slate-500 text-xs font-semibold uppercase tracking-wider">
+                    Perfil
+                  </span>
+                  <span className="font-medium text-slate-700">
+                    {opIsAdmin ? 'Administrador' : 'Operador'}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center border-b border-slate-200 pb-2">
+                  <span className="text-slate-500 text-xs font-semibold uppercase tracking-wider">
+                    Últ. Acesso
+                  </span>
+                  <span className="font-medium text-slate-700">
+                    {editingOperator?.last_login
+                      ? new Date(editingOperator.last_login).toLocaleDateString('pt-BR')
+                      : '-'}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-500 text-xs font-semibold uppercase tracking-wider">
+                    Criado em
+                  </span>
+                  <span className="font-medium text-slate-700">
+                    {editingOperator?.created_at
+                      ? new Date(editingOperator.created_at).toLocaleDateString('pt-BR')
+                      : '-'}
+                  </span>
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="opLastName">Sobrenome</Label>
-                <Input
-                  id="opLastName"
-                  value={opLastName}
-                  onChange={(e) => setOpLastName(e.target.value)}
-                />
-              </div>
+
+              <Button
+                variant="outline"
+                className="w-full flex items-center gap-2 text-amber-700 hover:text-amber-800 hover:bg-amber-50 border-amber-200"
+                onClick={() => handleResetPassword(opEmail)}
+              >
+                <KeyRound className="w-4 h-4" />
+                Forçar Senha
+              </Button>
             </div>
-            <div className="flex items-center justify-between rounded-lg border p-4">
-              <div className="space-y-0.5">
-                <Label className="text-base">Administrador</Label>
-                <p className="text-sm text-slate-500">
-                  Concede acesso total às configurações do sistema.
-                </p>
+
+            {/* Content */}
+            <div className="w-full p-6 overflow-y-auto">
+              <DialogHeader className="mb-6 text-left">
+                <DialogTitle className="text-2xl">Editar Operador</DialogTitle>
+                <DialogDescription>
+                  Ajuste as informações pessoais, preferências e permissões de acesso deste usuário.
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="space-y-6">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="opFirstName">Nome</Label>
+                    <Input
+                      id="opFirstName"
+                      value={opFirstName}
+                      onChange={(e) => setOpFirstName(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="opLastName">Sobrenome</Label>
+                    <Input
+                      id="opLastName"
+                      value={opLastName}
+                      onChange={(e) => setOpLastName(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="opEmail">E-mail de Acesso</Label>
+                  <Input
+                    id="opEmail"
+                    type="email"
+                    value={opEmail}
+                    onChange={(e) => setOpEmail(e.target.value)}
+                  />
+                </div>
+
+                <div className="space-y-3">
+                  <Label>Cor de Identificação</Label>
+                  <div className="flex flex-wrap gap-2.5">
+                    {PROFILE_COLORS.map((color) => (
+                      <button
+                        key={color.value}
+                        onClick={() => setOpColor(color.value)}
+                        className={cn(
+                          'w-8 h-8 rounded-full cursor-pointer transition-all hover:scale-110 shadow-sm border-2',
+                          opColor === color.value
+                            ? 'border-primary scale-110 ring-2 ring-primary ring-offset-1'
+                            : 'border-transparent opacity-80 hover:opacity-100',
+                        )}
+                        style={{ backgroundColor: color.value }}
+                        title={color.label}
+                        type="button"
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-3 pt-4 border-t border-slate-100">
+                  <h4 className="text-sm font-semibold text-slate-900">Segurança e Acesso</h4>
+
+                  <div className="flex items-center justify-between rounded-lg border border-slate-200 p-4 hover:bg-slate-50 transition-colors">
+                    <div className="space-y-0.5">
+                      <Label
+                        className="text-sm font-semibold flex items-center gap-2 text-purple-700 cursor-pointer"
+                        onClick={() => setOpIsAdmin(!opIsAdmin)}
+                      >
+                        <Shield className="w-4 h-4" /> Privilégios de Administrador
+                      </Label>
+                      <p className="text-xs text-slate-500">
+                        Concede acesso total às configurações e gestão de usuários.
+                      </p>
+                    </div>
+                    <Switch checked={opIsAdmin} onCheckedChange={setOpIsAdmin} />
+                  </div>
+
+                  <div className="flex items-center justify-between rounded-lg border border-slate-200 p-4 hover:bg-slate-50 transition-colors">
+                    <div className="space-y-0.5">
+                      <Label
+                        className="text-sm font-semibold flex items-center gap-2 text-emerald-700 cursor-pointer"
+                        onClick={() => setOpIsActive(!opIsActive)}
+                      >
+                        <UserCheck className="w-4 h-4" /> Conta Ativa
+                      </Label>
+                      <p className="text-xs text-slate-500">
+                        Permite que o operador faça login e acesse o sistema.
+                      </p>
+                    </div>
+                    <Switch checked={opIsActive} onCheckedChange={setOpIsActive} />
+                  </div>
+                </div>
               </div>
-              <Switch checked={opIsAdmin} onCheckedChange={setOpIsAdmin} />
+
+              <DialogFooter className="mt-8 pt-4 sm:justify-end flex-col sm:flex-row gap-2">
+                <Button variant="outline" onClick={() => setIsOperatorModalOpen(false)}>
+                  Cancelar
+                </Button>
+                <Button onClick={handleSaveOperator}>Salvar Alterações</Button>
+              </DialogFooter>
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsOperatorModalOpen(false)}>
-              Cancelar
-            </Button>
-            <Button onClick={handleSaveOperator}>Salvar Alterações</Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
 
