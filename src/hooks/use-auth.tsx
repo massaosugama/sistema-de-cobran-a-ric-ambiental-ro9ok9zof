@@ -47,6 +47,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => subscription.unsubscribe()
   }, [])
 
+  // Heartbeat to update last_login and maintain online status
+  useEffect(() => {
+    let interval: NodeJS.Timeout
+    if (user) {
+      const ping = async () => {
+        await supabase
+          .from('profiles')
+          .update({ last_login: new Date().toISOString() })
+          .eq('id', user.id)
+      }
+      ping()
+      interval = setInterval(ping, 2 * 60 * 1000) // Ping every 2 minutes
+    }
+    return () => {
+      if (interval) clearInterval(interval)
+    }
+  }, [user])
+
   const signUp = async (
     email: string,
     password: string,

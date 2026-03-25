@@ -27,6 +27,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { getDebts, getDashboardEvolution, ParsedDebt } from '@/services/debts'
 import { getProfiles, getOperatorStats } from '@/services/data'
 import { useAuth } from '@/hooks/use-auth'
+import { supabase } from '@/lib/supabase/client'
 
 const EvolutionIndicator = ({
   current,
@@ -70,8 +71,15 @@ export default function Index() {
   })
   const [profiles, setProfiles] = useState<any[]>([])
   const [operatorStats, setOperatorStats] = useState<Record<string, any>>({})
+  const [nowTime, setNowTime] = useState(Date.now())
   const { user } = useAuth()
   const name = user?.user_metadata?.name || user?.email?.split('@')[0] || 'Operador'
+
+  useEffect(() => {
+    // Keeps the online status calculations fresh
+    const timer = setInterval(() => setNowTime(Date.now()), 60000)
+    return () => clearInterval(timer)
+  }, [])
 
   useEffect(() => {
     getDebts()
@@ -101,6 +109,27 @@ export default function Index() {
         setOperatorStats(statsMap)
       })
       .catch(console.error)
+
+    const channel = supabase
+      .channel('profiles_status')
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'profiles' },
+        (payload) => {
+          if (payload.new && payload.new.id) {
+            setProfiles((current) =>
+              current.map((p) =>
+                p.id === payload.new.id ? { ...p, last_login: payload.new.last_login } : p,
+              ),
+            )
+          }
+        },
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
   }, [])
 
   return (
@@ -320,7 +349,11 @@ export default function Index() {
                   </TableRow>
                 ) : (
                   profiles.map((p) => {
-                    const isOnline = p.id === user?.id
+                    const isCurrentUser = p.id === user?.id
+                    const isOnline =
+                      isCurrentUser ||
+                      (p.last_login && nowTime - new Date(p.last_login).getTime() < 3 * 60 * 1000)
+
                     const displayName = p.name || p.email.split('@')[0]
                     const stats = operatorStats[p.id] || {
                       today_contacts: 0,
@@ -339,7 +372,7 @@ export default function Index() {
                               </AvatarFallback>
                             </Avatar>
                             <span className="font-medium text-sm">
-                              {displayName} {isOnline && '(Você)'}
+                              {displayName} {isCurrentUser && '(Você)'}
                             </span>
                           </div>
                         </TableCell>

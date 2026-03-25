@@ -52,7 +52,7 @@ export async function updateContact(id: string, updates: any) {
 export async function getProfiles() {
   const { data, error } = await supabase
     .from('profiles')
-    .select('id, name, email')
+    .select('id, name, email, last_login')
     .order('name', { ascending: true })
   if (error) throw error
   return data || []
