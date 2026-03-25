@@ -12,8 +12,9 @@ import {
   Eye,
   Ban,
   UserCheck,
+  Trash2,
 } from 'lucide-react'
-import { getContactHistory, updateContact } from '@/services/data'
+import { getContactHistory, updateContact, deleteContact } from '@/services/data'
 import { supabase } from '@/lib/supabase/client'
 import { useAuth } from '@/hooks/use-auth'
 import { useToast } from '@/hooks/use-toast'
@@ -152,6 +153,22 @@ export function CustomerTimeline({ customer }: { customer?: ParsedDebt }) {
     }
   }
 
+  const handleDelete = async (interactionId: string) => {
+    if (
+      !confirm(
+        'ATENÇÃO: Deseja EXCLUIR DEFINITIVAMENTE este registro? Esta ação não pode ser desfeita.',
+      )
+    )
+      return
+    try {
+      await deleteContact(interactionId)
+      toast({ title: 'Sucesso', description: 'Registro excluído definitivamente.' })
+      fetchData()
+    } catch (error: any) {
+      toast({ title: 'Erro', description: error.message, variant: 'destructive' })
+    }
+  }
+
   const handleSaveEdit = async (updatedData: any) => {
     try {
       await updateContact(selectedContact.id, updatedData)
@@ -226,7 +243,7 @@ export function CustomerTimeline({ customer }: { customer?: ParsedDebt }) {
                         {canInactivate && (
                           <DropdownMenuItem
                             onClick={() => handleInactivate(interaction.id)}
-                            className="text-rose-600 focus:text-rose-600"
+                            className="text-amber-600 focus:text-amber-600"
                           >
                             <Ban className="w-4 h-4 mr-2" /> Inativar
                           </DropdownMenuItem>
@@ -237,6 +254,14 @@ export function CustomerTimeline({ customer }: { customer?: ParsedDebt }) {
                             className="text-emerald-600 focus:text-emerald-600"
                           >
                             <CheckCircle2 className="w-4 h-4 mr-2" /> Reativar
+                          </DropdownMenuItem>
+                        )}
+                        {isAdmin && (
+                          <DropdownMenuItem
+                            onClick={() => handleDelete(interaction.id)}
+                            className="text-red-600 focus:text-red-600"
+                          >
+                            <Trash2 className="w-4 h-4 mr-2" /> Excluir Definitivamente
                           </DropdownMenuItem>
                         )}
                       </DropdownMenuContent>

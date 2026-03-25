@@ -49,6 +49,16 @@ export async function updateContact(id: string, updates: any) {
   return data
 }
 
+export async function deleteContact(id: string) {
+  const { error } = await supabase.from('contact_history').delete().eq('id', id)
+  if (error) throw error
+}
+
+export async function deleteFollowUpTask(id: string) {
+  const { error } = await supabase.from('follow_up_tasks').delete().eq('id', id)
+  if (error) throw error
+}
+
 export async function getProfiles() {
   const { data, error } = await supabase
     .from('profiles')

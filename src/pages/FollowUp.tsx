@@ -39,6 +39,9 @@ import {
   Search,
   MapPin,
   Info,
+  MoreVertical,
+  Trash2,
+  Ban,
 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import {
@@ -67,8 +70,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from '@/components/ui/dropdown-menu'
 import { CustomerActionForm } from '@/pages/customer/CustomerActionForm'
 import { getDebts, parseDebtRow, type ParsedDebt } from '@/services/debts'
+import { deleteFollowUpTask, deleteContact, updateContact } from '@/services/data'
 
 export interface EnrichedTask {
   id: string
@@ -211,6 +221,7 @@ function DebtSearch({ onSelect }: { onSelect: (debt: ParsedDebt) => void }) {
 export default function FollowUp() {
   const { user } = useAuth()
   const { toast } = useToast()
+  const [isAdmin, setIsAdmin] = useState(false)
   const [view, setView] = useState<'meus' | 'todos'>('meus')
   const [tasks, setTasks] = useState<EnrichedTask[]>([])
   const [loading, setLoading] = useState(true)
@@ -250,6 +261,17 @@ export default function FollowUp() {
   const [selectedNewDebt, setSelectedNewDebt] = useState<ParsedDebt | null>(null)
 
   useEffect(() => {
+    if (user?.id) {
+      supabase
+        .from('profiles')
+        .select('is_admin')
+        .eq('id', user.id)
+        .single()
+        .then(({ data }) => setIsAdmin(!!data?.is_admin))
+    }
+  }, [user])
+
+  useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 1024)
     checkMobile()
     window.addEventListener('resize', checkMobile)
@@ -262,6 +284,7 @@ export default function FollowUp() {
       const { data: rawTasks } = await supabase
         .from('follow_up_tasks')
         .select('*')
+        .eq('is_active', true)
         .order('due_date', { ascending: true })
 
       if (!rawTasks || rawTasks.length === 0) {
@@ -410,13 +433,18 @@ export default function FollowUp() {
     setModalOpen(true)
 
     setLoadingHistory(true)
-    const { data: history } = await supabase
+    let historyQuery = supabase
       .from('contact_history')
       .select('*, profiles(name)')
       .eq('uc', task.uc)
       .order('created_at', { ascending: false })
       .limit(20)
 
+    if (!isAdmin) {
+      historyQuery = historyQuery.eq('is_active', true)
+    }
+
+    const { data: history } = await historyQuery
     setTaskHistory(history || [])
     setLoadingHistory(false)
   }
@@ -480,6 +508,72 @@ export default function FollowUp() {
     }
   }
 
+  const handleInactivateTask = async (id: string) => {
+    if (!confirm('Deseja inativar este lembrete? Ele não aparecerá mais no painel.')) return
+    setIsSaving(true)
+    try {
+      await supabase.from('follow_up_tasks').update({ is_active: false }).eq('id', id)
+      setTasks((prev) => prev.filter((t) => t.id !== id))
+      if (editingTask?.id === id) setModalOpen(false)
+      toast({ title: 'Sucesso', description: 'Lembrete inativado.' })
+    } catch (err) {
+      toast({ title: 'Erro', description: 'Erro ao inativar tarefa.', variant: 'destructive' })
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const handleDeleteTask = async (id: string) => {
+    if (
+      !confirm(
+        'ATENÇÃO: Deseja EXCLUIR DEFINITIVAMENTE este lembrete? Esta ação não pode ser desfeita.',
+      )
+    )
+      return
+    setIsSaving(true)
+    try {
+      await deleteFollowUpTask(id)
+      setTasks((prev) => prev.filter((t) => t.id !== id))
+      if (editingTask?.id === id) setModalOpen(false)
+      toast({ title: 'Sucesso', description: 'Lembrete excluído definitivamente.' })
+    } catch (err) {
+      toast({ title: 'Erro', description: 'Erro ao excluir tarefa.', variant: 'destructive' })
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const handleInactivateHistory = async (id: string, currentActive: boolean) => {
+    try {
+      await updateContact(id, { is_active: !currentActive })
+      setTaskHistory((prev) =>
+        prev.map((h) => (h.id === id ? { ...h, is_active: !currentActive } : h)),
+      )
+      toast({
+        title: 'Sucesso',
+        description: `Registro ${!currentActive ? 'reativado' : 'inativado'}.`,
+      })
+    } catch (err: any) {
+      toast({ title: 'Erro', description: err.message, variant: 'destructive' })
+    }
+  }
+
+  const handleDeleteHistory = async (id: string) => {
+    if (
+      !confirm(
+        'ATENÇÃO: Deseja EXCLUIR DEFINITIVAMENTE este registro? Esta ação não pode ser desfeita.',
+      )
+    )
+      return
+    try {
+      await deleteContact(id)
+      setTaskHistory((prev) => prev.filter((h) => h.id !== id))
+      toast({ title: 'Sucesso', description: 'Registro excluído definitivamente.' })
+    } catch (err: any) {
+      toast({ title: 'Erro', description: err.message, variant: 'destructive' })
+    }
+  }
+
   const handleCreateNew = async () => {
     if (!editingTask || !newActionInput || !newDateInput) return
     setIsSaving(true)
@@ -491,6 +585,7 @@ export default function FollowUp() {
         due_date: format(newDateInput, 'yyyy-MM-dd'),
         operator_id: user?.id,
         completed: false,
+        is_active: true,
       }
       await supabase.from('follow_up_tasks').insert([payload])
       toast({ title: 'Sucesso', description: 'Novo follow-up agendado.' })
@@ -1167,22 +1262,71 @@ export default function FollowUp() {
                     </div>
                   ) : (
                     <div className="space-y-4 relative before:absolute before:inset-0 before:ml-2 before:-translate-x-px before:h-full before:w-0.5 before:bg-slate-100">
-                      {taskHistory.map((h) => (
-                        <div key={h.id} className="relative pl-6">
-                          <div className="absolute left-0 top-1 w-4 h-4 rounded-full border-2 border-white bg-primary/20 shadow-sm" />
-                          <div className="flex items-center justify-between text-xs text-slate-500 mb-1">
-                            <span className="font-semibold text-slate-700">{h.contact_type}</span>
-                            <span>{format(parseISO(h.created_at), 'dd/MM/yyyy HH:mm')}</span>
+                      {taskHistory.map((h) => {
+                        const isInactive = h.is_active === false
+                        return (
+                          <div
+                            key={h.id}
+                            className={cn(
+                              'relative pl-6 group',
+                              isInactive && 'opacity-60 grayscale',
+                            )}
+                          >
+                            <div className="absolute left-0 top-1 w-4 h-4 rounded-full border-2 border-white bg-primary/20 shadow-sm" />
+                            <div className="flex items-center justify-between text-xs text-slate-500 mb-1">
+                              <span className="font-semibold text-slate-700">
+                                {h.contact_type} {isInactive && '(Inativo)'}
+                              </span>
+                              <div className="flex items-center gap-2">
+                                <span>{format(parseISO(h.created_at), 'dd/MM/yyyy HH:mm')}</span>
+                                {isAdmin && (
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-5 w-5 rounded-full -mr-2 text-slate-400 hover:text-slate-700"
+                                      >
+                                        <MoreVertical className="h-3 w-3" />
+                                      </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                      <DropdownMenuItem
+                                        onClick={() =>
+                                          handleInactivateHistory(h.id, h.is_active !== false)
+                                        }
+                                      >
+                                        {h.is_active !== false ? (
+                                          <>
+                                            <Ban className="w-4 h-4 mr-2" /> Inativar
+                                          </>
+                                        ) : (
+                                          <>
+                                            <CheckCircle2 className="w-4 h-4 mr-2" /> Reativar
+                                          </>
+                                        )}
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem
+                                        onClick={() => handleDeleteHistory(h.id)}
+                                        className="text-red-600 focus:text-red-600"
+                                      >
+                                        <Trash2 className="w-4 h-4 mr-2" /> Excluir
+                                      </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
+                                )}
+                              </div>
+                            </div>
+                            <p className="text-xs text-slate-600 mb-1.5 leading-relaxed bg-slate-50 p-2.5 rounded-md border border-slate-100">
+                              {h.notes || 'Nenhuma observação registrada.'}
+                            </p>
+                            <div className="text-[10px] text-slate-400 font-medium">
+                              <span className="text-slate-500 font-semibold">{h.status}</span> •{' '}
+                              {h.profiles?.name || 'Sistema'}
+                            </div>
                           </div>
-                          <p className="text-xs text-slate-600 mb-1.5 leading-relaxed bg-slate-50 p-2.5 rounded-md border border-slate-100">
-                            {h.notes || 'Nenhuma observação registrada.'}
-                          </p>
-                          <div className="text-[10px] text-slate-400 font-medium">
-                            <span className="text-slate-500 font-semibold">{h.status}</span> •{' '}
-                            {h.profiles?.name || 'Sistema'}
-                          </div>
-                        </div>
-                      ))}
+                        )
+                      })}
                     </div>
                   )}
                 </div>
@@ -1241,32 +1385,90 @@ export default function FollowUp() {
                     </div>
 
                     {!editingTask?.completed ? (
-                      <div className="flex flex-col gap-2 pt-2 border-t mt-auto">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={handleSaveCurrent}
-                          disabled={isSaving}
-                        >
-                          Salvar Alterações
-                        </Button>
-                        <Button
-                          size="sm"
-                          className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
-                          onClick={() => handleCompleteCurrent(editingTask?.id!)}
-                          disabled={isSaving}
-                        >
-                          <CheckCircle2 className="w-4 h-4 mr-2" /> Concluir Atividade
-                        </Button>
+                      <div className="flex items-center justify-between pt-2 border-t mt-auto">
+                        {isAdmin ? (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-slate-400 hover:text-slate-700 hover:bg-slate-100"
+                              >
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="start">
+                              <DropdownMenuItem
+                                onClick={() => handleInactivateTask(editingTask.id)}
+                                className="text-amber-600 focus:text-amber-600"
+                              >
+                                <Ban className="w-4 h-4 mr-2" /> Inativar Lembrete
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => handleDeleteTask(editingTask.id)}
+                                className="text-red-600 focus:text-red-600"
+                              >
+                                <Trash2 className="w-4 h-4 mr-2" /> Excluir Definitivamente
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        ) : (
+                          <div />
+                        )}
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleSaveCurrent}
+                            disabled={isSaving}
+                          >
+                            Salvar
+                          </Button>
+                          <Button
+                            size="sm"
+                            className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
+                            onClick={() => handleCompleteCurrent(editingTask?.id!)}
+                            disabled={isSaving}
+                          >
+                            <CheckCircle2 className="w-4 h-4 mr-2" /> Concluir
+                          </Button>
+                        </div>
                       </div>
                     ) : (
-                      <div className="pt-4 border-t mt-auto flex flex-col gap-3">
-                        <div className="text-center text-sm font-semibold text-emerald-600 flex items-center justify-center bg-emerald-50 py-3 rounded-lg border border-emerald-100/50">
-                          <CheckCircle2 className="w-5 h-5 mr-2" /> Atividade Concluída
-                        </div>
+                      <div className="flex items-center justify-between pt-4 border-t mt-auto gap-2">
+                        {isAdmin ? (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-slate-400 hover:text-slate-700 hover:bg-slate-100 shrink-0"
+                              >
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="start">
+                              <DropdownMenuItem
+                                onClick={() => handleInactivateTask(editingTask.id)}
+                                className="text-amber-600 focus:text-amber-600"
+                              >
+                                <Ban className="w-4 h-4 mr-2" /> Inativar Lembrete
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => handleDeleteTask(editingTask.id)}
+                                className="text-red-600 focus:text-red-600"
+                              >
+                                <Trash2 className="w-4 h-4 mr-2" /> Excluir Definitivamente
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        ) : (
+                          <div />
+                        )}
                         <Button
                           variant="outline"
-                          className="w-full shadow-sm text-slate-600"
+                          size="sm"
+                          className="shadow-sm text-slate-600 w-full"
                           onClick={(e) => handleResumeTask(editingTask.id, e)}
                           disabled={isSaving}
                         >
