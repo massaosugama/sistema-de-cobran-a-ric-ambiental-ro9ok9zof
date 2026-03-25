@@ -11,6 +11,7 @@ import {
   Edit2,
   Eye,
   Ban,
+  UserCheck,
 } from 'lucide-react'
 import { getContactHistory, updateContact } from '@/services/data'
 import { supabase } from '@/lib/supabase/client'
@@ -60,17 +61,31 @@ export function CustomerTimeline({ customer }: { customer?: ParsedDebt }) {
 
       const contacts = await getContactHistory(targetUc, targetPersonCode, user?.id)
 
-      const formattedContacts = contacts.map((c: any) => ({
-        id: c.id,
-        date: c.created_at,
-        type: c.contact_type,
-        operator: c.profiles?.name || 'Operador não identificado',
-        operatorId: c.operator_id,
-        status: c.status,
-        qualityResult: c.quality_result,
-        note: c.notes,
-        isActive: c.is_active !== false,
-      }))
+      const formattedContacts = contacts.map((c: any) => {
+        let qualityResult = null
+        let talkedToOwner = false
+        if (c.quality_result) {
+          try {
+            qualityResult = JSON.parse(c.quality_result)
+            talkedToOwner = !!qualityResult?.talkedToOwner
+          } catch (e) {
+            console.error('Error parsing quality_result', e)
+          }
+        }
+
+        return {
+          id: c.id,
+          date: c.created_at,
+          type: c.contact_type,
+          operator: c.profiles?.name || 'Operador não identificado',
+          operatorId: c.operator_id,
+          status: c.status,
+          qualityResult,
+          talkedToOwner,
+          note: c.notes,
+          isActive: c.is_active !== false,
+        }
+      })
 
       setEvents(formattedContacts)
     } catch (err) {
@@ -250,21 +265,37 @@ export function CustomerTimeline({ customer }: { customer?: ParsedDebt }) {
                       })}
                     </time>
                   </div>
-                  <div className="mb-2">
+
+                  <div className="mb-2 flex flex-wrap gap-2">
                     <span
                       className={cn(
-                        'inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset ring-slate-500/10',
-                        isInactive ? 'bg-slate-100 text-slate-400' : 'bg-slate-50 text-slate-600',
+                        'inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset',
+                        isInactive
+                          ? 'bg-slate-100 text-slate-400 ring-slate-500/10'
+                          : 'bg-slate-50 text-slate-600 ring-slate-500/10',
                       )}
                     >
                       {interaction.status}
                     </span>
+                    {interaction.talkedToOwner && (
+                      <span
+                        className={cn(
+                          'inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset',
+                          isInactive
+                            ? 'bg-slate-100 text-slate-400 ring-slate-500/10'
+                            : 'bg-blue-50 text-blue-700 ring-blue-500/20',
+                        )}
+                      >
+                        <UserCheck className="h-3 w-3 mr-1" />
+                        Falou com Titular
+                      </span>
+                    )}
                   </div>
 
                   {interaction.note && (
                     <p
                       className={cn(
-                        'text-sm leading-relaxed mb-3',
+                        'text-sm leading-relaxed mb-3 mt-1',
                         isInactive ? 'text-slate-400' : 'text-slate-600',
                       )}
                     >
@@ -275,7 +306,9 @@ export function CustomerTimeline({ customer }: { customer?: ParsedDebt }) {
                   <div
                     className={cn(
                       'mt-3 text-[11px] flex items-center gap-1 border-t pt-2',
-                      isInactive ? 'text-slate-400' : 'text-muted-foreground',
+                      isInactive
+                        ? 'text-slate-400 border-slate-200'
+                        : 'text-muted-foreground border-slate-100',
                     )}
                   >
                     <User className="h-3 w-3" />
@@ -301,6 +334,7 @@ export function CustomerTimeline({ customer }: { customer?: ParsedDebt }) {
           open={dialogOpen}
           onOpenChange={setDialogOpen}
           contact={selectedContact}
+          customer={customer}
           mode={dialogMode}
           onSave={handleSaveEdit}
         />
