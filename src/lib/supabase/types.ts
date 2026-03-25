@@ -298,6 +298,13 @@ export type Database = {
             referencedRelation: 'quotes'
             referencedColumns: ['id']
           },
+          {
+            foreignKeyName: 'quote_clicks_user_id_fkey'
+            columns: ['user_id']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
         ]
       }
       quotes: {
@@ -689,7 +696,7 @@ export const Constants = {
 // Table: quote_clicks
 //   PRIMARY KEY quote_clicks_pkey: PRIMARY KEY (id)
 //   FOREIGN KEY quote_clicks_quote_id_fkey: FOREIGN KEY (quote_id) REFERENCES quotes(id) ON DELETE CASCADE
-//   FOREIGN KEY quote_clicks_user_id_fkey: FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE
+//   FOREIGN KEY quote_clicks_user_id_fkey: FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE CASCADE
 // Table: quotes
 //   PRIMARY KEY quotes_pkey: PRIMARY KEY (id)
 // Table: settlements

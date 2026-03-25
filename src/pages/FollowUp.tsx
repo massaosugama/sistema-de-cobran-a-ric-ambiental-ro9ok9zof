@@ -94,7 +94,7 @@ export interface EnrichedTask {
 function DebtSearch({ onSelect }: { onSelect: (debt: ParsedDebt) => void }) {
   const [search, setSearch] = useState('')
   const [searchAddress, setSearchAddress] = useState('')
-  const [debtStatus, setDebtStatus] = useState<'vencido' | 'a_vencer' | 'ambos'>('vencido')
+  const [debtStatus, setDebtStatus] = useState<'vencido' | 'a_vencer' | 'ambos'>('ambos')
   const debouncedSearch = useDebounce(search, 500)
   const debouncedSearchAddress = useDebounce(searchAddress, 500)
   const [results, setResults] = useState<ParsedDebt[]>([])
@@ -218,7 +218,7 @@ export default function FollowUp() {
   // Filters State
   const [search, setSearch] = useState('')
   const [searchAddress, setSearchAddress] = useState('')
-  const [debtStatus, setDebtStatus] = useState<'vencido' | 'a_vencer' | 'ambos'>('vencido')
+  const [debtStatus, setDebtStatus] = useState<'vencido' | 'a_vencer' | 'ambos'>('ambos')
   const debouncedSearch = useDebounce(search, 500)
   const debouncedSearchAddress = useDebounce(searchAddress, 500)
 
