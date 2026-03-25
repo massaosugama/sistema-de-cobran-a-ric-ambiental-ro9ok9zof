@@ -731,8 +731,8 @@ export default function FollowUp() {
 
   const renderSidebarView = () => (
     <div className="flex flex-col h-full bg-slate-50/50">
-      <div className="p-4 border-b bg-white flex justify-between items-center shrink-0 h-[65px]">
-        <h2 className="font-bold text-lg text-slate-800 line-clamp-1">
+      <div className="p-3 sm:p-4 border-b bg-white flex justify-between items-center shrink-0 h-[55px] sm:h-[65px]">
+        <h2 className="font-bold text-base sm:text-lg text-slate-800 line-clamp-1">
           {selectedDate ? `Tarefas: ${format(selectedDate, 'dd/MM/yyyy')}` : 'Atividades'}
         </h2>
         {selectedDate && (
@@ -746,7 +746,7 @@ export default function FollowUp() {
           </Button>
         )}
       </div>
-      <div className="flex-1 overflow-y-auto p-4 space-y-6">
+      <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-6">
         {selectedDate ? (
           <TaskList
             title={`Agendadas`}
@@ -786,9 +786,9 @@ export default function FollowUp() {
 
   const renderCalendarView = () => (
     <div className="flex flex-col h-full">
-      <div className="p-4 border-b flex items-center justify-between shrink-0 bg-white h-[65px]">
-        <div className="flex items-center gap-4">
-          <h2 className="font-bold text-xl text-slate-800 capitalize">
+      <div className="p-3 sm:p-4 border-b flex items-center justify-between shrink-0 bg-white h-[55px] sm:h-[65px]">
+        <div className="flex items-center gap-3 sm:gap-4">
+          <h2 className="font-bold text-lg sm:text-xl text-slate-800 capitalize">
             {format(currentMonth, 'MMMM yyyy', { locale: ptBR })}
           </h2>
           <div className="flex items-center gap-1">
@@ -796,7 +796,7 @@ export default function FollowUp() {
               variant="outline"
               size="icon"
               onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}
-              className="h-8 w-8 text-slate-500"
+              className="h-7 w-7 sm:h-8 sm:w-8 text-slate-500"
             >
               <ChevronLeft className="h-4 w-4" />
             </Button>
@@ -804,7 +804,7 @@ export default function FollowUp() {
               variant="outline"
               size="sm"
               onClick={() => setCurrentMonth(new Date())}
-              className="h-8 font-medium text-slate-600"
+              className="h-7 sm:h-8 font-medium text-slate-600 text-xs sm:text-sm"
             >
               Hoje
             </Button>
@@ -812,7 +812,7 @@ export default function FollowUp() {
               variant="outline"
               size="icon"
               onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
-              className="h-8 w-8 text-slate-500"
+              className="h-7 w-7 sm:h-8 sm:w-8 text-slate-500"
             >
               <ChevronRight className="h-4 w-4" />
             </Button>
@@ -824,7 +824,7 @@ export default function FollowUp() {
           {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map((d) => (
             <div
               key={d}
-              className="py-2 text-center text-[11px] font-bold text-slate-400 uppercase tracking-widest border-r last:border-r-0"
+              className="py-1 sm:py-1.5 text-center text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-widest border-r last:border-r-0"
             >
               {d}
             </div>
@@ -854,7 +854,7 @@ export default function FollowUp() {
                   }
                 }}
                 className={cn(
-                  'border-r border-b p-1.5 sm:p-2 flex flex-col cursor-pointer transition-colors relative group overflow-hidden',
+                  'border-r border-b p-1 sm:p-1.5 flex flex-col cursor-pointer transition-colors relative group overflow-hidden',
                   !isCurrentMonth ? 'bg-slate-50/50' : 'bg-white',
                   isSelected
                     ? 'ring-2 ring-primary ring-inset z-10 bg-primary/5'
@@ -872,7 +872,7 @@ export default function FollowUp() {
                         setIsNewActivitySheetOpen(true)
                       }}
                       className={cn(
-                        'text-xs font-medium mb-1.5 text-center w-6 h-6 ml-auto flex items-center justify-center rounded-full shrink-0 transition-colors cursor-pointer z-20',
+                        'text-[10px] sm:text-xs font-bold mb-0.5 sm:mb-1 text-center w-5 h-5 sm:w-6 sm:h-6 ml-auto flex items-center justify-center rounded-full shrink-0 transition-colors cursor-pointer z-20',
                         isToday
                           ? 'bg-primary text-white'
                           : !isCurrentMonth
@@ -889,7 +889,7 @@ export default function FollowUp() {
                   </TooltipContent>
                 </Tooltip>
 
-                <div className="flex-1 flex flex-col gap-1 overflow-y-auto pb-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+                <div className="flex-1 flex flex-col gap-0.5 sm:gap-1 overflow-y-auto pb-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
                   {dayTasks.map((t) => (
                     <div
                       key={t.id}
@@ -903,7 +903,7 @@ export default function FollowUp() {
                         openEditTaskModal(t)
                       }}
                       className={cn(
-                        'text-[10px] leading-tight px-1.5 py-1 rounded border-l-[3px] truncate flex items-center gap-1.5 transition-all shadow-sm',
+                        'text-[9px] sm:text-[10px] leading-none sm:leading-tight px-1 sm:px-1.5 py-0.5 sm:py-1 rounded border-l-[2px] sm:border-l-[3px] truncate flex items-center gap-1 sm:gap-1.5 transition-all shadow-sm',
                         t.completed
                           ? 'bg-slate-100/50 text-slate-500'
                           : 'bg-slate-100/80 text-slate-700 hover:brightness-95 cursor-grab active:cursor-grabbing',
@@ -914,10 +914,10 @@ export default function FollowUp() {
                       title={`${t.debt?.nome || 'Cliente'} - ${t.action}`}
                     >
                       {t.completed ? (
-                        <CheckCircle2 className="w-2.5 h-2.5 text-emerald-500 shrink-0" />
+                        <CheckCircle2 className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-emerald-500 shrink-0" />
                       ) : (
                         <div
-                          className="w-1.5 h-1.5 rounded-full shrink-0"
+                          className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full shrink-0"
                           style={{ backgroundColor: t.operator?.color || '#94a3b8' }}
                         />
                       )}
@@ -946,7 +946,7 @@ export default function FollowUp() {
         'animate-fade-in-up',
         isMobile
           ? 'space-y-6 pb-10 flex flex-col'
-          : 'flex flex-col h-[calc(100dvh-7.5rem)] min-h-[600px] space-y-4 pb-4',
+          : 'flex flex-col h-[calc(100vh-2.5rem)] md:h-[calc(100vh-3.5rem)] lg:h-[calc(100vh-4.5rem)] min-h-[600px] space-y-4 pb-0',
       )}
     >
       <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 shrink-0">

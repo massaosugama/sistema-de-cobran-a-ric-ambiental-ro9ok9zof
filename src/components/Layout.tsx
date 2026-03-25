@@ -1,7 +1,6 @@
 import { Outlet } from 'react-router-dom'
-import { SidebarProvider } from '@/components/ui/sidebar'
+import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar'
 import { AppSidebar } from './AppSidebar'
-import { AppHeader } from './AppHeader'
 import { CompleteProfileDialog } from './CompleteProfileDialog'
 
 export default function Layout() {
@@ -15,7 +14,19 @@ export default function Layout() {
       <SidebarProvider>
         <AppSidebar />
         <div className="flex flex-col flex-1 min-w-0 min-h-screen bg-slate-50 pt-1">
-          <AppHeader />
+          {/* Mobile Header - Only visible on small screens */}
+          <div className="md:hidden flex items-center justify-between p-3 border-b bg-white shrink-0">
+            <div className="flex items-center gap-2">
+              <div className="flex items-center justify-center w-8 h-8 rounded-md bg-primary text-primary-foreground font-bold text-sm">
+                R
+              </div>
+              <span className="font-bold text-[15px] text-slate-800 tracking-tight">
+                Ric Recupera
+              </span>
+            </div>
+            <SidebarTrigger className="h-9 w-9 text-slate-500" />
+          </div>
+
           <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 w-full max-w-[1600px] mx-auto animate-fade-in-up">
             <Outlet />
           </main>
