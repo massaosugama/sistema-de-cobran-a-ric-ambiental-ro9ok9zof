@@ -212,7 +212,7 @@ export default function Queue() {
                                   {safeText(customer.address)}
                                 </span>
                                 <a
-                                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(customer.address)}`}
+                                  href={`https://www.google.com.br/maps/search/?api=1&query=${encodeURIComponent(customer.address)}`}
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   onClick={(e) => e.stopPropagation()}
@@ -432,7 +432,7 @@ export default function Queue() {
                                   {safeText(customer.address)}
                                 </span>
                                 <a
-                                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(customer.address)}`}
+                                  href={`https://www.google.com.br/maps/search/?api=1&query=${encodeURIComponent(customer.address)}`}
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   onClick={(e) => e.stopPropagation()}

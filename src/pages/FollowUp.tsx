@@ -190,7 +190,7 @@ function DebtSearch({ onSelect }: { onSelect: (debt: ParsedDebt) => void }) {
                     {r.address}
                   </p>
                   <a
-                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(r.address)}`}
+                    href={`https://www.google.com.br/maps/search/?api=1&query=${encodeURIComponent(r.address)}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     onClick={(e) => e.stopPropagation()}
@@ -1092,7 +1092,7 @@ export default function FollowUp() {
                         {editingTask.debt.endereco}
                       </p>
                       <a
-                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(editingTask.debt.endereco)}`}
+                        href={`https://www.google.com.br/maps/search/?api=1&query=${encodeURIComponent(editingTask.debt.endereco)}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="inline-flex items-center text-[10px] text-primary hover:text-primary/80 hover:bg-primary/20 bg-primary/10 px-1.5 py-0.5 rounded font-bold transition-colors shrink-0"
@@ -1371,7 +1371,7 @@ export default function FollowUp() {
                             {selectedNewDebt.address}
                           </p>
                           <a
-                            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedNewDebt.address)}`}
+                            href={`https://www.google.com.br/maps/search/?api=1&query=${encodeURIComponent(selectedNewDebt.address)}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="inline-flex items-center text-[10px] text-primary hover:text-primary/80 hover:bg-primary/20 bg-primary/10 px-1.5 py-0.5 rounded font-bold transition-colors shrink-0"

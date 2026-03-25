@@ -20,7 +20,7 @@ export function generateQuoteUrl(link?: string | null, theory?: string | null): 
   if (link && link.trim() !== '') return link
   if (theory && theory.trim() !== '') {
     const query = `explique para mim os conceitos de ${theory.trim()} num contexto de Setor de Cobrança?`
-    return `https://www.google.com/search?q=${encodeURIComponent(query)}`
+    return `https://www.google.com.br/search?q=${encodeURIComponent(query)}`
   }
   return null
 }
