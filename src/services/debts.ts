@@ -462,3 +462,9 @@ export async function getPortfolioStats() {
     total_a_vencer: number
   }
 }
+
+export async function getDashboardEvolution() {
+  const { data, error } = await (supabase as any).rpc('get_dashboard_evolution')
+  if (error) throw error
+  return data
+}

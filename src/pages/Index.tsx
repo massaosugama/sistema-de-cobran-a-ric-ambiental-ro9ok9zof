@@ -19,24 +19,57 @@ import {
   UserCheck,
   ArrowRight,
   Info,
+  TrendingUp,
+  TrendingDown,
 } from 'lucide-react'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-import { getDebts, getPortfolioStats, ParsedDebt } from '@/services/debts'
+import { getDebts, getDashboardEvolution, ParsedDebt } from '@/services/debts'
 import { getProfiles, getOperatorStats } from '@/services/data'
 import { useAuth } from '@/hooks/use-auth'
 
+const EvolutionIndicator = ({
+  current,
+  previous,
+  inverse = false,
+}: {
+  current?: number
+  previous?: number
+  inverse?: boolean
+}) => {
+  const c = current || 0
+  const p = previous || 0
+  const diff = c - p
+
+  if (diff === 0) {
+    return <span className="text-xs text-muted-foreground mt-1 block">Sem variação</span>
+  }
+
+  const isPositive = diff > 0
+  const isGood = inverse ? !isPositive : isPositive
+
+  const colorClass = isGood ? 'text-emerald-600' : 'text-destructive'
+  const Icon = isPositive ? TrendingUp : TrendingDown
+
+  const percent = p > 0 ? ((Math.abs(diff) / p) * 100).toFixed(1) : '100'
+  const formattedPercent = Number(percent) % 1 === 0 ? Math.round(Number(percent)) : percent
+
+  return (
+    <span className={`text-xs font-medium flex items-center mt-1 ${colorClass}`}>
+      <Icon className="h-3 w-3 mr-1" />
+      {formattedPercent}%<span className="text-muted-foreground ml-1 font-normal">vs. ontem</span>
+    </span>
+  )
+}
+
 export default function Index() {
   const [queue, setQueue] = useState<ParsedDebt[]>([])
-  const [portfolioStats, setPortfolioStats] = useState({
-    total_cases: 0,
-    total_value: 0,
-    total_vencido: 0,
-    total_a_vencer: 0,
+  const [evolution, setEvolution] = useState<{ portfolio: any; productivity: any }>({
+    portfolio: { current: {}, previous: {} },
+    productivity: { current: {}, previous: {} },
   })
   const [profiles, setProfiles] = useState<any[]>([])
   const [operatorStats, setOperatorStats] = useState<Record<string, any>>({})
-  const [totals, setTotals] = useState({ atendimentos: 0, followups: 0 })
   const { user } = useAuth()
   const name = user?.user_metadata?.name || user?.email?.split('@')[0] || 'Operador'
 
@@ -51,22 +84,21 @@ export default function Index() {
       })
       .catch(console.error)
 
-    getPortfolioStats().then(setPortfolioStats).catch(console.error)
+    getDashboardEvolution()
+      .then((data) => {
+        if (data) setEvolution(data)
+      })
+      .catch(console.error)
 
     getProfiles().then(setProfiles).catch(console.error)
+
     getOperatorStats()
       .then((stats) => {
         const statsMap: Record<string, any> = {}
-        let sumAtendimentos = 0
-        let sumFollowups = 0
-
         stats.forEach((s: any) => {
           statsMap[s.operator_id] = s
-          sumAtendimentos += Number(s.total_contacts || 0)
-          sumFollowups += Number(s.total_followups || 0)
         })
         setOperatorStats(statsMap)
-        setTotals({ atendimentos: sumAtendimentos, followups: sumFollowups })
       })
       .catch(console.error)
   }, [])
@@ -83,12 +115,16 @@ export default function Index() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-sm font-medium">Total da Carteira</CardTitle>
+            <CardTitle className="text-sm font-medium">Total da Carteira (UC + Pessoa)</CardTitle>
             <Briefcase className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{portfolioStats.total_cases}</div>
-            <p className="text-xs text-muted-foreground mt-1">Volume de casos (UC + Pessoa)</p>
+            <div className="text-2xl font-bold">{evolution.portfolio.current.total_cases || 0}</div>
+            <EvolutionIndicator
+              current={evolution.portfolio.current.total_cases}
+              previous={evolution.portfolio.previous.total_cases}
+              inverse
+            />
           </CardContent>
         </Card>
 
@@ -110,12 +146,16 @@ export default function Index() {
           <CardContent>
             <div className="text-2xl font-bold text-primary">
               R${' '}
-              {portfolioStats.total_value.toLocaleString('pt-BR', {
+              {(evolution.portfolio.current.total_value || 0).toLocaleString('pt-BR', {
                 minimumFractionDigits: 2,
                 maximumFractionDigits: 2,
               })}
             </div>
-            <p className="text-xs text-muted-foreground mt-1">Montante financeiro sob gestão</p>
+            <EvolutionIndicator
+              current={evolution.portfolio.current.total_value}
+              previous={evolution.portfolio.previous.total_value}
+              inverse
+            />
           </CardContent>
         </Card>
 
@@ -135,26 +175,36 @@ export default function Index() {
             <Split className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="flex justify-between items-end mt-1">
+            <div className="flex justify-between items-start mt-1">
               <div>
+                <p className="text-xs text-muted-foreground mb-0.5">Vencido</p>
                 <div className="text-lg font-bold text-destructive">
                   R${' '}
-                  {portfolioStats.total_vencido.toLocaleString('pt-BR', {
+                  {(evolution.portfolio.current.total_vencido || 0).toLocaleString('pt-BR', {
                     minimumFractionDigits: 2,
                     maximumFractionDigits: 2,
                   })}
                 </div>
-                <p className="text-xs text-muted-foreground">Vencido</p>
+                <EvolutionIndicator
+                  current={evolution.portfolio.current.total_vencido}
+                  previous={evolution.portfolio.previous.total_vencido}
+                  inverse
+                />
               </div>
               <div className="text-right">
+                <p className="text-xs text-muted-foreground mb-0.5">A Vencer</p>
                 <div className="text-lg font-bold text-emerald-600">
                   R${' '}
-                  {portfolioStats.total_a_vencer.toLocaleString('pt-BR', {
+                  {(evolution.portfolio.current.total_a_vencer || 0).toLocaleString('pt-BR', {
                     minimumFractionDigits: 2,
                     maximumFractionDigits: 2,
                   })}
                 </div>
-                <p className="text-xs text-muted-foreground">A Vencer</p>
+                <EvolutionIndicator
+                  current={evolution.portfolio.current.total_a_vencer}
+                  previous={evolution.portfolio.previous.total_a_vencer}
+                  inverse
+                />
               </div>
             </div>
           </CardContent>
@@ -166,8 +216,11 @@ export default function Index() {
             <Headphones className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{totals.atendimentos}</div>
-            <p className="text-xs text-muted-foreground mt-1">Registrados por toda a equipe</p>
+            <div className="text-2xl font-bold">{evolution.productivity.current.contacts || 0}</div>
+            <EvolutionIndicator
+              current={evolution.productivity.current.contacts}
+              previous={evolution.productivity.previous.contacts}
+            />
           </CardContent>
         </Card>
 
@@ -177,8 +230,13 @@ export default function Index() {
             <ListTodo className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{totals.followups}</div>
-            <p className="text-xs text-muted-foreground mt-1">Atividades de retorno agendadas</p>
+            <div className="text-2xl font-bold">
+              {evolution.productivity.current.followups || 0}
+            </div>
+            <EvolutionIndicator
+              current={evolution.productivity.current.followups}
+              previous={evolution.productivity.previous.followups}
+            />
           </CardContent>
         </Card>
 
@@ -189,7 +247,7 @@ export default function Index() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-muted-foreground">0</div>
-            <p className="text-xs text-muted-foreground mt-1">Bases higienizadas ou validadas</p>
+            <EvolutionIndicator current={0} previous={0} />
           </CardContent>
         </Card>
       </div>
