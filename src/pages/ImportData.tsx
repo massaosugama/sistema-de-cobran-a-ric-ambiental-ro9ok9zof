@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useState, useRef, useEffect, useCallback } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
@@ -13,6 +13,7 @@ import {
   Database,
   RefreshCw,
   X,
+  Clock,
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase/client'
 import { useAppState } from '@/hooks/use-app-state'
@@ -74,12 +75,10 @@ const parseCSV = async (file: File) => {
       (acc, h, i) => {
         let val: any = values[i] !== undefined && values[i] !== '' ? values[i] : null
 
-        // Sanitização: Converte a string "NULL" literal para o valor null nativo do JS
         if (typeof val === 'string' && val.trim().toUpperCase() === 'NULL') {
           val = null
         }
 
-        // Sanitização de valores numéricos para evitar falhas de insert no supabase se houver vírgula
         if (
           typeof val === 'string' &&
           ['valor_total', 'valor_vencido', 'valor_a_vencer'].includes(h)
@@ -110,6 +109,7 @@ interface ImportCardProps {
   tableName: 'pending_debts' | 'settlements'
   allowedColumns: string[]
   onProcess: (data: any[], setProgress: (p: number) => void) => Promise<void>
+  enqueueTask: (id: string, run: () => Promise<void>) => void
 }
 
 function ImportCard({
@@ -119,14 +119,14 @@ function ImportCard({
   tableName,
   allowedColumns,
   onProcess,
+  enqueueTask,
 }: ImportCardProps) {
   const { toast } = useToast()
-  const { setIsImporting } = useAppState()
 
   const [file, setFile] = useState<File | null>(null)
-  const [status, setStatus] = useState<'idle' | 'mapping' | 'uploading' | 'success' | 'error'>(
-    'idle',
-  )
+  const [status, setStatus] = useState<
+    'idle' | 'mapping' | 'queued' | 'uploading' | 'success' | 'error'
+  >('idle')
   const [progress, setProgress] = useState(0)
   const [errorMsg, setErrorMsg] = useState('')
   const [csvData, setCsvData] = useState<any[]>([])
@@ -134,10 +134,6 @@ function ImportCard({
   const [rememberedColumns, setRememberedColumns] = useState<string[]>([])
   const [ignoredColumns, setIgnoredColumns] = useState<Record<string, boolean>>({})
   const fileInputRef = useRef<HTMLInputElement>(null)
-
-  useEffect(() => {
-    return () => setIsImporting(false)
-  }, [setIsImporting])
 
   const handleStart = async () => {
     if (!file) return
@@ -166,7 +162,7 @@ function ImportCard({
     }
   }
 
-  const proceedWithImport = async (data: any[], ignoredConfig: Record<string, boolean>) => {
+  const proceedWithImport = (data: any[], ignoredConfig: Record<string, boolean>) => {
     const toIgnore = Object.entries(ignoredConfig)
       .filter(([_, isIgnored]) => isIgnored)
       .map(([col]) => col)
@@ -179,22 +175,24 @@ function ImportCard({
       return newRow
     })
 
-    setStatus('uploading')
-    setProgress(5)
-    setIsImporting(true)
+    setStatus('queued')
+    setProgress(0)
 
-    try {
-      await onProcess(cleanedData, setProgress)
-      setStatus('success')
-      setProgress(100)
-      setIsImporting(false)
-      toast({ title: 'Sucesso!', description: 'Arquivo processado.', variant: 'default' })
-    } catch (err: any) {
-      setStatus('error')
-      setErrorMsg(err.message)
-      setIsImporting(false)
-      toast({ title: 'Erro na importação', description: err.message, variant: 'destructive' })
-    }
+    enqueueTask(tableName, async () => {
+      setStatus('uploading')
+      setProgress(5)
+
+      try {
+        await onProcess(cleanedData, setProgress)
+        setStatus('success')
+        setProgress(100)
+        toast({ title: 'Sucesso!', description: 'Arquivo processado.', variant: 'default' })
+      } catch (err: any) {
+        setStatus('error')
+        setErrorMsg(err.message)
+        toast({ title: 'Erro na importação', description: err.message, variant: 'destructive' })
+      }
+    })
   }
 
   return (
@@ -241,7 +239,7 @@ function ImportCard({
                   <p className="text-xs text-slate-500">{(file.size / 1024).toFixed(1)} KB</p>
                 </div>
               </div>
-              {status !== 'uploading' && status !== 'success' && (
+              {status !== 'uploading' && status !== 'success' && status !== 'queued' && (
                 <Button
                   variant="ghost"
                   size="icon"
@@ -306,8 +304,24 @@ function ImportCard({
               </div>
             )}
 
+            {status === 'queued' && (
+              <div className="space-y-4 mt-auto pt-4 flex-1 flex flex-col justify-center animate-fade-in">
+                <div className="flex items-center gap-3 bg-blue-50 border border-blue-200 p-4 rounded-xl shadow-sm">
+                  <Clock className="h-6 w-6 text-blue-500 animate-pulse shrink-0" />
+                  <div>
+                    <h4 className="text-sm font-semibold text-blue-900">
+                      Na fila de processamento
+                    </h4>
+                    <p className="text-xs text-blue-700 mt-0.5">
+                      Aguardando a conclusão da importação anterior para iniciar.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {status === 'uploading' && (
-              <div className="space-y-4 mt-auto pt-4 flex-1 flex flex-col justify-center">
+              <div className="space-y-4 mt-auto pt-4 flex-1 flex flex-col justify-center animate-fade-in">
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm font-medium text-slate-700">
                     <span>Processando dados...</span>
@@ -319,21 +333,24 @@ function ImportCard({
             )}
 
             {status === 'success' && (
-              <div className="flex items-center gap-2 text-sm font-medium text-emerald-600 bg-emerald-50 p-3 rounded-lg border border-emerald-100 mt-auto">
-                <CheckCircle2 className="h-5 w-5" /> Base atualizada com sucesso!
+              <div className="flex items-center gap-2 text-sm font-medium text-emerald-600 bg-emerald-50 p-3 rounded-lg border border-emerald-100 mt-auto animate-fade-in">
+                <CheckCircle2 className="h-5 w-5 shrink-0" /> Base atualizada com sucesso!
               </div>
             )}
+
             {status === 'error' && (
-              <div className="flex items-start gap-2 text-sm font-medium text-destructive bg-red-50 p-3 rounded-lg border border-red-100 mt-auto">
+              <div className="flex items-start gap-2 text-sm font-medium text-destructive bg-red-50 p-3 rounded-lg border border-red-100 mt-auto animate-fade-in">
                 <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />{' '}
                 <span className="break-all">{errorMsg}</span>
               </div>
             )}
+
             {status === 'idle' && (
               <Button onClick={handleStart} className="w-full font-bold mt-auto">
                 Iniciar Processamento
               </Button>
             )}
+
             {(status === 'success' || status === 'error') && (
               <Button
                 onClick={() => {
@@ -354,6 +371,36 @@ function ImportCard({
 }
 
 export default function ImportData() {
+  const { setIsImporting } = useAppState()
+
+  // Fila de processamento inteligente (Orquestrador)
+  const [queue, setQueue] = useState<Array<{ id: string; run: () => Promise<void> }>>([])
+  const [activeTask, setActiveTask] = useState<string | null>(null)
+
+  useEffect(() => {
+    return () => setIsImporting(false)
+  }, [setIsImporting])
+
+  // Processamento sequencial da fila
+  useEffect(() => {
+    if (queue.length > 0 && !activeTask) {
+      const nextTask = queue[0]
+      setQueue((q) => q.slice(1)) // Remove imediatamente para não contabilizar como "em espera"
+      setActiveTask(nextTask.id)
+      setIsImporting(true)
+
+      nextTask.run().finally(() => {
+        setActiveTask(null)
+      })
+    } else if (queue.length === 0 && !activeTask) {
+      setIsImporting(false)
+    }
+  }, [queue, activeTask, setIsImporting])
+
+  const enqueueTask = useCallback((id: string, run: () => Promise<void>) => {
+    setQueue((q) => [...q, { id, run }])
+  }, [])
+
   const processPendencies = async (data: any[], setProgress: (p: number) => void) => {
     setProgress(15)
     const { error: truncErr } = await supabase.rpc('truncate_pending_debts')
@@ -365,7 +412,7 @@ export default function ImportData() {
       const { error: insErr } = await supabase.from('pending_debts').insert(chunk)
       if (insErr) throw new Error(`Erro na inserção (Linha ${i + 1}) - Detalhe: ${insErr.message}`)
       setProgress(30 + Math.floor((i / data.length) * 70))
-      await new Promise((r) => setTimeout(r, 50)) // artificial delay
+      await new Promise((r) => setTimeout(r, 10)) // small yield to keep UI responsive
     }
   }
 
@@ -377,17 +424,37 @@ export default function ImportData() {
       const { error: insErr } = await supabase.from('settlements').insert(chunk)
       if (insErr) throw new Error(`Erro na inserção (Linha ${i + 1}) - Detalhe: ${insErr.message}`)
       setProgress(20 + Math.floor((i / data.length) * 80))
-      await new Promise((r) => setTimeout(r, 50)) // artificial delay
+      await new Promise((r) => setTimeout(r, 10)) // small yield to keep UI responsive
     }
   }
 
   return (
     <div className="space-y-6 animate-fade-in-up pb-10">
-      <div>
-        <h1 className="text-3xl font-black tracking-tight text-slate-900">Importação de Dados</h1>
-        <p className="text-slate-500 mt-1 font-medium">
-          Módulo central para carga rápida de arquivos CSV do sistema.
-        </p>
+      <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-black tracking-tight text-slate-900">Importação de Dados</h1>
+          <p className="text-slate-500 mt-1 font-medium">
+            Módulo central para carga rápida de arquivos CSV do sistema.
+          </p>
+        </div>
+
+        {/* Indicador Global de Fila */}
+        {(activeTask || queue.length > 0) && (
+          <div className="flex items-center gap-3 bg-white px-4 py-2 rounded-lg border border-slate-200 shadow-sm animate-fade-in shrink-0">
+            <div className="relative flex h-3 w-3">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-3 w-3 bg-primary"></span>
+            </div>
+            <div className="text-sm">
+              <span className="font-semibold text-slate-900">Processando</span>
+              {queue.length > 0 && (
+                <span className="text-slate-500 ml-2 border-l border-slate-200 pl-2">
+                  + {queue.length} na fila
+                </span>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
@@ -398,6 +465,7 @@ export default function ImportData() {
           tableName="pending_debts"
           allowedColumns={pendingDebtsColumns}
           onProcess={processPendencies}
+          enqueueTask={enqueueTask}
         />
         <ImportCard
           title="Base de Baixas"
@@ -406,6 +474,7 @@ export default function ImportData() {
           tableName="settlements"
           allowedColumns={settlementsColumns}
           onProcess={processSettlements}
+          enqueueTask={enqueueTask}
         />
       </div>
     </div>

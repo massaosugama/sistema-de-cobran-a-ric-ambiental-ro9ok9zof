@@ -227,10 +227,13 @@ export type Database = {
           email: string
           first_name: string | null
           id: string
+          is_active: boolean | null
           is_admin: boolean | null
+          last_login: string | null
           last_name: string | null
           last_quote_index: number | null
           name: string | null
+          updated_at: string | null
         }
         Insert: {
           color?: string | null
@@ -238,10 +241,13 @@ export type Database = {
           email: string
           first_name?: string | null
           id: string
+          is_active?: boolean | null
           is_admin?: boolean | null
+          last_login?: string | null
           last_name?: string | null
           last_quote_index?: number | null
           name?: string | null
+          updated_at?: string | null
         }
         Update: {
           color?: string | null
@@ -249,10 +255,13 @@ export type Database = {
           email?: string
           first_name?: string | null
           id?: string
+          is_active?: boolean | null
           is_admin?: boolean | null
+          last_login?: string | null
           last_name?: string | null
           last_quote_index?: number | null
           name?: string | null
+          updated_at?: string | null
         }
         Relationships: []
       }
@@ -614,6 +623,9 @@ export const Constants = {
 //   last_name: text (nullable)
 //   is_admin: boolean (nullable, default: false)
 //   color: text (nullable)
+//   is_active: boolean (nullable, default: true)
+//   updated_at: timestamp with time zone (nullable, default: now())
+//   last_login: timestamp with time zone (nullable)
 // Table: quote_clicks
 //   id: uuid (not null, default: gen_random_uuid())
 //   user_id: uuid (not null)
@@ -827,6 +839,17 @@ export const Constants = {
 //   END;
 //   $function$
 //
+// FUNCTION set_current_timestamp_updated_at()
+//   CREATE OR REPLACE FUNCTION public.set_current_timestamp_updated_at()
+//    RETURNS trigger
+//    LANGUAGE plpgsql
+//   AS $function$
+//   BEGIN
+//     NEW.updated_at = NOW();
+//     RETURN NEW;
+//   END;
+//   $function$
+//
 // FUNCTION trigger_record_snapshot()
 //   CREATE OR REPLACE FUNCTION public.trigger_record_snapshot()
 //    RETURNS trigger
@@ -856,6 +879,8 @@ export const Constants = {
 //   trg_audit_contact_history: CREATE TRIGGER trg_audit_contact_history AFTER UPDATE ON public.contact_history FOR EACH ROW WHEN ((old.* IS DISTINCT FROM new.*)) EXECUTE FUNCTION audit_contact_history_changes()
 // Table: pending_debts
 //   on_pending_debts_change: CREATE TRIGGER on_pending_debts_change AFTER INSERT OR DELETE OR UPDATE ON public.pending_debts FOR EACH STATEMENT EXECUTE FUNCTION trigger_record_snapshot()
+// Table: profiles
+//   set_profiles_updated_at: CREATE TRIGGER set_profiles_updated_at BEFORE UPDATE ON public.profiles FOR EACH ROW EXECUTE FUNCTION set_current_timestamp_updated_at()
 
 // --- INDEXES ---
 // Table: portfolio_history
