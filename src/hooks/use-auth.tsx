@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
+import { createContext, useContext, useEffect, useState, useRef, ReactNode } from 'react'
 import { User, Session } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase/client'
 
@@ -30,6 +30,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null)
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
+  const isLoggingOutRef = useRef(false)
 
   useEffect(() => {
     const {
@@ -50,8 +51,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   // Heartbeat to update last_login and maintain online status
   useEffect(() => {
     let interval: NodeJS.Timeout
-    if (user) {
+    if (user && !isLoggingOutRef.current) {
       const ping = async () => {
+        if (isLoggingOutRef.current) return
         await supabase
           .from('profiles')
           .update({ last_login: new Date().toISOString() })
@@ -87,11 +89,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }
 
   const signIn = async (email: string, password: string) => {
+    isLoggingOutRef.current = false
     const { error } = await supabase.auth.signInWithPassword({ email, password })
     return { error }
   }
 
   const signOut = async () => {
+    isLoggingOutRef.current = true
+    if (user) {
+      try {
+        // Instant offline update for other users viewing the dashboard
+        await supabase.from('profiles').update({ last_login: null }).eq('id', user.id)
+      } catch (err) {
+        console.error('Error updating last_login on logout', err)
+      }
+    }
     const { error } = await supabase.auth.signOut()
     return { error }
   }

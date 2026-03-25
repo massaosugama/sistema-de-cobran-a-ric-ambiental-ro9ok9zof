@@ -111,7 +111,7 @@ export default function Index() {
       .catch(console.error)
 
     const channel = supabase
-      .channel('profiles_status')
+      .channel('dashboard_updates')
       .on(
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'profiles' },
@@ -122,6 +122,82 @@ export default function Index() {
                 p.id === payload.new.id ? { ...p, last_login: payload.new.last_login } : p,
               ),
             )
+          }
+        },
+      )
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'contact_history' },
+        (payload) => {
+          const opId = payload.new.operator_id
+          if (opId) {
+            setOperatorStats((prev) => {
+              const curr = prev[opId] || {
+                today_contacts: 0,
+                total_contacts: 0,
+                today_followups: 0,
+                total_followups: 0,
+              }
+              return {
+                ...prev,
+                [opId]: {
+                  ...curr,
+                  today_contacts: Number(curr.today_contacts) + 1,
+                  total_contacts: Number(curr.total_contacts) + 1,
+                },
+              }
+            })
+            setEvolution((prev) => {
+              if (!prev || !prev.productivity || !prev.productivity.current) return prev
+              return {
+                ...prev,
+                productivity: {
+                  ...prev.productivity,
+                  current: {
+                    ...prev.productivity.current,
+                    contacts: Number(prev.productivity.current.contacts || 0) + 1,
+                  },
+                },
+              }
+            })
+          }
+        },
+      )
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'follow_up_tasks' },
+        (payload) => {
+          const opId = payload.new.operator_id
+          if (opId) {
+            setOperatorStats((prev) => {
+              const curr = prev[opId] || {
+                today_contacts: 0,
+                total_contacts: 0,
+                today_followups: 0,
+                total_followups: 0,
+              }
+              return {
+                ...prev,
+                [opId]: {
+                  ...curr,
+                  today_followups: Number(curr.today_followups) + 1,
+                  total_followups: Number(curr.total_followups) + 1,
+                },
+              }
+            })
+            setEvolution((prev) => {
+              if (!prev || !prev.productivity || !prev.productivity.current) return prev
+              return {
+                ...prev,
+                productivity: {
+                  ...prev.productivity,
+                  current: {
+                    ...prev.productivity.current,
+                    followups: Number(prev.productivity.current.followups || 0) + 1,
+                  },
+                },
+              }
+            })
           }
         },
       )
