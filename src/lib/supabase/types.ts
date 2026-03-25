@@ -99,6 +99,7 @@ export type Database = {
           created_at: string
           due_date: string | null
           id: string
+          is_active: boolean | null
           operator_id: string | null
           uc: string | null
         }
@@ -109,6 +110,7 @@ export type Database = {
           created_at?: string
           due_date?: string | null
           id?: string
+          is_active?: boolean | null
           operator_id?: string | null
           uc?: string | null
         }
@@ -119,6 +121,7 @@ export type Database = {
           created_at?: string
           due_date?: string | null
           id?: string
+          is_active?: boolean | null
           operator_id?: string | null
           uc?: string | null
         }
@@ -599,6 +602,7 @@ export const Constants = {
 //   completed: boolean (nullable, default: false)
 //   created_at: timestamp with time zone (not null, default: now())
 //   cod_pess_fat: text (nullable)
+//   is_active: boolean (nullable, default: true)
 // Table: pending_debts
 //   uc: text (not null)
 //   setor: text (nullable)

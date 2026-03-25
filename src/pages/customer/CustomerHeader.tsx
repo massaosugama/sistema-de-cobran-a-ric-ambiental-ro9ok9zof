@@ -10,10 +10,12 @@ export function CustomerHeader({
   customer,
   isSheet,
   onClose,
+  parentCustomer,
 }: {
   customer: ParsedDebt
   isSheet?: boolean
   onClose?: () => void
+  parentCustomer?: ParsedDebt
 }) {
   return (
     <div className="space-y-4">
@@ -46,7 +48,7 @@ export function CustomerHeader({
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <span className="hover:text-primary cursor-pointer transition-colors" onClick={onClose}>
-            Voltar para UC Anterior
+            Voltar para {parentCustomer ? `UC ${parentCustomer.uc}` : 'UC Anterior'}
           </span>
           <span className="text-slate-300">/</span>
           <span className="text-slate-900 font-bold">UC {customer.uc} (Vínculo)</span>
@@ -57,20 +59,23 @@ export function CustomerHeader({
         <div className="absolute left-0 top-0 bottom-0 w-2 bg-primary"></div>
 
         <div className="pl-2">
-          <div className="flex items-center gap-3 mb-1.5">
+          <div className="flex flex-wrap items-center gap-3 mb-1.5">
             <h1 className="text-2xl font-black tracking-tight text-slate-900">
               {customer.name || 'Cliente Sem Nome'}
             </h1>
             {customer.personCode && (
               <Badge
                 variant="outline"
-                className="bg-slate-50 border-slate-200 text-slate-600 font-bold uppercase tracking-wider text-[10px]"
+                className="bg-slate-50 border-slate-200 text-slate-600 font-bold uppercase tracking-wider text-[11px] py-0.5"
               >
                 CÓD: {customer.personCode}
               </Badge>
             )}
+            <span className="text-2xl font-black tracking-tight text-slate-900 border-l-2 border-slate-300 pl-3">
+              UC {customer.uc}
+            </span>
           </div>
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm font-medium text-slate-500">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm font-medium text-slate-500 mt-2">
             {customer.document && (
               <span className="bg-slate-100 px-2 py-0.5 rounded-md">{customer.document}</span>
             )}
