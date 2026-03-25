@@ -14,12 +14,24 @@ export function CustomerInfo({ customer }: { customer: ParsedDebt }) {
   const phoneQuality = totalPhones > 0 ? score / totalPhones : 0
 
   const invoices = customer.invoices || []
-  const validInvoices = invoices.filter((i) => i.days !== null)
-  const minDays =
-    validInvoices.length > 0 ? Math.min(...validInvoices.map((i) => i.days as number)) : null
-  const maxDays =
-    validInvoices.length > 0 ? Math.max(...validInvoices.map((i) => i.days as number)) : null
+  const validInvoices = invoices.filter((i) => i.months !== null)
+  const minMonths =
+    validInvoices.length > 0 ? Math.min(...validInvoices.map((i) => i.months as number)) : null
+  const maxMonths =
+    validInvoices.length > 0 ? Math.max(...validInvoices.map((i) => i.months as number)) : null
   const avgValue = invoices.length > 0 ? customer.totalDebt / invoices.length : 0
+
+  const displayMonths = (months: number | null) => {
+    if (months === null) return '-'
+    const val = Math.max(0, months)
+    return val
+  }
+
+  const getMonthLabel = (months: number | null) => {
+    if (months === null) return ''
+    const val = Math.max(0, months)
+    return val === 1 ? 'mês' : 'meses'
+  }
 
   return (
     <>
@@ -103,10 +115,12 @@ export function CustomerInfo({ customer }: { customer: ParsedDebt }) {
                       Dívida Mais Recente
                     </span>
                     <span className="text-xl font-bold text-[#ff8c00] leading-none">
-                      {minDays !== null ? minDays : '-'}
+                      {displayMonths(minMonths)}
                     </span>
-                    {minDays !== null && (
-                      <span className="text-[9px] text-muted-foreground block mt-0.5">dias</span>
+                    {minMonths !== null && (
+                      <span className="text-[9px] text-muted-foreground block mt-0.5">
+                        {getMonthLabel(minMonths)}
+                      </span>
                     )}
                   </div>
                   <div className="text-center px-1">
@@ -114,10 +128,12 @@ export function CustomerInfo({ customer }: { customer: ParsedDebt }) {
                       Dívida Mais Antiga
                     </span>
                     <span className="text-xl font-bold text-rose-600 leading-none">
-                      {maxDays !== null ? maxDays : '-'}
+                      {displayMonths(maxMonths)}
                     </span>
-                    {maxDays !== null && (
-                      <span className="text-[9px] text-muted-foreground block mt-0.5">dias</span>
+                    {maxMonths !== null && (
+                      <span className="text-[9px] text-muted-foreground block mt-0.5">
+                        {getMonthLabel(maxMonths)}
+                      </span>
                     )}
                   </div>
                 </div>
@@ -167,9 +183,9 @@ export function CustomerInfo({ customer }: { customer: ParsedDebt }) {
                         <span className="font-bold text-slate-700 text-sm leading-tight text-center">
                           {inv.ref === 'NEG' ? 'Outras Negociações' : inv.ref}
                         </span>
-                        {inv.days !== null && (
+                        {inv.months !== null && (
                           <span className="text-[10px] text-muted-foreground font-medium">
-                            {inv.days} dias
+                            {displayMonths(inv.months)} {getMonthLabel(inv.months)}
                           </span>
                         )}
                       </div>

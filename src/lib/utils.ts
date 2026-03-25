@@ -23,3 +23,14 @@ export function generateQuoteUrl(link?: string | null, theory?: string | null): 
   }
   return null
 }
+
+/**
+ * Formats the person code by omitting the last 3 digits
+ * @param code - The original person code
+ * @returns Formatted person code
+ */
+export function formatPersonCode(code?: string | null): string {
+  if (!code) return ''
+  const str = String(code).trim()
+  return str.length > 3 ? str.slice(0, -3) : str
+}

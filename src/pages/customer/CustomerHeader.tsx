@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { formatPersonCode } from '@/lib/utils'
 import type { ParsedDebt } from '@/services/debts'
 
 export function CustomerHeader({
@@ -68,7 +69,7 @@ export function CustomerHeader({
                 variant="outline"
                 className="bg-slate-50 border-slate-200 text-slate-600 font-bold uppercase tracking-wider text-[11px] py-0.5"
               >
-                CÓD: {customer.personCode}
+                CÓD: {formatPersonCode(customer.personCode)}
               </Badge>
             )}
             <span className="text-2xl font-black tracking-tight text-slate-900 border-l-2 border-slate-300 pl-3">

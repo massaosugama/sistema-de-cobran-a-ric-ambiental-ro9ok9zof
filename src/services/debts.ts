@@ -7,7 +7,7 @@ export interface ParsedDebt {
   name: string
   document: string
   address: string
-  overdueDays: number
+  overdueMonths: number
   totalDebt: number
   valorVencido: number
   valorAVencer: number
@@ -15,7 +15,7 @@ export interface ParsedDebt {
   nextAction?: string
   priority: 'alta' | 'media' | 'baixa'
   phones: { number: string; status: 'a_verificar' | 'validado' | 'invalido' }[]
-  invoices: { ref: string; value: number; days: number | null }[]
+  invoices: { ref: string; value: number; months: number | null }[]
   redundancyAlert?: { operator: string; daysAgo: number }
   lastContactDate?: string
   lastOperatorName?: string
@@ -72,7 +72,7 @@ export function parseDebtRow(
             ref = ref.substring(1)
           }
 
-          let days: number | null = null
+          let months: number | null = null
 
           if (ref !== 'NEG') {
             const parts = ref.split('/')
@@ -84,25 +84,24 @@ export function parseDebtRow(
                 const now = new Date()
                 const currentYear = now.getFullYear()
                 const currentMonth = now.getMonth() + 1
-                const monthsDiff = (currentYear - y) * 12 + (currentMonth - m)
-                days = monthsDiff * 30
+                months = (currentYear - y) * 12 + (currentMonth - m)
               }
             }
           }
-          return { ref, value: parseSafeNumber(row.valor_total) / (row.qt_fats || 1), days }
+          return { ref, value: parseSafeNumber(row.valor_total) / (row.qt_fats || 1), months }
         })
     : []
 
   invoices.sort((a: any, b: any) => {
-    if (a.days === null && b.days === null) return 0
-    if (a.days === null) return 1
-    if (b.days === null) return -1
-    return a.days - b.days
+    if (a.months === null && b.months === null) return 0
+    if (a.months === null) return 1
+    if (b.months === null) return -1
+    return a.months - b.months
   })
 
-  const validInvoices = invoices.filter((i: any) => i.days !== null)
-  const overdueDays =
-    validInvoices.length > 0 ? Math.max(0, ...validInvoices.map((i: any) => i.days as number)) : 0
+  const validInvoices = invoices.filter((i: any) => i.months !== null)
+  const overdueMonths =
+    validInvoices.length > 0 ? Math.max(0, ...validInvoices.map((i: any) => i.months as number)) : 0
 
   const valorVencido = Number(Math.max(0, parseSafeNumber(row.valor_vencido)).toFixed(2))
   const valorAVencer = Number(Math.max(0, parseSafeNumber(row.valor_a_vencer)).toFixed(2))
@@ -115,7 +114,7 @@ export function parseDebtRow(
     name: row.pessoa_fatura_nome || row.ta_nome_de_quem || '',
     document: row.pessoa_fatura_cpf_cnpj || '',
     address: row.endereco || '',
-    overdueDays,
+    overdueMonths,
     totalDebt: total,
     valorVencido,
     valorAVencer,
