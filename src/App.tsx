@@ -13,6 +13,7 @@ import CustomerPage from './pages/customer/CustomerPage'
 import Reports from './pages/Reports'
 import ImportData from './pages/ImportData'
 import Settlements from './pages/Settlements'
+import Reversions from './pages/Reversions'
 import Debtors from './pages/Debtors'
 import Settings from './pages/Settings'
 import NotFound from './pages/NotFound'
@@ -36,6 +37,7 @@ const App = () => (
                 <Route path="/reports" element={<Reports />} />
                 <Route path="/import" element={<ImportData />} />
                 <Route path="/settlements" element={<Settlements />} />
+                <Route path="/reversions" element={<Reversions />} />
                 <Route path="/debtors" element={<Debtors />} />
                 <Route path="/settings" element={<Settings />} />
               </Route>

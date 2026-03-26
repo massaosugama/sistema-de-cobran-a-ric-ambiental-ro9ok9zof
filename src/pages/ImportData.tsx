@@ -402,30 +402,38 @@ export default function ImportData() {
   }, [])
 
   const processPendencies = async (data: any[], setProgress: (p: number) => void) => {
-    setProgress(15)
+    setProgress(5)
     const { error: truncErr } = await supabase.rpc('truncate_pending_debts')
     if (truncErr) throw new Error('Erro ao limpar a base: ' + truncErr.message)
-    setProgress(30)
-    const chunkSize = 200
+    setProgress(10)
+    const chunkSize = 500
     for (let i = 0; i < data.length; i += chunkSize) {
       const chunk = data.slice(i, i + chunkSize)
       const { error: insErr } = await supabase.from('pending_debts').insert(chunk)
       if (insErr) throw new Error(`Erro na inserção (Linha ${i + 1}) - Detalhe: ${insErr.message}`)
-      setProgress(30 + Math.floor((i / data.length) * 70))
+      setProgress(10 + Math.floor((i / data.length) * 80))
       await new Promise((r) => setTimeout(r, 10)) // small yield to keep UI responsive
     }
+
+    // Atualizar snapshot da carteira após finalizar a inserção para não estourar timeout do DB
+    await supabase.rpc('record_portfolio_snapshot')
+    setProgress(100)
   }
 
   const processSettlements = async (data: any[], setProgress: (p: number) => void) => {
-    setProgress(20)
-    const chunkSize = 200
+    setProgress(5)
+    const chunkSize = 500
     for (let i = 0; i < data.length; i += chunkSize) {
       const chunk = data.slice(i, i + chunkSize)
       const { error: insErr } = await supabase.from('settlements').insert(chunk)
       if (insErr) throw new Error(`Erro na inserção (Linha ${i + 1}) - Detalhe: ${insErr.message}`)
-      setProgress(20 + Math.floor((i / data.length) * 80))
+      setProgress(5 + Math.floor((i / data.length) * 80))
       await new Promise((r) => setTimeout(r, 10)) // small yield to keep UI responsive
     }
+
+    // Disparar cruzamento de conversões
+    await (supabase as any).rpc('process_conversions')
+    setProgress(100)
   }
 
   return (

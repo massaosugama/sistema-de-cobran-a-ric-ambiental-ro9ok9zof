@@ -22,6 +22,7 @@ import {
   CheckCircle,
   XCircle,
   UserCheck,
+  Briefcase,
 } from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
@@ -109,6 +110,10 @@ export default function Settings() {
   const [opIsActive, setOpIsActive] = useState(true)
   const [copied, setCopied] = useState(false)
 
+  // Rules state
+  const [conversionParams, setConversionParams] = useState({ max_days: 30, max_score_days: 7 })
+  const [isSavingRules, setIsSavingRules] = useState(false)
+
   useEffect(() => {
     if (user) {
       supabase
@@ -151,10 +156,23 @@ export default function Settings() {
     if (data) setClicks(data)
   }
 
+  const fetchSettingsData = async () => {
+    const { data } = await (supabase as any)
+      .from('app_settings')
+      .select('*')
+      .eq('key', 'conversion_params')
+      .single()
+    if (data?.value) {
+      setConversionParams(data.value)
+    }
+  }
+
   useEffect(() => {
     if (isAdmin === true) {
       setLoading(true)
-      Promise.all([fetchQuotes(), fetchOperators(), fetchClicks()]).finally(() => setLoading(false))
+      Promise.all([fetchQuotes(), fetchOperators(), fetchClicks(), fetchSettingsData()]).finally(
+        () => setLoading(false),
+      )
     } else if (isAdmin === false) {
       setLoading(false)
     }
@@ -207,6 +225,20 @@ export default function Settings() {
     else {
       toast({ title: 'Sucesso', description: 'Frase excluída.' })
       fetchQuotes()
+    }
+  }
+
+  const handleSaveConversionParams = async () => {
+    setIsSavingRules(true)
+    const { error } = await (supabase as any).from('app_settings').upsert({
+      key: 'conversion_params',
+      value: conversionParams,
+    })
+    setIsSavingRules(false)
+    if (error) {
+      toast({ title: 'Erro', description: error.message, variant: 'destructive' })
+    } else {
+      toast({ title: 'Sucesso', description: 'Parâmetros atualizados.' })
     }
   }
 
@@ -300,13 +332,21 @@ export default function Settings() {
 
       <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
         <TabsList
-          className={cn('grid w-full', isAdmin ? 'max-w-5xl grid-cols-5' : 'max-w-xs grid-cols-1')}
+          className={cn(
+            'grid w-full',
+            isAdmin
+              ? 'max-w-6xl grid-cols-2 md:grid-cols-3 lg:grid-cols-6'
+              : 'max-w-xs grid-cols-1',
+          )}
         >
           <TabsTrigger value="profile" className="flex items-center gap-2">
             <UserCircle className="h-4 w-4" /> Meu Perfil
           </TabsTrigger>
           {isAdmin && (
             <>
+              <TabsTrigger value="rules" className="flex items-center gap-2">
+                <Briefcase className="h-4 w-4" /> Regras de Negócio
+              </TabsTrigger>
               <TabsTrigger value="general" className="flex items-center gap-2">
                 <SettingsIcon className="h-4 w-4" /> Geral
               </TabsTrigger>
@@ -385,6 +425,67 @@ export default function Settings() {
 
         {isAdmin && (
           <>
+            <TabsContent value="rules" className="mt-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Briefcase className="h-5 w-5 text-primary" /> Regras de Negócio
+                  </CardTitle>
+                  <CardDescription>
+                    Parâmetros de cálculo de conversões e pontuação da operação.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {loading ? (
+                    <p className="text-sm text-slate-500">Carregando parâmetros...</p>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl">
+                      <div className="space-y-2">
+                        <Label htmlFor="maxDays">
+                          Qtd Dias máximo para considerar em Conversão
+                        </Label>
+                        <Input
+                          id="maxDays"
+                          type="number"
+                          value={conversionParams.max_days}
+                          onChange={(e) =>
+                            setConversionParams({
+                              ...conversionParams,
+                              max_days: parseInt(e.target.value) || 0,
+                            })
+                          }
+                        />
+                        <p className="text-xs text-slate-500">
+                          Prazo máximo (em dias) entre o atendimento e a baixa para ser considerada
+                          uma reversão.
+                        </p>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="maxScoreDays">Dias para pontuação máxima de reversão</Label>
+                        <Input
+                          id="maxScoreDays"
+                          type="number"
+                          value={conversionParams.max_score_days}
+                          onChange={(e) =>
+                            setConversionParams({
+                              ...conversionParams,
+                              max_score_days: parseInt(e.target.value) || 0,
+                            })
+                          }
+                        />
+                        <p className="text-xs text-slate-500">
+                          Baixas ocorridas dentro deste prazo recebem a pontuação máxima.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  <Button onClick={handleSaveConversionParams} disabled={isSavingRules}>
+                    {isSavingRules ? 'Salvando...' : 'Salvar Parâmetros'}
+                  </Button>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
             <TabsContent value="general" className="mt-6">
               <Card>
                 <CardHeader>
@@ -395,8 +496,7 @@ export default function Settings() {
                 </CardHeader>
                 <CardContent>
                   <p className="text-sm text-slate-600">
-                    As configurações de regras de negócio e integrações ficarão disponíveis aqui em
-                    breve.
+                    As configurações de integrações externas ficarão disponíveis aqui em breve.
                   </p>
                 </CardContent>
               </Card>

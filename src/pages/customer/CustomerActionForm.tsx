@@ -77,6 +77,11 @@ export function CustomerActionForm({
         status,
         quality_result: JSON.stringify({ phoneStatuses, talkedToOwner }),
         notes,
+        snapshot_valor_total: customer.totalDebt,
+        snapshot_valor_vencido: customer.valorVencido,
+        snapshot_valor_a_vencer: customer.valorAVencer,
+        snapshot_qt_fats: customer.invoices.length,
+        snapshot_refs: customer.invoices.map((i) => i.ref).join(' '),
       }
 
       const taskData = date
