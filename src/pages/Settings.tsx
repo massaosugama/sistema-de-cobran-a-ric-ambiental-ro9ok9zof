@@ -31,6 +31,13 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
   Table,
   TableBody,
   TableCell,
@@ -78,8 +85,8 @@ export default function Settings() {
     setSearchParams({ tab: val })
   }
 
-  const { user, updatePassword } = useAuth()
-  const [isAdmin, setIsAdmin] = useState<boolean | null>(null)
+  const { user, profile, updatePassword } = useAuth()
+  const isAdmin = profile?.role === 'admin' || !!profile?.is_admin
 
   const [quotes, setQuotes] = useState<any[]>([])
   const [clicks, setClicks] = useState<any[]>([])
@@ -106,7 +113,7 @@ export default function Settings() {
   const [opLastName, setOpLastName] = useState('')
   const [opEmail, setOpEmail] = useState('')
   const [opColor, setOpColor] = useState('')
-  const [opIsAdmin, setOpIsAdmin] = useState(false)
+  const [opRole, setOpRole] = useState('operator')
   const [opIsActive, setOpIsActive] = useState(true)
   const [copied, setCopied] = useState(false)
 
@@ -115,21 +122,10 @@ export default function Settings() {
   const [isSavingRules, setIsSavingRules] = useState(false)
 
   useEffect(() => {
-    if (user) {
-      supabase
-        .from('profiles')
-        .select('is_admin')
-        .eq('id', user.id)
-        .single()
-        .then(({ data }) => {
-          const adminStatus = !!data?.is_admin
-          setIsAdmin(adminStatus)
-          if (!adminStatus && activeTab !== 'profile') {
-            handleTabChange('profile')
-          }
-        })
+    if (!isAdmin && activeTab !== 'profile') {
+      handleTabChange('profile')
     }
-  }, [user])
+  }, [isAdmin, activeTab])
 
   const fetchQuotes = async () => {
     const { data } = await (supabase as any).from('quotes').select('*').order('order_index')
@@ -149,10 +145,6 @@ export default function Settings() {
       .from('quote_clicks')
       .select('id, created_at, profiles(first_name, last_name, name, email), quotes(text)')
       .order('created_at', { ascending: false })
-
-    if (error) {
-      console.error('Error fetching engagement:', error)
-    }
     if (data) setClicks(data)
   }
 
@@ -168,13 +160,11 @@ export default function Settings() {
   }
 
   useEffect(() => {
-    if (isAdmin === true) {
+    if (isAdmin) {
       setLoading(true)
       Promise.all([fetchQuotes(), fetchOperators(), fetchClicks(), fetchSettingsData()]).finally(
         () => setLoading(false),
       )
-    } else if (isAdmin === false) {
-      setLoading(false)
     }
   }, [isAdmin])
 
@@ -264,7 +254,7 @@ export default function Settings() {
     setOpLastName(op.last_name || '')
     setOpEmail(op.email || '')
     setOpColor(op.color || '#64748b')
-    setOpIsAdmin(!!op.is_admin)
+    setOpRole(op.role || (op.is_admin ? 'admin' : 'operator'))
     setOpIsActive(op.is_active !== false)
     setIsOperatorModalOpen(true)
   }
@@ -279,7 +269,8 @@ export default function Settings() {
         email: opEmail,
         color: opColor,
         name: `${opFirstName} ${opLastName}`.trim(),
-        is_admin: opIsAdmin,
+        role: opRole,
+        is_admin: opRole === 'admin',
         is_active: opIsActive,
         updated_at: new Date().toISOString(),
       })
@@ -288,7 +279,7 @@ export default function Settings() {
     if (error) {
       toast({ title: 'Erro', description: error.message, variant: 'destructive' })
     } else {
-      toast({ title: 'Sucesso', description: 'Operador atualizado com sucesso.' })
+      toast({ title: 'Sucesso', description: 'Usuário atualizado com sucesso.' })
       setIsOperatorModalOpen(false)
       fetchOperators()
     }
@@ -312,15 +303,6 @@ export default function Settings() {
       title: 'Link Copiado',
       description: 'O link de cadastro foi copiado para sua área de transferência.',
     })
-  }
-
-  if (isAdmin === null) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[50vh] text-slate-500 space-y-4 animate-pulse">
-        <SettingsIcon className="w-8 h-8 opacity-20" />
-        <p className="font-medium">Carregando configurações...</p>
-      </div>
-    )
   }
 
   return (
@@ -351,7 +333,7 @@ export default function Settings() {
                 <SettingsIcon className="h-4 w-4" /> Geral
               </TabsTrigger>
               <TabsTrigger value="operators" className="flex items-center gap-2">
-                <Users className="h-4 w-4" /> Operadores
+                <Users className="h-4 w-4" /> Usuários
               </TabsTrigger>
               <TabsTrigger value="quotes" className="flex items-center gap-2">
                 <BookOpen className="h-4 w-4" /> Conhecimento
@@ -507,7 +489,7 @@ export default function Settings() {
                 <CardHeader className="flex flex-row items-start justify-between">
                   <div>
                     <CardTitle className="flex items-center gap-2">
-                      <Users className="h-5 w-5 text-primary" /> Gestão de Operadores
+                      <Users className="h-5 w-5 text-primary" /> Gestão de Usuários
                     </CardTitle>
                     <CardDescription className="mt-1">
                       Gerencie os acessos, edite perfis e convide novos membros para a equipe.
@@ -526,7 +508,7 @@ export default function Settings() {
                     <Table>
                       <TableHeader className="bg-slate-50">
                         <TableRow>
-                          <TableHead>Operador</TableHead>
+                          <TableHead>Usuário</TableHead>
                           <TableHead className="hidden lg:table-cell">E-mail</TableHead>
                           <TableHead>Perfil</TableHead>
                           <TableHead>Status</TableHead>
@@ -543,7 +525,7 @@ export default function Settings() {
                         ) : operators.length === 0 ? (
                           <TableRow>
                             <TableCell colSpan={5} className="text-center py-8 text-slate-500">
-                              Nenhum operador encontrado.
+                              Nenhum usuário encontrado.
                             </TableCell>
                           </TableRow>
                         ) : (
@@ -574,9 +556,13 @@ export default function Settings() {
                                 {op.email}
                               </TableCell>
                               <TableCell>
-                                {op.is_admin ? (
+                                {op.role === 'admin' || op.is_admin ? (
                                   <span className="inline-flex items-center gap-1 bg-purple-50 text-purple-700 px-2.5 py-0.5 rounded-full text-[10px] font-semibold tracking-wide border border-purple-100 uppercase">
                                     <Shield className="h-3 w-3" /> Admin
+                                  </span>
+                                ) : op.role === 'consultas' ? (
+                                  <span className="inline-flex items-center gap-1 bg-blue-50 text-blue-700 px-2.5 py-0.5 rounded-full text-[10px] font-semibold tracking-wide border border-blue-200 uppercase">
+                                    <Eye className="h-3 w-3" /> Consultas
                                   </span>
                                 ) : (
                                   <span className="inline-flex items-center gap-1 bg-slate-50 text-slate-600 px-2.5 py-0.5 rounded-full text-[10px] font-semibold tracking-wide border border-slate-200 uppercase">
@@ -609,7 +595,7 @@ export default function Settings() {
                                   <Button
                                     variant="ghost"
                                     size="icon"
-                                    title="Editar Operador"
+                                    title="Editar Usuário"
                                     onClick={() => openEditOperator(op)}
                                     className="h-8 w-8 text-slate-400 hover:text-primary hover:bg-primary/10"
                                   >
@@ -893,8 +879,8 @@ export default function Settings() {
                       <span className="text-slate-500 text-xs font-semibold uppercase tracking-wider">
                         Perfil
                       </span>
-                      <span className="font-medium text-slate-700">
-                        {opIsAdmin ? 'Administrador' : 'Operador'}
+                      <span className="font-medium text-slate-700 capitalize">
+                        {opRole === 'admin' ? 'Administrador' : opRole}
                       </span>
                     </div>
                     <div className="flex justify-between items-center border-b border-slate-200 pb-2">
@@ -903,7 +889,10 @@ export default function Settings() {
                       </span>
                       <span className="font-medium text-slate-700">
                         {editingOperator?.last_login
-                          ? new Date(editingOperator.last_login).toLocaleDateString('pt-BR')
+                          ? new Date(editingOperator.last_login).toLocaleString('pt-BR', {
+                              dateStyle: 'short',
+                              timeStyle: 'short',
+                            })
                           : '-'}
                       </span>
                     </div>
@@ -932,7 +921,7 @@ export default function Settings() {
                 {/* Content */}
                 <div className="w-full p-6 overflow-y-auto">
                   <DialogHeader className="mb-6 text-left">
-                    <DialogTitle className="text-2xl">Editar Operador</DialogTitle>
+                    <DialogTitle className="text-2xl">Editar Usuário</DialogTitle>
                     <DialogDescription>
                       Ajuste as informações pessoais, preferências e permissões de acesso deste
                       usuário.
@@ -993,19 +982,27 @@ export default function Settings() {
                     <div className="space-y-3 pt-4 border-t border-slate-100">
                       <h4 className="text-sm font-semibold text-slate-900">Segurança e Acesso</h4>
 
-                      <div className="flex items-center justify-between rounded-lg border border-slate-200 p-4 hover:bg-slate-50 transition-colors">
-                        <div className="space-y-0.5">
-                          <Label
-                            className="text-sm font-semibold flex items-center gap-2 text-purple-700 cursor-pointer"
-                            onClick={() => setOpIsAdmin(!opIsAdmin)}
-                          >
-                            <Shield className="w-4 h-4" /> Privilégios de Administrador
-                          </Label>
-                          <p className="text-xs text-slate-500">
-                            Concede acesso total às configurações e gestão de usuários.
-                          </p>
-                        </div>
-                        <Switch checked={opIsAdmin} onCheckedChange={setOpIsAdmin} />
+                      <div className="space-y-2 mb-4 p-4 rounded-lg border border-slate-200 bg-slate-50/50">
+                        <Label
+                          htmlFor="opRole"
+                          className="text-sm font-semibold flex items-center gap-2 text-slate-800"
+                        >
+                          <Shield className="w-4 h-4 text-primary" /> Tipo de Perfil
+                        </Label>
+                        <Select value={opRole} onValueChange={setOpRole}>
+                          <SelectTrigger id="opRole" className="bg-white">
+                            <SelectValue placeholder="Selecione o perfil" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="admin">Administrador</SelectItem>
+                            <SelectItem value="operator">Operador</SelectItem>
+                            <SelectItem value="consultas">Consultas</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <p className="text-xs text-slate-500 pt-1">
+                          Define o nível de permissão no sistema. O perfil Consultas possui apenas
+                          permissões de leitura.
+                        </p>
                       </div>
 
                       <div className="flex items-center justify-between rounded-lg border border-slate-200 p-4 hover:bg-slate-50 transition-colors">
@@ -1017,7 +1014,7 @@ export default function Settings() {
                             <UserCheck className="w-4 h-4" /> Conta Ativa
                           </Label>
                           <p className="text-xs text-slate-500">
-                            Permite que o operador faça login e acesse o sistema.
+                            Permite que o usuário faça login e acesse o sistema.
                           </p>
                         </div>
                         <Switch checked={opIsActive} onCheckedChange={setOpIsActive} />
@@ -1039,7 +1036,7 @@ export default function Settings() {
           <Dialog open={isInviteModalOpen} onOpenChange={setIsInviteModalOpen}>
             <DialogContent className="sm:max-w-[425px]">
               <DialogHeader>
-                <DialogTitle>Convidar Operador</DialogTitle>
+                <DialogTitle>Convidar Usuário</DialogTitle>
                 <DialogDescription>
                   Envie o link abaixo para que o novo membro da equipe crie sua conta e defina sua
                   própria senha.
@@ -1057,8 +1054,8 @@ export default function Settings() {
                   </Button>
                 </div>
                 <p className="text-xs text-slate-500 mt-4">
-                  Após a criação da conta, você poderá editar o perfil dele e conceder permissões de
-                  administrador nesta mesma tela.
+                  Após a criação da conta, você poderá editar o perfil dele e conceder permissões
+                  nesta mesma tela.
                 </p>
               </div>
               <DialogFooter>

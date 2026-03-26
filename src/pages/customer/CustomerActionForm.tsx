@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { CalendarIcon, Send, Sparkles, CheckSquare, Phone } from 'lucide-react'
+import { CalendarIcon, Send, Sparkles, CheckSquare, Phone, Eye } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import {
@@ -45,7 +45,9 @@ export function CustomerActionForm({
   const [talkedToOwner, setTalkedToOwner] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const { toast } = useToast()
-  const { user } = useAuth()
+  const { user, profile } = useAuth()
+
+  const isConsultas = profile?.role === 'consultas'
 
   useEffect(() => {
     if (customer.phones && customer.phones.length > 0) {
@@ -58,6 +60,7 @@ export function CustomerActionForm({
   }, [customer])
 
   const handleSave = async () => {
+    if (isConsultas) return
     if (!status) {
       toast({
         title: 'Atenção',
@@ -138,10 +141,19 @@ export function CustomerActionForm({
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6 pt-6 bg-white">
+        {isConsultas && (
+          <div className="bg-blue-50 border border-blue-200 text-blue-800 p-3 rounded-xl flex items-center gap-2 text-sm font-medium">
+            <Eye className="w-4 h-4 shrink-0" /> Seu perfil tem permissão apenas de leitura.
+          </div>
+        )}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
           <div className="space-y-2.5">
             <Label className="font-bold text-slate-700">Canal de Contato</Label>
-            <Select value={channel} onValueChange={setChannel}>
+            <Select
+              value={channel}
+              onValueChange={setChannel}
+              disabled={isSubmitting || isConsultas}
+            >
               <SelectTrigger className="rounded-xl border-slate-200 h-11 bg-slate-50 font-medium">
                 <SelectValue placeholder="Selecione" />
               </SelectTrigger>
@@ -157,7 +169,7 @@ export function CustomerActionForm({
           </div>
           <div className="space-y-2.5">
             <Label className="font-bold text-slate-700">Resultado</Label>
-            <Select value={status} onValueChange={setStatus}>
+            <Select value={status} onValueChange={setStatus} disabled={isSubmitting || isConsultas}>
               <SelectTrigger className="rounded-xl border-slate-200 h-11 bg-slate-50 font-medium">
                 <SelectValue placeholder="Selecione o status" />
               </SelectTrigger>
@@ -195,6 +207,7 @@ export function CustomerActionForm({
                     <div className="flex gap-2">
                       <button
                         type="button"
+                        disabled={isConsultas}
                         onClick={() =>
                           setPhoneStatuses({ ...phoneStatuses, [phone.number]: 'a_verificar' })
                         }
@@ -202,6 +215,7 @@ export function CustomerActionForm({
                           'flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg border bg-white text-slate-600 transition-all flex-1',
                           phoneStatuses[phone.number] === 'a_verificar' &&
                             'bg-amber-50 border-amber-300 text-amber-800 shadow-sm ring-1 ring-amber-300',
+                          isConsultas && 'cursor-not-allowed opacity-70',
                         )}
                       >
                         <div className="w-2.5 h-2.5 rounded-full bg-amber-400 shadow-inner"></div>
@@ -211,6 +225,7 @@ export function CustomerActionForm({
                       </button>
                       <button
                         type="button"
+                        disabled={isConsultas}
                         onClick={() =>
                           setPhoneStatuses({ ...phoneStatuses, [phone.number]: 'validado' })
                         }
@@ -218,6 +233,7 @@ export function CustomerActionForm({
                           'flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg border bg-white text-slate-600 transition-all flex-1',
                           phoneStatuses[phone.number] === 'validado' &&
                             'bg-emerald-50 border-emerald-300 text-emerald-800 shadow-sm ring-1 ring-emerald-300',
+                          isConsultas && 'cursor-not-allowed opacity-70',
                         )}
                       >
                         <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-inner"></div>
@@ -227,6 +243,7 @@ export function CustomerActionForm({
                       </button>
                       <button
                         type="button"
+                        disabled={isConsultas}
                         onClick={() =>
                           setPhoneStatuses({ ...phoneStatuses, [phone.number]: 'invalido' })
                         }
@@ -234,6 +251,7 @@ export function CustomerActionForm({
                           'flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg border bg-white text-slate-600 transition-all flex-1',
                           phoneStatuses[phone.number] === 'invalido' &&
                             'bg-rose-50 border-rose-300 text-rose-800 shadow-sm ring-1 ring-rose-300',
+                          isConsultas && 'cursor-not-allowed opacity-70',
                         )}
                       >
                         <div className="w-2.5 h-2.5 rounded-full bg-rose-500 shadow-inner"></div>
@@ -255,7 +273,10 @@ export function CustomerActionForm({
           <div className="flex items-center justify-between pt-2 border-t border-slate-200">
             <Label
               htmlFor="achei-pessoa"
-              className="cursor-pointer font-semibold text-sm text-slate-700"
+              className={cn(
+                'font-semibold text-sm text-slate-700',
+                !isConsultas && 'cursor-pointer',
+              )}
             >
               Falei com o Titular?
             </Label>
@@ -263,6 +284,7 @@ export function CustomerActionForm({
               id="achei-pessoa"
               checked={talkedToOwner}
               onCheckedChange={setTalkedToOwner}
+              disabled={isSubmitting || isConsultas}
               className="data-[state=checked]:bg-primary"
             />
           </div>
@@ -274,6 +296,7 @@ export function CustomerActionForm({
             <PopoverTrigger asChild>
               <Button
                 variant={'outline'}
+                disabled={isSubmitting || isConsultas}
                 className={`w-full justify-start text-left font-medium h-11 rounded-xl border-slate-200 bg-slate-50 ${!date && 'text-slate-400'}`}
               >
                 <CalendarIcon className="mr-2 h-4 w-4 text-primary" />
@@ -307,6 +330,7 @@ export function CustomerActionForm({
           <Textarea
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
+            disabled={isSubmitting || isConsultas}
             placeholder="Detalhe o acordo, objeções ou motivo de insucesso..."
             className="resize-none min-h-[110px] rounded-xl border-slate-200 bg-slate-50 font-medium placeholder:text-slate-400"
           />
@@ -315,11 +339,19 @@ export function CustomerActionForm({
       <CardFooter className="bg-slate-50/80 border-t border-slate-100 p-6 flex flex-col gap-3">
         <Button
           onClick={handleSave}
-          disabled={isSubmitting}
+          disabled={isSubmitting || isConsultas}
           className="w-full h-12 text-base font-bold shadow-md shadow-primary/20 hover:shadow-lg transition-all"
         >
-          <Send className="mr-2 h-4 w-4" />
-          {isSubmitting ? 'Salvando...' : 'Salvar Atendimento'}
+          {isConsultas ? (
+            <>
+              <Eye className="mr-2 h-4 w-4" /> Apenas Leitura
+            </>
+          ) : (
+            <>
+              <Send className="mr-2 h-4 w-4" />{' '}
+              {isSubmitting ? 'Salvando...' : 'Salvar Atendimento'}
+            </>
+          )}
         </Button>
         {isSheet && onClose && (
           <Button

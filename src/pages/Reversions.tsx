@@ -15,6 +15,7 @@ import { format, parseISO } from 'date-fns'
 import { useAuth } from '@/hooks/use-auth'
 import { useDebounce } from '@/hooks/use-debounce'
 import { cn } from '@/lib/utils'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 
 export default function Reversions() {
   const { user } = useAuth()
@@ -32,7 +33,7 @@ export default function Reversions() {
     setLoading(true)
     supabase
       .from('contact_results')
-      .select('*, contact_history(*, profiles(name)), settlements(*)')
+      .select('*, contact_history(*, profiles(name, first_name, last_name, color)), settlements(*)')
       .order('created_at', { ascending: false })
       .limit(1000)
       .then(async ({ data }) => {
@@ -60,7 +61,7 @@ export default function Reversions() {
       })
   }, [])
 
-  const results = useMemo(() => {
+  const groupedResults = useMemo(() => {
     let res = rawResults
 
     if (view === 'meus') {
@@ -81,16 +82,58 @@ export default function Reversions() {
       res = res.filter((r) => r.endereco && r.endereco.toLowerCase().includes(lowerAddr))
     }
 
-    return res
+    const groups: Record<string, { opName: string; opColor: string; items: any[] }> = {}
+
+    res.forEach((item) => {
+      const opId = item.contact_history?.operator_id || 'unassigned'
+      if (!groups[opId]) {
+        const profile = item.contact_history?.profiles
+        groups[opId] = {
+          opName: profile?.first_name
+            ? `${profile.first_name} ${profile.last_name || ''}`.trim()
+            : profile?.name || 'Desconhecido',
+          opColor: profile?.color || '#94a3b8',
+          items: [],
+        }
+      }
+      groups[opId].items.push(item)
+    })
+
+    return Object.values(groups).sort((a, b) => a.opName.localeCompare(b.opName))
   }, [rawResults, view, user?.id, debouncedSearch, debouncedSearchAddress])
 
   return (
     <div className="space-y-6 animate-fade-in-up pb-10">
       <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 shrink-0">
         <div>
-          <h1 className="text-3xl font-black tracking-tight text-slate-900">
-            Reversões & Resultados
-          </h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-3xl font-black tracking-tight text-slate-900">
+              Reversões & Resultados
+            </h1>
+            <Popover>
+              <PopoverTrigger asChild>
+                <button className="flex items-center justify-center w-6 h-6 rounded-full bg-slate-100 text-slate-500 hover:bg-primary/10 hover:text-primary transition-colors focus:outline-none">
+                  <AlertCircle className="w-4 h-4" />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent
+                className="w-80 p-4 bg-amber-50 border-amber-200 shadow-md rounded-xl"
+                align="start"
+              >
+                <h3 className="font-bold text-amber-900 mb-2 flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4" /> Aviso de Dados Históricos
+                </h3>
+                <p className="text-sm text-amber-800 leading-relaxed">
+                  Os valores, faturas e indicadores apresentados nesta tela são dados estáticos (
+                  <strong>snapshots</strong>) registrados no exato momento da abertura do
+                  atendimento. Eles servem exclusivamente para o monitoramento de resultados
+                  históricos e mensuração de reversão de dívidas, não devendo ser confundidos com os
+                  saldos atualizados exibidos nas telas de atendimento. Apenas baixas identificadas
+                  como CONV.ARREC ou DEB.AUTO geram reversões automáticas.
+                </p>
+              </PopoverContent>
+            </Popover>
+          </div>
           <p className="text-slate-500 mt-1 font-medium">
             Acompanhamento de conversões de acordos e pagamentos efetuados.
           </p>
@@ -146,142 +189,138 @@ export default function Reversions() {
         </div>
       </div>
 
-      <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex gap-4 shadow-sm">
-        <AlertCircle className="w-6 h-6 text-amber-600 shrink-0 mt-0.5" />
-        <div className="space-y-1">
-          <h3 className="font-bold text-amber-900">Aviso de Dados Históricos</h3>
-          <p className="text-sm text-amber-800 leading-relaxed">
-            Os valores, faturas e indicadores apresentados nesta tela são dados estáticos (
-            <strong>snapshots</strong>) registrados no exato momento da abertura do atendimento.
-            Eles servem exclusivamente para o monitoramento de resultados históricos e mensuração de
-            reversão de dívidas, não devendo ser confundidos com os saldos atualizados exibidos nas
-            telas de atendimento. Apenas baixas identificadas como CONV.ARREC ou DEB.AUTO geram
-            reversões automáticas.
-          </p>
+      {loading ? (
+        <div className="py-20 flex-1 flex items-center justify-center text-slate-500 font-medium">
+          Carregando resultados...
         </div>
-      </div>
-
-      <Card className="border-slate-200 shadow-sm overflow-hidden">
-        <CardHeader className="bg-white border-b pb-4">
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <RefreshCcw className="w-5 h-5 text-emerald-600" /> Histórico de Conversões
-          </CardTitle>
-          <CardDescription>
-            Cruzamento entre os atendimentos e as baixas detectadas no sistema dentro do prazo de
-            conversão.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader className="bg-slate-50">
-              <TableRow>
-                <TableHead>Operador</TableHead>
-                <TableHead>Devedor / UC</TableHead>
-                <TableHead>Snapshot do Atendimento</TableHead>
-                <TableHead>Baixa Detectada</TableHead>
-                <TableHead className="text-center">Tempo</TableHead>
-                <TableHead className="text-right">Pontos</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8 text-slate-500">
-                    Carregando resultados...
-                  </TableCell>
-                </TableRow>
-              ) : results.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center py-10 text-slate-500">
-                    <TrendingUp className="w-8 h-8 text-slate-300 mx-auto mb-3" />
-                    <p>Nenhuma conversão registrada ou encontrada nos filtros.</p>
-                  </TableCell>
-                </TableRow>
-              ) : (
-                results.map((res) => (
-                  <TableRow key={res.id}>
-                    <TableCell className="font-medium text-slate-800">
-                      {res.contact_history?.profiles?.name || 'Desconhecido'}
-                      <div className="text-xs text-slate-500 font-normal mt-0.5">
-                        {res.contact_history?.contact_type}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <span
-                        className="font-bold text-slate-800 line-clamp-1"
-                        title={res.nome_cliente}
-                      >
-                        {res.nome_cliente}
-                      </span>
-                      <div className="flex items-center gap-2 mt-0.5">
-                        <span className="font-semibold text-sm text-slate-600">UC {res.uc}</span>
-                        <span className="text-[10px] text-slate-400">Cod: {res.cod_pess_fat}</span>
-                      </div>
-                      {res.endereco && (
-                        <span
-                          className="text-xs text-slate-500 line-clamp-1 mt-0.5"
-                          title={res.endereco}
-                        >
-                          {res.endereco}
-                        </span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2 text-sm">
-                          <span className="text-slate-500">Valor Dívida:</span>
-                          <span className="font-semibold">
-                            R${' '}
-                            {(res.contact_history?.snapshot_valor_total || 0).toLocaleString(
-                              'pt-BR',
-                              { minimumFractionDigits: 2 },
+      ) : groupedResults.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-20 text-slate-500 bg-white rounded-xl border border-slate-200 shadow-sm">
+          <TrendingUp className="w-10 h-10 text-slate-300 mb-4" />
+          <p className="font-medium text-lg">Nenhuma conversão encontrada.</p>
+          <p className="text-sm">Altere os filtros para buscar mais resultados.</p>
+        </div>
+      ) : (
+        <div className="space-y-6">
+          {groupedResults.map((group, idx) => (
+            <Card key={idx} className="border-slate-200 shadow-sm overflow-hidden">
+              <CardHeader
+                className="px-5 py-3 border-b flex flex-row items-center justify-between"
+                style={{ backgroundColor: `${group.opColor}15` }}
+              >
+                <div className="flex items-center gap-3">
+                  <div
+                    className="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold shadow-sm text-sm"
+                    style={{ backgroundColor: group.opColor }}
+                  >
+                    {group.opName.charAt(0).toUpperCase()}
+                  </div>
+                  <CardTitle className="text-base text-slate-800">{group.opName}</CardTitle>
+                </div>
+                <div className="bg-white border px-3 py-1 rounded-full text-xs font-bold text-slate-600 shadow-sm">
+                  {group.items.length} conversões
+                </div>
+              </CardHeader>
+              <CardContent className="p-0">
+                <div className="max-h-[350px] overflow-y-auto">
+                  <Table>
+                    <TableHeader className="bg-slate-50 sticky top-0 z-10 shadow-sm">
+                      <TableRow>
+                        <TableHead>Devedor / UC</TableHead>
+                        <TableHead>Snapshot do Atendimento</TableHead>
+                        <TableHead>Baixa Detectada</TableHead>
+                        <TableHead className="text-center">Tempo</TableHead>
+                        <TableHead className="text-right">Pontos</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {group.items.map((res) => (
+                        <TableRow key={res.id}>
+                          <TableCell>
+                            <span
+                              className="font-bold text-slate-800 line-clamp-1"
+                              title={res.nome_cliente}
+                            >
+                              {res.nome_cliente}
+                            </span>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              <span className="font-semibold text-sm text-slate-600">
+                                UC {res.uc}
+                              </span>
+                              <span className="text-[10px] text-slate-400">
+                                Cod: {res.cod_pess_fat}
+                              </span>
+                            </div>
+                            {res.endereco && (
+                              <span
+                                className="text-xs text-slate-500 line-clamp-1 mt-0.5"
+                                title={res.endereco}
+                              >
+                                {res.endereco}
+                              </span>
                             )}
-                          </span>
-                        </div>
-                        <div className="text-xs text-slate-400">
-                          {res.contact_history?.created_at
-                            ? format(parseISO(res.contact_history.created_at), 'dd/MM/yyyy')
-                            : '-'}
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2 text-sm">
-                          <span className="text-slate-500">Valor Baixado:</span>
-                          <span className="font-bold text-emerald-600">
-                            R${' '}
-                            {(res.valor_recuperado || 0).toLocaleString('pt-BR', {
-                              minimumFractionDigits: 2,
-                            })}
-                          </span>
-                        </div>
-                        <div className="text-xs text-slate-400 flex items-center gap-1">
-                          {res.data_baixa ? format(parseISO(res.data_baixa), 'dd/MM/yyyy') : '-'}
-                          <span className="mx-1">•</span>
-                          <span className="uppercase font-semibold">
-                            {res.settlements?.tipo_baixa || 'N/A'}
-                          </span>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <span className="inline-flex items-center px-2 py-1 rounded-md bg-blue-50 text-blue-700 text-xs font-semibold">
-                        {res.dias_para_reversao} {res.dias_para_reversao === 1 ? 'dia' : 'dias'}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <span className="inline-flex items-center px-2 py-1 rounded-md bg-orange-50 text-orange-600 text-sm font-bold">
-                        +{res.pontos_reversao}
-                      </span>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+                          </TableCell>
+                          <TableCell>
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-2 text-sm">
+                                <span className="text-slate-500">Valor Dívida:</span>
+                                <span className="font-semibold">
+                                  R${' '}
+                                  {(res.contact_history?.snapshot_valor_total || 0).toLocaleString(
+                                    'pt-BR',
+                                    { minimumFractionDigits: 2 },
+                                  )}
+                                </span>
+                              </div>
+                              <div className="text-xs text-slate-400">
+                                {res.contact_history?.created_at
+                                  ? format(parseISO(res.contact_history.created_at), 'dd/MM/yyyy')
+                                  : '-'}
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-2 text-sm">
+                                <span className="text-slate-500">Valor Baixado:</span>
+                                <span className="font-bold text-emerald-600">
+                                  R${' '}
+                                  {(res.valor_recuperado || 0).toLocaleString('pt-BR', {
+                                    minimumFractionDigits: 2,
+                                  })}
+                                </span>
+                              </div>
+                              <div className="text-xs text-slate-400 flex items-center gap-1">
+                                {res.data_baixa
+                                  ? format(parseISO(res.data_baixa), 'dd/MM/yyyy')
+                                  : '-'}
+                                <span className="mx-1">•</span>
+                                <span className="uppercase font-semibold">
+                                  {res.settlements?.tipo_baixa || 'N/A'}
+                                </span>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <span className="inline-flex items-center px-2 py-1 rounded-md bg-blue-50 text-blue-700 text-xs font-semibold">
+                              {res.dias_para_reversao}{' '}
+                              {res.dias_para_reversao === 1 ? 'dia' : 'dias'}
+                            </span>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <span className="inline-flex items-center px-2 py-1 rounded-md bg-orange-50 text-orange-600 text-sm font-bold">
+                              +{res.pontos_reversao}
+                            </span>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

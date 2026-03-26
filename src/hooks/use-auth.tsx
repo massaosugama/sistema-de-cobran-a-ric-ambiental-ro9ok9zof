@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase/client'
 interface AuthContextType {
   user: User | null
   session: Session | null
+  profile: any | null
   signUp: (
     email: string,
     password: string,
@@ -29,8 +30,18 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null)
   const [session, setSession] = useState<Session | null>(null)
+  const [profile, setProfile] = useState<any | null>(null)
   const [loading, setLoading] = useState(true)
   const isLoggingOutRef = useRef(false)
+
+  const fetchProfile = async (userId: string) => {
+    try {
+      const { data } = await supabase.from('profiles').select('*').eq('id', userId).single()
+      setProfile(data)
+    } catch (err) {
+      console.error('Error fetching profile:', err)
+    }
+  }
 
   useEffect(() => {
     const {
@@ -38,12 +49,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session)
       setUser(session?.user ?? null)
-      setLoading(false)
+      if (session?.user) {
+        fetchProfile(session.user.id).finally(() => setLoading(false))
+      } else {
+        setProfile(null)
+        setLoading(false)
+      }
     })
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session)
       setUser(session?.user ?? null)
-      setLoading(false)
+      if (session?.user) {
+        fetchProfile(session.user.id).finally(() => setLoading(false))
+      } else {
+        setProfile(null)
+        setLoading(false)
+      }
     })
     return () => subscription.unsubscribe()
   }, [])
@@ -85,7 +107,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           }
         } catch (err) {
           consecutiveFailures++
-          console.debug('Heartbeat ping failed:', err)
         }
       }
 
@@ -95,9 +116,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           .catch(() => {})
       }
 
-      // Atraso no primeiro ping para não bloquear o carregamento da página
       timeout = setTimeout(runPing, 5000)
-      interval = setInterval(runPing, 2 * 60 * 1000) // Ping a cada 2 minutos
+      interval = setInterval(runPing, 2 * 60 * 1000)
     }
 
     return () => {
@@ -138,11 +158,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     isLoggingOutRef.current = true
     if (user) {
       try {
-        // Instant offline update for other users viewing the dashboard
         await supabase.from('profiles').update({ last_login: null }).eq('id', user.id)
-      } catch (err) {
-        console.error('Error updating last_login on logout', err)
-      }
+      } catch (err) {}
     }
     const { error } = await supabase.auth.signOut()
     return { error }
@@ -162,7 +179,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   return (
     <AuthContext.Provider
-      value={{ user, session, signUp, signIn, signOut, resetPassword, updatePassword, loading }}
+      value={{
+        user,
+        session,
+        profile,
+        signUp,
+        signIn,
+        signOut,
+        resetPassword,
+        updatePassword,
+        loading,
+      }}
     >
       {children}
     </AuthContext.Provider>

@@ -1076,6 +1076,7 @@ export const Constants = {
 //     JOIN public.contact_history ch ON ch.uc = s.uc AND (ch.cod_pess_fat = s.cod_pess_fat OR s.cod_pess_fat IS NULL)
 //     WHERE
 //       ch.is_active = true
+//       AND s.tipo_baixa IN ('CONV.ARREC', 'DEB.AUTO') -- REVISED BUSINESS RULE
 //       AND COALESCE(s.databaixa_final, s.databaixa_inicial, s.datacredito_final, s.datacredito_inicial, s.neg_data) >= (ch.created_at AT TIME ZONE 'America/Sao_Paulo')::date
 //       AND (COALESCE(s.databaixa_final, s.databaixa_inicial, s.datacredito_final, s.datacredito_inicial, s.neg_data) - (ch.created_at AT TIME ZONE 'America/Sao_Paulo')::date) <= max_days
 //     ON CONFLICT (contact_id, settlement_id) DO NOTHING;

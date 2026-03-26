@@ -219,9 +219,12 @@ function DebtSearch({ onSelect }: { onSelect: (debt: ParsedDebt) => void }) {
 }
 
 export default function FollowUp() {
-  const { user } = useAuth()
+  const { user, profile } = useAuth()
   const { toast } = useToast()
-  const [isAdmin, setIsAdmin] = useState(false)
+
+  const isAdmin = profile?.role === 'admin' || !!profile?.is_admin
+  const isConsultas = profile?.role === 'consultas'
+
   const [view, setView] = useState<'meus' | 'todos'>('meus')
   const [tasks, setTasks] = useState<EnrichedTask[]>([])
   const [loading, setLoading] = useState(true)
@@ -259,17 +262,6 @@ export default function FollowUp() {
   const [isNewActivitySheetOpen, setIsNewActivitySheetOpen] = useState(false)
   const [preFilledDate, setPreFilledDate] = useState<Date | undefined>(undefined)
   const [selectedNewDebt, setSelectedNewDebt] = useState<ParsedDebt | null>(null)
-
-  useEffect(() => {
-    if (user?.id) {
-      supabase
-        .from('profiles')
-        .select('is_admin')
-        .eq('id', user.id)
-        .single()
-        .then(({ data }) => setIsAdmin(!!data?.is_admin))
-    }
-  }, [user])
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 1024)
@@ -450,7 +442,7 @@ export default function FollowUp() {
   }
 
   const handleSaveCurrent = async () => {
-    if (!editingTask || !actionInput || !dateInput) return
+    if (isConsultas || !editingTask || !actionInput || !dateInput) return
     setIsSaving(true)
     try {
       const updatedDate = format(dateInput, 'yyyy-MM-dd')
@@ -473,6 +465,7 @@ export default function FollowUp() {
   }
 
   const handleCompleteCurrent = async (id: string) => {
+    if (isConsultas) return
     setIsSaving(true)
     try {
       await supabase.from('follow_up_tasks').update({ completed: true }).eq('id', id)
@@ -489,6 +482,7 @@ export default function FollowUp() {
   }
 
   const handleResumeTask = async (id: string, e?: React.MouseEvent) => {
+    if (isConsultas) return
     if (e) e.stopPropagation()
     setIsSaving(true)
     try {
@@ -509,7 +503,8 @@ export default function FollowUp() {
   }
 
   const handleInactivateTask = async (id: string) => {
-    if (!confirm('Deseja inativar este lembrete? Ele não aparecerá mais no painel.')) return
+    if (isConsultas || !confirm('Deseja inativar este lembrete? Ele não aparecerá mais no painel.'))
+      return
     setIsSaving(true)
     try {
       await supabase.from('follow_up_tasks').update({ is_active: false }).eq('id', id)
@@ -525,6 +520,7 @@ export default function FollowUp() {
 
   const handleDeleteTask = async (id: string) => {
     if (
+      isConsultas ||
       !confirm(
         'ATENÇÃO: Deseja EXCLUIR DEFINITIVAMENTE este lembrete? Esta ação não pode ser desfeita.',
       )
@@ -544,6 +540,7 @@ export default function FollowUp() {
   }
 
   const handleInactivateHistory = async (id: string, currentActive: boolean) => {
+    if (isConsultas) return
     try {
       await updateContact(id, { is_active: !currentActive })
       setTaskHistory((prev) =>
@@ -560,6 +557,7 @@ export default function FollowUp() {
 
   const handleDeleteHistory = async (id: string) => {
     if (
+      isConsultas ||
       !confirm(
         'ATENÇÃO: Deseja EXCLUIR DEFINITIVAMENTE este registro? Esta ação não pode ser desfeita.',
       )
@@ -575,7 +573,7 @@ export default function FollowUp() {
   }
 
   const handleCreateNew = async () => {
-    if (!editingTask || !newActionInput || !newDateInput) return
+    if (isConsultas || !editingTask || !newActionInput || !newDateInput) return
     setIsSaving(true)
     try {
       const payload = {
@@ -603,6 +601,7 @@ export default function FollowUp() {
   }
 
   const handleDropTask = async (taskId: string, newDateStr: string) => {
+    if (isConsultas) return
     const task = tasks.find((t) => t.id === taskId)
     if (!task || task.completed || task.due_date === newDateStr) return
 
@@ -621,15 +620,16 @@ export default function FollowUp() {
 
   const TaskCard = ({ task }: { task: EnrichedTask }) => (
     <div
-      draggable={!task.completed}
+      draggable={!task.completed && !isConsultas}
       onDragStart={(e) => {
-        if (task.completed) return
+        if (task.completed || isConsultas) return
         e.dataTransfer.setData('text/plain', task.id)
         e.dataTransfer.effectAllowed = 'move'
       }}
       className={cn(
         'border rounded-xl p-3 shadow-sm transition-all group flex flex-col relative animate-fade-in',
         !task.completed &&
+          !isConsultas &&
           'cursor-grab active:cursor-grabbing hover:shadow-md hover:border-slate-300',
         task.completed
           ? 'bg-slate-50 border-slate-200 text-slate-500'
@@ -755,7 +755,7 @@ export default function FollowUp() {
       </div>
 
       <div className="flex items-center justify-end mt-auto pt-2 border-t border-slate-100 gap-2">
-        {task.completed && (
+        {task.completed && !isConsultas && (
           <Button
             variant="ghost"
             size="sm"
@@ -772,12 +772,12 @@ export default function FollowUp() {
           onClick={() => openEditTaskModal(task)}
           className={cn(
             'h-7 px-3 text-xs font-medium',
-            task.completed
+            task.completed || isConsultas
               ? 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'
               : 'text-primary hover:text-primary hover:bg-primary/10',
           )}
         >
-          {task.completed ? (
+          {task.completed || isConsultas ? (
             <>
               <Eye className="w-3.5 h-3.5 mr-1.5" /> Consultar
             </>
@@ -938,10 +938,12 @@ export default function FollowUp() {
                 key={day.toISOString()}
                 onClick={() => setSelectedDate(day)}
                 onDragOver={(e) => {
+                  if (isConsultas) return
                   e.preventDefault()
                   e.dataTransfer.dropEffect = 'move'
                 }}
                 onDrop={(e) => {
+                  if (isConsultas) return
                   e.preventDefault()
                   const taskId = e.dataTransfer.getData('text/plain')
                   if (taskId) {
@@ -962,24 +964,25 @@ export default function FollowUp() {
                     <div
                       onClick={(e) => {
                         e.stopPropagation()
+                        if (isConsultas) return
                         setPreFilledDate(day)
                         setSelectedNewDebt(null)
                         setIsNewActivitySheetOpen(true)
                       }}
                       className={cn(
-                        'text-[10px] sm:text-xs font-bold mb-0.5 sm:mb-1 text-center w-5 h-5 sm:w-6 sm:h-6 ml-auto flex items-center justify-center rounded-full shrink-0 transition-colors cursor-pointer z-20',
+                        'text-[10px] sm:text-xs font-bold mb-0.5 sm:mb-1 text-center w-5 h-5 sm:w-6 sm:h-6 ml-auto flex items-center justify-center rounded-full shrink-0 transition-colors z-20',
+                        !isConsultas && 'cursor-pointer hover:bg-primary/20 hover:text-primary',
                         isToday
                           ? 'bg-primary text-white'
                           : !isCurrentMonth
                             ? 'text-slate-400'
                             : 'text-slate-700',
-                        'hover:bg-primary/20 hover:text-primary',
                       )}
                     >
                       {format(day, 'd')}
                     </div>
                   </TooltipTrigger>
-                  <TooltipContent side="top">
+                  <TooltipContent side="top" className={isConsultas ? 'hidden' : ''}>
                     <p>Incluir atividade</p>
                   </TooltipContent>
                 </Tooltip>
@@ -988,8 +991,9 @@ export default function FollowUp() {
                   {dayTasks.map((t) => (
                     <div
                       key={t.id}
-                      draggable={!t.completed}
+                      draggable={!t.completed && !isConsultas}
                       onDragStart={(e) => {
+                        if (t.completed || isConsultas) return
                         e.dataTransfer.setData('text/plain', t.id)
                         e.dataTransfer.effectAllowed = 'move'
                       }}
@@ -1001,7 +1005,10 @@ export default function FollowUp() {
                         'text-[9px] sm:text-[10px] leading-none sm:leading-tight px-1 sm:px-1.5 py-0.5 sm:py-1 rounded border-l-[2px] sm:border-l-[3px] truncate flex items-center gap-1 sm:gap-1.5 transition-all shadow-sm',
                         t.completed
                           ? 'bg-slate-100/50 text-slate-500'
-                          : 'bg-slate-100/80 text-slate-700 hover:brightness-95 cursor-grab active:cursor-grabbing',
+                          : cn(
+                              'bg-slate-100/80 text-slate-700 hover:brightness-95',
+                              !isConsultas && 'cursor-grab active:cursor-grabbing',
+                            ),
                       )}
                       style={{
                         borderLeftColor: t.completed ? '#cbd5e1' : t.operator?.color || '#94a3b8',
@@ -1107,17 +1114,19 @@ export default function FollowUp() {
                 Todos
               </button>
             </div>
-            <Button
-              onClick={() => {
-                setPreFilledDate(undefined)
-                setSelectedNewDebt(null)
-                setIsNewActivitySheetOpen(true)
-              }}
-              className="w-full sm:w-auto px-4"
-            >
-              <Plus className="w-4 h-4 sm:mr-2" />
-              <span className="hidden sm:inline">Nova Atividade</span>
-            </Button>
+            {!isConsultas && (
+              <Button
+                onClick={() => {
+                  setPreFilledDate(undefined)
+                  setSelectedNewDebt(null)
+                  setIsNewActivitySheetOpen(true)
+                }}
+                className="w-full sm:w-auto px-4"
+              >
+                <Plus className="w-4 h-4 sm:mr-2" />
+                <span className="hidden sm:inline">Nova Atividade</span>
+              </Button>
+            )}
           </div>
         </div>
       </div>
@@ -1334,9 +1343,14 @@ export default function FollowUp() {
 
               <div className="flex flex-col h-full">
                 <Tabs defaultValue="actions" className="flex-1 flex flex-col">
-                  <TabsList className="grid grid-cols-2 shrink-0 h-10">
+                  <TabsList
+                    className={cn(
+                      'grid shrink-0 h-10',
+                      isConsultas ? 'grid-cols-1' : 'grid-cols-2',
+                    )}
+                  >
                     <TabsTrigger value="actions">Tarefa Atual</TabsTrigger>
-                    <TabsTrigger value="new">Nova Tarefa</TabsTrigger>
+                    {!isConsultas && <TabsTrigger value="new">Nova Tarefa</TabsTrigger>}
                   </TabsList>
 
                   <TabsContent
@@ -1349,7 +1363,7 @@ export default function FollowUp() {
                         value={actionInput}
                         onChange={(e) => setActionInput(e.target.value)}
                         className="resize-none h-24 text-sm"
-                        disabled={editingTask?.completed}
+                        disabled={editingTask?.completed || isConsultas}
                       />
                     </div>
                     <div className="space-y-2">
@@ -1358,7 +1372,7 @@ export default function FollowUp() {
                         <PopoverTrigger asChild>
                           <Button
                             variant={'outline'}
-                            disabled={editingTask?.completed}
+                            disabled={editingTask?.completed || isConsultas}
                             className={cn(
                               'w-full justify-start text-left font-medium h-9',
                               !dateInput && 'text-slate-400',
@@ -1415,24 +1429,26 @@ export default function FollowUp() {
                         ) : (
                           <div />
                         )}
-                        <div className="flex gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={handleSaveCurrent}
-                            disabled={isSaving}
-                          >
-                            Salvar
-                          </Button>
-                          <Button
-                            size="sm"
-                            className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
-                            onClick={() => handleCompleteCurrent(editingTask?.id!)}
-                            disabled={isSaving}
-                          >
-                            <CheckCircle2 className="w-4 h-4 mr-2" /> Concluir
-                          </Button>
-                        </div>
+                        {!isConsultas && (
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={handleSaveCurrent}
+                              disabled={isSaving}
+                            >
+                              Salvar
+                            </Button>
+                            <Button
+                              size="sm"
+                              className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
+                              onClick={() => handleCompleteCurrent(editingTask?.id!)}
+                              disabled={isSaving}
+                            >
+                              <CheckCircle2 className="w-4 h-4 mr-2" /> Concluir
+                            </Button>
+                          </div>
+                        )}
                       </div>
                     ) : (
                       <div className="flex items-center justify-between pt-4 border-t mt-auto gap-2">
@@ -1465,73 +1481,77 @@ export default function FollowUp() {
                         ) : (
                           <div />
                         )}
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="shadow-sm text-slate-600 w-full"
-                          onClick={(e) => handleResumeTask(editingTask.id, e)}
-                          disabled={isSaving}
-                        >
-                          <RotateCcw className="w-4 h-4 mr-2" /> Retomar Atividade
-                        </Button>
+                        {!isConsultas && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="shadow-sm text-slate-600 w-full"
+                            onClick={(e) => handleResumeTask(editingTask.id, e)}
+                            disabled={isSaving}
+                          >
+                            <RotateCcw className="w-4 h-4 mr-2" /> Retomar Atividade
+                          </Button>
+                        )}
                       </div>
                     )}
                   </TabsContent>
 
-                  <TabsContent
-                    value="new"
-                    className="flex-1 overflow-y-auto bg-white border rounded-xl p-4 mt-2 shadow-sm space-y-4 data-[state=inactive]:hidden flex flex-col"
-                  >
-                    <div className="space-y-2">
-                      <Label>Observação do Novo Lembrete</Label>
-                      <Textarea
-                        value={newActionInput}
-                        onChange={(e) => setNewActionInput(e.target.value)}
-                        placeholder="Ex: Retornar para confirmar pagamento..."
-                        className="resize-none h-24 text-sm"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Nova Data do Retorno</Label>
-                      <Popover open={isNewCalendarOpen} onOpenChange={setIsNewCalendarOpen}>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant={'outline'}
-                            className={cn(
-                              'w-full justify-start text-left font-medium h-9',
-                              !newDateInput && 'text-slate-400',
-                            )}
-                          >
-                            <CalendarIcon className="mr-2 h-4 w-4 text-primary" />
-                            {newDateInput
-                              ? format(newDateInput, 'PPP', { locale: ptBR })
-                              : 'Selecione uma data'}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={newDateInput}
-                            onSelect={(d) => {
-                              setNewDateInput(d)
-                              setIsNewCalendarOpen(false)
-                            }}
-                            initialFocus
-                          />
-                        </PopoverContent>
-                      </Popover>
-                    </div>
-                    <div className="pt-2 border-t mt-auto">
-                      <Button
-                        className="w-full shadow-sm"
-                        size="sm"
-                        onClick={handleCreateNew}
-                        disabled={isSaving || !newActionInput || !newDateInput}
-                      >
-                        <Plus className="w-4 h-4 mr-2" /> Adicionar Novo Follow-up
-                      </Button>
-                    </div>
-                  </TabsContent>
+                  {!isConsultas && (
+                    <TabsContent
+                      value="new"
+                      className="flex-1 overflow-y-auto bg-white border rounded-xl p-4 mt-2 shadow-sm space-y-4 data-[state=inactive]:hidden flex flex-col"
+                    >
+                      <div className="space-y-2">
+                        <Label>Observação do Novo Lembrete</Label>
+                        <Textarea
+                          value={newActionInput}
+                          onChange={(e) => setNewActionInput(e.target.value)}
+                          placeholder="Ex: Retornar para confirmar pagamento..."
+                          className="resize-none h-24 text-sm"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Nova Data do Retorno</Label>
+                        <Popover open={isNewCalendarOpen} onOpenChange={setIsNewCalendarOpen}>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant={'outline'}
+                              className={cn(
+                                'w-full justify-start text-left font-medium h-9',
+                                !newDateInput && 'text-slate-400',
+                              )}
+                            >
+                              <CalendarIcon className="mr-2 h-4 w-4 text-primary" />
+                              {newDateInput
+                                ? format(newDateInput, 'PPP', { locale: ptBR })
+                                : 'Selecione uma data'}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={newDateInput}
+                              onSelect={(d) => {
+                                setNewDateInput(d)
+                                setIsNewCalendarOpen(false)
+                              }}
+                              initialFocus
+                            />
+                          </PopoverContent>
+                        </Popover>
+                      </div>
+                      <div className="pt-2 border-t mt-auto">
+                        <Button
+                          className="w-full shadow-sm"
+                          size="sm"
+                          onClick={handleCreateNew}
+                          disabled={isSaving || !newActionInput || !newDateInput}
+                        >
+                          <Plus className="w-4 h-4 mr-2" /> Adicionar Novo Follow-up
+                        </Button>
+                      </div>
+                    </TabsContent>
+                  )}
                 </Tabs>
               </div>
             </div>
@@ -1546,65 +1566,67 @@ export default function FollowUp() {
       </Dialog>
 
       {/* Gaveta de Inclusão de Nova Atividade */}
-      <Sheet open={isNewActivitySheetOpen} onOpenChange={setIsNewActivitySheetOpen}>
-        <SheetContent className="w-full sm:max-w-xl overflow-y-auto bg-slate-50 p-0 flex flex-col">
-          <SheetHeader className="p-6 bg-white border-b shrink-0">
-            <SheetTitle>Incluir Nova Atividade</SheetTitle>
-            <SheetDescription>
-              Busque uma dívida para vincular o novo registro de atendimento.
-            </SheetDescription>
-          </SheetHeader>
-          <div className="flex-1 p-6 overflow-y-auto">
-            {!selectedNewDebt ? (
-              <DebtSearch onSelect={setSelectedNewDebt} />
-            ) : (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between bg-white p-4 rounded-xl border border-slate-200 shadow-sm relative overflow-hidden">
-                  <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary/80"></div>
-                  <div className="pl-1 flex-1">
-                    <p className="font-bold text-sm text-slate-900">{selectedNewDebt.name}</p>
-                    <div className="mt-1 space-y-1">
-                      <p className="text-[13px] font-medium text-slate-600">
-                        UC: {selectedNewDebt.uc}
-                      </p>
-                      {selectedNewDebt.address && (
-                        <div className="flex items-center flex-wrap gap-2 pr-2">
-                          <p className="text-[12px] text-slate-500 leading-tight">
-                            {selectedNewDebt.address}
-                          </p>
-                          <a
-                            href={`https://www.google.com.br/maps/search/?api=1&query=${encodeURIComponent(selectedNewDebt.address)}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center text-[10px] text-primary hover:text-primary/80 hover:bg-primary/20 bg-primary/10 px-1.5 py-0.5 rounded font-bold transition-colors shrink-0"
-                          >
-                            <MapPin className="w-3 h-3 mr-1" /> Mapa
-                          </a>
-                        </div>
-                      )}
+      {!isConsultas && (
+        <Sheet open={isNewActivitySheetOpen} onOpenChange={setIsNewActivitySheetOpen}>
+          <SheetContent className="w-full sm:max-w-xl overflow-y-auto bg-slate-50 p-0 flex flex-col">
+            <SheetHeader className="p-6 bg-white border-b shrink-0">
+              <SheetTitle>Incluir Nova Atividade</SheetTitle>
+              <SheetDescription>
+                Busque uma dívida para vincular o novo registro de atendimento.
+              </SheetDescription>
+            </SheetHeader>
+            <div className="flex-1 p-6 overflow-y-auto">
+              {!selectedNewDebt ? (
+                <DebtSearch onSelect={setSelectedNewDebt} />
+              ) : (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between bg-white p-4 rounded-xl border border-slate-200 shadow-sm relative overflow-hidden">
+                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary/80"></div>
+                    <div className="pl-1 flex-1">
+                      <p className="font-bold text-sm text-slate-900">{selectedNewDebt.name}</p>
+                      <div className="mt-1 space-y-1">
+                        <p className="text-[13px] font-medium text-slate-600">
+                          UC: {selectedNewDebt.uc}
+                        </p>
+                        {selectedNewDebt.address && (
+                          <div className="flex items-center flex-wrap gap-2 pr-2">
+                            <p className="text-[12px] text-slate-500 leading-tight">
+                              {selectedNewDebt.address}
+                            </p>
+                            <a
+                              href={`https://www.google.com.br/maps/search/?api=1&query=${encodeURIComponent(selectedNewDebt.address)}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center text-[10px] text-primary hover:text-primary/80 hover:bg-primary/20 bg-primary/10 px-1.5 py-0.5 rounded font-bold transition-colors shrink-0"
+                            >
+                              <MapPin className="w-3 h-3 mr-1" /> Mapa
+                            </a>
+                          </div>
+                        )}
+                      </div>
                     </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setSelectedNewDebt(null)}
+                      className="font-semibold text-slate-600 hover:text-slate-900 shrink-0"
+                    >
+                      Trocar
+                    </Button>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setSelectedNewDebt(null)}
-                    className="font-semibold text-slate-600 hover:text-slate-900 shrink-0"
-                  >
-                    Trocar
-                  </Button>
+                  <CustomerActionForm
+                    key={`${selectedNewDebt.id}_${preFilledDate ? preFilledDate.toISOString() : 'no_date'}`}
+                    customer={selectedNewDebt}
+                    isSheet={true}
+                    onClose={() => setIsNewActivitySheetOpen(false)}
+                    initialDate={preFilledDate}
+                  />
                 </div>
-                <CustomerActionForm
-                  key={`${selectedNewDebt.id}_${preFilledDate ? preFilledDate.toISOString() : 'no_date'}`}
-                  customer={selectedNewDebt}
-                  isSheet={true}
-                  onClose={() => setIsNewActivitySheetOpen(false)}
-                  initialDate={preFilledDate}
-                />
-              </div>
-            )}
-          </div>
-        </SheetContent>
-      </Sheet>
+              )}
+            </div>
+          </SheetContent>
+        </Sheet>
+      )}
     </div>
   )
 }
