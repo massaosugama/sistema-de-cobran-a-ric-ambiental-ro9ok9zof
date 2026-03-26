@@ -169,6 +169,14 @@ export function AppSidebar() {
             </DropdownMenu>
           </SidebarMenuItem>
         </SidebarMenu>
+
+        {state === 'expanded' && (
+          <div className="mt-3 mb-1 flex justify-center">
+            <span className="text-[10px] text-slate-400 font-medium tracking-wider select-none">
+              v0.0.106
+            </span>
+          </div>
+        )}
       </SidebarFooter>
     </Sidebar>
   )
