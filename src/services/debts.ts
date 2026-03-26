@@ -132,13 +132,14 @@ export async function getDebts(
   operatorId?: string,
   searchAddress?: string,
   debtStatus?: 'vencido' | 'a_vencer' | 'ambos',
+  limit: number = 3000,
 ) {
   // 1. Construct the base query for pending debts
   let query = supabase
     .from('pending_debts')
     .select('*')
     .order('valor_total', { ascending: false })
-    .limit(3000)
+    .limit(limit)
 
   if (search) {
     query = query.or(
@@ -187,7 +188,7 @@ export async function getDebts(
     }
   }
 
-  // 3. Fetch the wallet items that weren't in the initial 3000 results
+  // 3. Fetch the wallet items that weren't in the initial results
   if (walletKeysToFetch.length > 0) {
     const sliced = walletKeysToFetch.slice(0, 500)
     const ucsToFetch = Array.from(new Set(sliced.map((k) => k.uc)))

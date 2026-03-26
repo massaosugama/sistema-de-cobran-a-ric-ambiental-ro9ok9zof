@@ -82,7 +82,8 @@ export default function Index() {
   }, [])
 
   useEffect(() => {
-    getDebts()
+    // Limits the query to avoid timeouts while getting the top pending debts
+    getDebts(undefined, user?.id, undefined, undefined, 50)
       .then((d) => {
         if (Array.isArray(d)) {
           setQueue(d.slice(0, 3))
@@ -91,7 +92,9 @@ export default function Index() {
         }
       })
       .catch(console.error)
+  }, [user?.id])
 
+  useEffect(() => {
     getDashboardEvolution()
       .then((data) => {
         if (data) setEvolution(data)
