@@ -9,6 +9,24 @@ export type Database = {
   }
   public: {
     Tables: {
+      app_settings: {
+        Row: {
+          key: string
+          updated_at: string | null
+          value: Json
+        }
+        Insert: {
+          key: string
+          updated_at?: string | null
+          value: Json
+        }
+        Update: {
+          key?: string
+          updated_at?: string | null
+          value?: Json
+        }
+        Relationships: []
+      }
       contact_history: {
         Row: {
           cod_pess_fat: string | null
@@ -19,6 +37,11 @@ export type Database = {
           notes: string | null
           operator_id: string | null
           quality_result: string | null
+          snapshot_qt_fats: number | null
+          snapshot_refs: string | null
+          snapshot_valor_a_vencer: number | null
+          snapshot_valor_total: number | null
+          snapshot_valor_vencido: number | null
           status: string | null
           uc: string | null
         }
@@ -31,6 +54,11 @@ export type Database = {
           notes?: string | null
           operator_id?: string | null
           quality_result?: string | null
+          snapshot_qt_fats?: number | null
+          snapshot_refs?: string | null
+          snapshot_valor_a_vencer?: number | null
+          snapshot_valor_total?: number | null
+          snapshot_valor_vencido?: number | null
           status?: string | null
           uc?: string | null
         }
@@ -43,6 +71,11 @@ export type Database = {
           notes?: string | null
           operator_id?: string | null
           quality_result?: string | null
+          snapshot_qt_fats?: number | null
+          snapshot_refs?: string | null
+          snapshot_valor_a_vencer?: number | null
+          snapshot_valor_total?: number | null
+          snapshot_valor_vencido?: number | null
           status?: string | null
           uc?: string | null
         }
@@ -87,6 +120,60 @@ export type Database = {
             columns: ['contact_id']
             isOneToOne: false
             referencedRelation: 'contact_history'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      contact_results: {
+        Row: {
+          cod_pess_fat: string
+          contact_id: string | null
+          created_at: string
+          data_baixa: string
+          dias_para_reversao: number
+          id: string
+          pontos_reversao: number | null
+          settlement_id: string | null
+          uc: string
+          valor_recuperado: number
+        }
+        Insert: {
+          cod_pess_fat: string
+          contact_id?: string | null
+          created_at?: string
+          data_baixa: string
+          dias_para_reversao: number
+          id?: string
+          pontos_reversao?: number | null
+          settlement_id?: string | null
+          uc: string
+          valor_recuperado: number
+        }
+        Update: {
+          cod_pess_fat?: string
+          contact_id?: string | null
+          created_at?: string
+          data_baixa?: string
+          dias_para_reversao?: number
+          id?: string
+          pontos_reversao?: number | null
+          settlement_id?: string | null
+          uc?: string
+          valor_recuperado?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'contact_results_contact_id_fkey'
+            columns: ['contact_id']
+            isOneToOne: false
+            referencedRelation: 'contact_history'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'contact_results_settlement_id_fkey'
+            columns: ['settlement_id']
+            isOneToOne: false
+            referencedRelation: 'settlements'
             referencedColumns: ['id']
           },
         ]
@@ -417,6 +504,7 @@ export type Database = {
         }[]
       }
       get_portfolio_stats: { Args: never; Returns: Json }
+      process_conversions: { Args: never; Returns: undefined }
       record_portfolio_snapshot: { Args: never; Returns: undefined }
       truncate_pending_debts: { Args: never; Returns: undefined }
     }
@@ -575,6 +663,10 @@ export const Constants = {
 // --- COLUMN TYPES (actual PostgreSQL types) ---
 // Use this to know the real database type when writing migrations.
 // "string" in TypeScript types above may be uuid, text, varchar, timestamptz, etc.
+// Table: app_settings
+//   key: text (not null)
+//   value: jsonb (not null)
+//   updated_at: timestamp with time zone (nullable, default: now())
 // Table: contact_history
 //   id: uuid (not null, default: gen_random_uuid())
 //   uc: text (nullable)
@@ -586,12 +678,28 @@ export const Constants = {
 //   created_at: timestamp with time zone (not null, default: now())
 //   cod_pess_fat: text (nullable)
 //   is_active: boolean (nullable, default: true)
+//   snapshot_valor_total: numeric (nullable)
+//   snapshot_valor_vencido: numeric (nullable)
+//   snapshot_valor_a_vencer: numeric (nullable)
+//   snapshot_qt_fats: integer (nullable)
+//   snapshot_refs: text (nullable)
 // Table: contact_history_audit
 //   id: uuid (not null, default: gen_random_uuid())
 //   contact_id: uuid (nullable)
 //   changed_by: uuid (nullable)
 //   old_data: jsonb (nullable)
 //   new_data: jsonb (nullable)
+//   created_at: timestamp with time zone (not null, default: now())
+// Table: contact_results
+//   id: uuid (not null, default: gen_random_uuid())
+//   contact_id: uuid (nullable)
+//   uc: text (not null)
+//   cod_pess_fat: text (not null)
+//   settlement_id: uuid (nullable)
+//   valor_recuperado: numeric (not null)
+//   data_baixa: date (not null)
+//   dias_para_reversao: integer (not null)
+//   pontos_reversao: integer (nullable, default: 0)
 //   created_at: timestamp with time zone (not null, default: now())
 // Table: follow_up_tasks
 //   id: uuid (not null, default: gen_random_uuid())
@@ -679,6 +787,8 @@ export const Constants = {
 //   neg_desconto: numeric (nullable)
 
 // --- CONSTRAINTS ---
+// Table: app_settings
+//   PRIMARY KEY app_settings_pkey: PRIMARY KEY (key)
 // Table: contact_history
 //   FOREIGN KEY contact_history_operator_id_fkey: FOREIGN KEY (operator_id) REFERENCES profiles(id) ON DELETE SET NULL
 //   PRIMARY KEY contact_history_pkey: PRIMARY KEY (id)
@@ -686,6 +796,11 @@ export const Constants = {
 //   FOREIGN KEY contact_history_audit_changed_by_fkey: FOREIGN KEY (changed_by) REFERENCES auth.users(id) ON DELETE SET NULL
 //   FOREIGN KEY contact_history_audit_contact_id_fkey: FOREIGN KEY (contact_id) REFERENCES contact_history(id) ON DELETE CASCADE
 //   PRIMARY KEY contact_history_audit_pkey: PRIMARY KEY (id)
+// Table: contact_results
+//   FOREIGN KEY contact_results_contact_id_fkey: FOREIGN KEY (contact_id) REFERENCES contact_history(id) ON DELETE CASCADE
+//   UNIQUE contact_results_contact_id_settlement_id_key: UNIQUE (contact_id, settlement_id)
+//   PRIMARY KEY contact_results_pkey: PRIMARY KEY (id)
+//   FOREIGN KEY contact_results_settlement_id_fkey: FOREIGN KEY (settlement_id) REFERENCES settlements(id) ON DELETE CASCADE
 // Table: follow_up_tasks
 //   FOREIGN KEY follow_up_tasks_operator_id_fkey: FOREIGN KEY (operator_id) REFERENCES auth.users(id) ON DELETE SET NULL
 //   PRIMARY KEY follow_up_tasks_pkey: PRIMARY KEY (id)
@@ -707,11 +822,19 @@ export const Constants = {
 //   PRIMARY KEY settlements_pkey: PRIMARY KEY (id)
 
 // --- ROW LEVEL SECURITY POLICIES ---
+// Table: app_settings
+//   Policy "authenticated_all" (ALL, PERMISSIVE) roles={authenticated}
+//     USING: true
+//     WITH CHECK: true
 // Table: contact_history
 //   Policy "authenticated_all" (ALL, PERMISSIVE) roles={authenticated}
 //     USING: true
 //     WITH CHECK: true
 // Table: contact_history_audit
+//   Policy "authenticated_all" (ALL, PERMISSIVE) roles={authenticated}
+//     USING: true
+//     WITH CHECK: true
+// Table: contact_results
 //   Policy "authenticated_all" (ALL, PERMISSIVE) roles={authenticated}
 //     USING: true
 //     WITH CHECK: true
@@ -919,6 +1042,43 @@ export const Constants = {
 //   END;
 //   $function$
 //
+// FUNCTION process_conversions()
+//   CREATE OR REPLACE FUNCTION public.process_conversions()
+//    RETURNS void
+//    LANGUAGE plpgsql
+//    SECURITY DEFINER
+//   AS $function$
+//   DECLARE
+//     max_days INT;
+//     max_score_days INT;
+//   BEGIN
+//     -- Get params
+//     SELECT (value->>'max_days')::int INTO max_days FROM public.app_settings WHERE key = 'conversion_params';
+//     SELECT (value->>'max_score_days')::int INTO max_score_days FROM public.app_settings WHERE key = 'conversion_params';
+//
+//     IF max_days IS NULL THEN max_days := 30; END IF;
+//     IF max_score_days IS NULL THEN max_score_days := 7; END IF;
+//
+//     INSERT INTO public.contact_results (contact_id, uc, cod_pess_fat, settlement_id, valor_recuperado, data_baixa, dias_para_reversao, pontos_reversao)
+//     SELECT
+//       ch.id as contact_id,
+//       s.uc,
+//       COALESCE(s.cod_pess_fat, ch.cod_pess_fat) as cod_pess_fat,
+//       s.id as settlement_id,
+//       s.valor_total as valor_recuperado,
+//       COALESCE(s.databaixa_final, s.databaixa_inicial, s.datacredito_final, s.datacredito_inicial, s.neg_data) as data_baixa,
+//       (COALESCE(s.databaixa_final, s.databaixa_inicial, s.datacredito_final, s.datacredito_inicial, s.neg_data) - (ch.created_at AT TIME ZONE 'America/Sao_Paulo')::date) as dias_para_reversao,
+//       CASE WHEN (COALESCE(s.databaixa_final, s.databaixa_inicial, s.datacredito_final, s.datacredito_inicial, s.neg_data) - (ch.created_at AT TIME ZONE 'America/Sao_Paulo')::date) <= max_score_days THEN 5 ELSE 2 END as pontos_reversao
+//     FROM public.settlements s
+//     JOIN public.contact_history ch ON ch.uc = s.uc AND (ch.cod_pess_fat = s.cod_pess_fat OR s.cod_pess_fat IS NULL)
+//     WHERE
+//       ch.is_active = true
+//       AND COALESCE(s.databaixa_final, s.databaixa_inicial, s.datacredito_final, s.datacredito_inicial, s.neg_data) >= (ch.created_at AT TIME ZONE 'America/Sao_Paulo')::date
+//       AND (COALESCE(s.databaixa_final, s.databaixa_inicial, s.datacredito_final, s.datacredito_inicial, s.neg_data) - (ch.created_at AT TIME ZONE 'America/Sao_Paulo')::date) <= max_days
+//     ON CONFLICT (contact_id, settlement_id) DO NOTHING;
+//   END;
+//   $function$
+//
 // FUNCTION record_portfolio_snapshot()
 //   CREATE OR REPLACE FUNCTION public.record_portfolio_snapshot()
 //    RETURNS void
@@ -989,12 +1149,12 @@ export const Constants = {
 // --- TRIGGERS ---
 // Table: contact_history
 //   trg_audit_contact_history: CREATE TRIGGER trg_audit_contact_history AFTER UPDATE ON public.contact_history FOR EACH ROW WHEN ((old.* IS DISTINCT FROM new.*)) EXECUTE FUNCTION audit_contact_history_changes()
-// Table: pending_debts
-//   on_pending_debts_change: CREATE TRIGGER on_pending_debts_change AFTER INSERT OR DELETE OR UPDATE ON public.pending_debts FOR EACH STATEMENT EXECUTE FUNCTION trigger_record_snapshot()
 // Table: profiles
 //   set_profiles_updated_at: CREATE TRIGGER set_profiles_updated_at BEFORE UPDATE ON public.profiles FOR EACH ROW EXECUTE FUNCTION set_current_timestamp_updated_at()
 
 // --- INDEXES ---
+// Table: contact_results
+//   CREATE UNIQUE INDEX contact_results_contact_id_settlement_id_key ON public.contact_results USING btree (contact_id, settlement_id)
 // Table: portfolio_history
 //   CREATE UNIQUE INDEX portfolio_history_snapshot_date_key ON public.portfolio_history USING btree (snapshot_date)
 // Table: profiles

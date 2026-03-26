@@ -406,33 +406,100 @@ export default function ImportData() {
     const { error: truncErr } = await supabase.rpc('truncate_pending_debts')
     if (truncErr) throw new Error('Erro ao limpar a base: ' + truncErr.message)
     setProgress(10)
-    const chunkSize = 500
+
+    // Chunk reduzido drasticamente para evitar statement timeout no Supabase
+    const chunkSize = 100
+
     for (let i = 0; i < data.length; i += chunkSize) {
       const chunk = data.slice(i, i + chunkSize)
-      const { error: insErr } = await supabase.from('pending_debts').insert(chunk)
-      if (insErr) throw new Error(`Erro na inserção (Linha ${i + 1}) - Detalhe: ${insErr.message}`)
+
+      let attempt = 0
+      let success = false
+      let lastError: any = null
+
+      // Lógica de retry com exponential backoff para suportar oscilações de conexão
+      while (attempt < 3 && !success) {
+        attempt++
+        const { error: insErr } = await supabase.from('pending_debts').insert(chunk)
+        if (insErr) {
+          lastError = insErr
+          console.warn(
+            `Tentativa ${attempt} falhou na inserção de pendências (linhas ${i}-${i + chunk.length}):`,
+            insErr,
+          )
+          if (attempt < 3) {
+            await new Promise((r) => setTimeout(r, attempt * 1500)) // Espera antes de tentar de novo
+          }
+        } else {
+          success = true
+        }
+      }
+
+      if (!success) {
+        throw new Error(
+          `Erro na inserção (Linha ${i + 1}) - Detalhe: ${lastError?.message || 'Erro desconhecido'}`,
+        )
+      }
+
       setProgress(10 + Math.floor((i / data.length) * 80))
-      await new Promise((r) => setTimeout(r, 10)) // small yield to keep UI responsive
+      await new Promise((r) => setTimeout(r, 25)) // Yield um pouco maior para dar respiro ao banco
     }
 
-    // Atualizar snapshot da carteira após finalizar a inserção para não estourar timeout do DB
-    await supabase.rpc('record_portfolio_snapshot')
+    try {
+      // Atualizar snapshot da carteira após finalizar a inserção para não estourar timeout do DB
+      await supabase.rpc('record_portfolio_snapshot')
+    } catch (err) {
+      console.error('Falha não-crítica ao registrar snapshot da carteira:', err)
+    }
+
     setProgress(100)
   }
 
   const processSettlements = async (data: any[], setProgress: (p: number) => void) => {
     setProgress(5)
-    const chunkSize = 500
+    const chunkSize = 100
+
     for (let i = 0; i < data.length; i += chunkSize) {
       const chunk = data.slice(i, i + chunkSize)
-      const { error: insErr } = await supabase.from('settlements').insert(chunk)
-      if (insErr) throw new Error(`Erro na inserção (Linha ${i + 1}) - Detalhe: ${insErr.message}`)
+
+      let attempt = 0
+      let success = false
+      let lastError: any = null
+
+      while (attempt < 3 && !success) {
+        attempt++
+        const { error: insErr } = await supabase.from('settlements').insert(chunk)
+        if (insErr) {
+          lastError = insErr
+          console.warn(
+            `Tentativa ${attempt} falhou na inserção de baixas (linhas ${i}-${i + chunk.length}):`,
+            insErr,
+          )
+          if (attempt < 3) {
+            await new Promise((r) => setTimeout(r, attempt * 1500))
+          }
+        } else {
+          success = true
+        }
+      }
+
+      if (!success) {
+        throw new Error(
+          `Erro na inserção (Linha ${i + 1}) - Detalhe: ${lastError?.message || 'Erro desconhecido'}`,
+        )
+      }
+
       setProgress(5 + Math.floor((i / data.length) * 80))
-      await new Promise((r) => setTimeout(r, 10)) // small yield to keep UI responsive
+      await new Promise((r) => setTimeout(r, 25))
     }
 
-    // Disparar cruzamento de conversões
-    await (supabase as any).rpc('process_conversions')
+    try {
+      // Disparar cruzamento de conversões
+      await (supabase as any).rpc('process_conversions')
+    } catch (err) {
+      console.error('Falha não-crítica ao processar conversões:', err)
+    }
+
     setProgress(100)
   }
 
