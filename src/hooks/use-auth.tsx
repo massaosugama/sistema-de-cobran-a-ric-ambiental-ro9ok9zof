@@ -113,7 +113,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const runPing = () => {
         Promise.resolve()
           .then(ping)
-          .catch(() => {})
+          .catch(() => {
+            // ignore error
+          })
       }
 
       timeout = setTimeout(runPing, 5000)
@@ -159,7 +161,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (user) {
       try {
         await supabase.from('profiles').update({ last_login: null }).eq('id', user.id)
-      } catch (err) {}
+      } catch (err) {
+        // ignore error on signout
+      }
     }
     const { error } = await supabase.auth.signOut()
     return { error }
