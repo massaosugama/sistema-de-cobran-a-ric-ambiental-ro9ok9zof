@@ -910,11 +910,7 @@ export const Constants = {
 //       COALESCE(sum(valor_vencido), 0) as total_vencido,
 //       COALESCE(sum(valor_a_vencer), 0) as total_a_vencer
 //     INTO curr_portfolio
-//     FROM (
-//       SELECT uc, cod_pess_fat, sum(valor_total) as valor_total, sum(valor_vencido) as valor_vencido, sum(valor_a_vencer) as valor_a_vencer
-//       FROM public.pending_debts
-//       GROUP BY uc, cod_pess_fat
-//     ) t;
+//     FROM public.pending_debts;
 //
 //     -- Snapshot anterior da carteira (último dia salvo antes de hoje)
 //     SELECT * INTO prev_portfolio
@@ -936,7 +932,7 @@ export const Constants = {
 //     FROM public.follow_up_tasks
 //     WHERE date(created_at AT TIME ZONE tz) < today_date;
 //
-//     -- Constrói o resultado garantindo que previous não seja nulo (usa current se não houver histórico)
+//     -- Constrói o resultado
 //     SELECT json_build_object(
 //       'portfolio', json_build_object(
 //          'current', json_build_object(
@@ -980,11 +976,27 @@ export const Constants = {
 //       RETURN QUERY
 //       SELECT
 //           p.id as operator_id,
-//           (SELECT count(*) FROM public.contact_history ch WHERE ch.operator_id = p.id) as total_contacts,
-//           (SELECT count(*) FROM public.contact_history ch WHERE ch.operator_id = p.id AND date(ch.created_at AT TIME ZONE 'America/Sao_Paulo') = date(now() AT TIME ZONE 'America/Sao_Paulo')) as today_contacts,
-//           (SELECT count(*) FROM public.follow_up_tasks ft WHERE ft.operator_id = p.id) as total_followups,
-//           (SELECT count(*) FROM public.follow_up_tasks ft WHERE ft.operator_id = p.id AND date(ft.created_at AT TIME ZONE 'America/Sao_Paulo') = date(now() AT TIME ZONE 'America/Sao_Paulo')) as today_followups
-//       FROM public.profiles p;
+//           COALESCE(c.total_contacts, 0) as total_contacts,
+//           COALESCE(c.today_contacts, 0) as today_contacts,
+//           COALESCE(f.total_followups, 0) as total_followups,
+//           COALESCE(f.today_followups, 0) as today_followups
+//       FROM public.profiles p
+//       LEFT JOIN (
+//           SELECT
+//               ch.operator_id,
+//               count(*) as total_contacts,
+//               sum(CASE WHEN date(ch.created_at AT TIME ZONE 'America/Sao_Paulo') = date(now() AT TIME ZONE 'America/Sao_Paulo') THEN 1 ELSE 0 END) as today_contacts
+//           FROM public.contact_history ch
+//           GROUP BY ch.operator_id
+//       ) c ON c.operator_id = p.id
+//       LEFT JOIN (
+//           SELECT
+//               ft.operator_id,
+//               count(*) as total_followups,
+//               sum(CASE WHEN date(ft.created_at AT TIME ZONE 'America/Sao_Paulo') = date(now() AT TIME ZONE 'America/Sao_Paulo') THEN 1 ELSE 0 END) as today_followups
+//           FROM public.follow_up_tasks ft
+//           GROUP BY ft.operator_id
+//       ) f ON f.operator_id = p.id;
 //   END;
 //   $function$
 //
@@ -1003,16 +1015,7 @@ export const Constants = {
 //       'total_vencido', COALESCE(sum(valor_vencido), 0),
 //       'total_a_vencer', COALESCE(sum(valor_a_vencer), 0)
 //     ) INTO result
-//     FROM (
-//       SELECT
-//         uc,
-//         cod_pess_fat,
-//         sum(valor_total) as valor_total,
-//         sum(valor_vencido) as valor_vencido,
-//         sum(valor_a_vencer) as valor_a_vencer
-//       FROM public.pending_debts
-//       GROUP BY uc, cod_pess_fat
-//     ) t;
+//     FROM public.pending_debts;
 //
 //     RETURN result;
 //   END;
@@ -1093,16 +1096,7 @@ export const Constants = {
 //           COALESCE(SUM(valor_total), 0),
 //           COALESCE(SUM(valor_vencido), 0),
 //           COALESCE(SUM(valor_a_vencer), 0)
-//       FROM (
-//           SELECT
-//               uc,
-//               cod_pess_fat,
-//               SUM(valor_total) as valor_total,
-//               SUM(valor_vencido) as valor_vencido,
-//               SUM(valor_a_vencer) as valor_a_vencer
-//           FROM public.pending_debts
-//           GROUP BY uc, cod_pess_fat
-//       ) unique_cases
+//       FROM public.pending_debts
 //       ON CONFLICT (snapshot_date) DO UPDATE
 //       SET total_cases = EXCLUDED.total_cases,
 //           total_value = EXCLUDED.total_value,
@@ -1153,8 +1147,17 @@ export const Constants = {
 //   set_profiles_updated_at: CREATE TRIGGER set_profiles_updated_at BEFORE UPDATE ON public.profiles FOR EACH ROW EXECUTE FUNCTION set_current_timestamp_updated_at()
 
 // --- INDEXES ---
+// Table: contact_history
+//   CREATE INDEX contact_history_created_at_idx ON public.contact_history USING btree (created_at)
+//   CREATE INDEX contact_history_operator_id_idx ON public.contact_history USING btree (operator_id)
+//   CREATE INDEX contact_history_uc_cod_pess_fat_idx ON public.contact_history USING btree (uc, cod_pess_fat)
 // Table: contact_results
 //   CREATE UNIQUE INDEX contact_results_contact_id_settlement_id_key ON public.contact_results USING btree (contact_id, settlement_id)
+// Table: follow_up_tasks
+//   CREATE INDEX follow_up_tasks_created_at_idx ON public.follow_up_tasks USING btree (created_at)
+//   CREATE INDEX follow_up_tasks_operator_id_idx ON public.follow_up_tasks USING btree (operator_id)
+// Table: pending_debts
+//   CREATE INDEX pending_debts_valor_total_idx ON public.pending_debts USING btree (valor_total DESC)
 // Table: portfolio_history
 //   CREATE UNIQUE INDEX portfolio_history_snapshot_date_key ON public.portfolio_history USING btree (snapshot_date)
 // Table: profiles
