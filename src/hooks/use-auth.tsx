@@ -51,18 +51,29 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   // Heartbeat to update last_login and maintain online status
   useEffect(() => {
     let interval: NodeJS.Timeout
+    let timeout: NodeJS.Timeout
+
     if (user && !isLoggingOutRef.current) {
       const ping = async () => {
         if (isLoggingOutRef.current) return
-        await supabase
-          .from('profiles')
-          .update({ last_login: new Date().toISOString() })
-          .eq('id', user.id)
+        try {
+          await supabase
+            .from('profiles')
+            .update({ last_login: new Date().toISOString() })
+            .eq('id', user.id)
+        } catch (err) {
+          // Falha silenciosa para evitar erros de runtime caso o banco tenha timeout
+          console.debug('Heartbeat ping failed:', err)
+        }
       }
-      ping()
-      interval = setInterval(ping, 2 * 60 * 1000) // Ping every 2 minutes
+
+      // Atraso no primeiro ping para não bloquear o carregamento da página
+      timeout = setTimeout(ping, 5000)
+      interval = setInterval(ping, 2 * 60 * 1000) // Ping a cada 2 minutos
     }
+
     return () => {
+      if (timeout) clearTimeout(timeout)
       if (interval) clearInterval(interval)
     }
   }, [user])
