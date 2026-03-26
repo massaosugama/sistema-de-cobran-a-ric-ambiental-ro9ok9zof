@@ -52,27 +52,56 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     let interval: NodeJS.Timeout
     let timeout: NodeJS.Timeout
+    let consecutiveFailures = 0
+    let isComponentMounted = true
 
     if (user && !isLoggingOutRef.current) {
       const ping = async () => {
-        if (isLoggingOutRef.current) return
+        if (isLoggingOutRef.current || consecutiveFailures >= 3 || !isComponentMounted) return
+
         try {
-          await supabase
+          const controller = new AbortController()
+          const abortTimeout = setTimeout(() => {
+            controller.abort()
+          }, 2000)
+
+          const updatePromise = supabase
             .from('profiles')
             .update({ last_login: new Date().toISOString() })
             .eq('id', user.id)
+
+          if (typeof (updatePromise as any).abortSignal === 'function') {
+            ;(updatePromise as any).abortSignal(controller.signal)
+          }
+
+          const { error } = await updatePromise
+
+          clearTimeout(abortTimeout)
+
+          if (error) {
+            consecutiveFailures++
+          } else {
+            consecutiveFailures = 0
+          }
         } catch (err) {
-          // Falha silenciosa para evitar erros de runtime caso o banco tenha timeout
+          consecutiveFailures++
           console.debug('Heartbeat ping failed:', err)
         }
       }
 
+      const runPing = () => {
+        Promise.resolve()
+          .then(ping)
+          .catch(() => {})
+      }
+
       // Atraso no primeiro ping para não bloquear o carregamento da página
-      timeout = setTimeout(ping, 5000)
-      interval = setInterval(ping, 2 * 60 * 1000) // Ping a cada 2 minutos
+      timeout = setTimeout(runPing, 5000)
+      interval = setInterval(runPing, 2 * 60 * 1000) // Ping a cada 2 minutos
     }
 
     return () => {
+      isComponentMounted = false
       if (timeout) clearTimeout(timeout)
       if (interval) clearInterval(interval)
     }
