@@ -329,6 +329,7 @@ export type Database = {
           last_name: string | null
           last_quote_index: number | null
           name: string | null
+          role: string | null
           updated_at: string | null
         }
         Insert: {
@@ -343,6 +344,7 @@ export type Database = {
           last_name?: string | null
           last_quote_index?: number | null
           name?: string | null
+          role?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -357,6 +359,7 @@ export type Database = {
           last_name?: string | null
           last_quote_index?: number | null
           name?: string | null
+          role?: string | null
           updated_at?: string | null
         }
         Relationships: []
@@ -754,6 +757,7 @@ export const Constants = {
 //   is_active: boolean (nullable, default: true)
 //   updated_at: timestamp with time zone (nullable, default: now())
 //   last_login: timestamp with time zone (nullable)
+//   role: text (nullable, default: 'operator'::text)
 // Table: quote_clicks
 //   id: uuid (not null, default: gen_random_uuid())
 //   user_id: uuid (not null)
