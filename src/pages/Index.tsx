@@ -214,7 +214,7 @@ export default function Index() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight text-primary">Visão da Carteira</h1>
+        <h1 className="text-3xl font-bold tracking-tight text-primary">Visão Geral</h1>
         <p className="text-muted-foreground mt-1">
           Bem-vindo(a) de volta, {name}. Aqui está o panorama estratégico de recuperação.
         </p>
