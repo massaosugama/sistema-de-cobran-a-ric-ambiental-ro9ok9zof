@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from 'react'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { AlertCircle, TrendingUp, RefreshCcw, Search, MapPin } from 'lucide-react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { AlertCircle, TrendingUp, Search, MapPin, CheckCircle2, Clock } from 'lucide-react'
 import {
   Table,
   TableBody,
@@ -23,6 +23,7 @@ export default function Reversions() {
   const [loading, setLoading] = useState(true)
 
   const [view, setView] = useState<'meus' | 'todos'>('meus')
+  const [filterStatus, setFilterStatus] = useState<'todos' | 'revertidos'>('todos')
   const [search, setSearch] = useState('')
   const [searchAddress, setSearchAddress] = useState('')
 
@@ -32,10 +33,10 @@ export default function Reversions() {
   useEffect(() => {
     setLoading(true)
     supabase
-      .from('contact_results')
-      .select('*, contact_history(*, profiles(name, first_name, last_name, color)), settlements(*)')
+      .from('contact_history')
+      .select('*, profiles(name, first_name, last_name, color), contact_results(*, settlements(*))')
       .order('created_at', { ascending: false })
-      .limit(1000)
+      .limit(2000)
       .then(async ({ data }) => {
         if (data && data.length > 0) {
           const ucs = [...new Set(data.map((d) => d.uc).filter(Boolean))]
@@ -46,11 +47,17 @@ export default function Reversions() {
 
           const enriched = data.map((r) => {
             const debt = debts?.find((d) => d.uc === r.uc && d.cod_pess_fat === r.cod_pess_fat)
+            const result =
+              r.contact_results && r.contact_results.length > 0 ? r.contact_results[0] : null
             return {
               ...r,
               endereco: debt?.endereco || '',
               nome_cliente:
-                debt?.pessoa_fatura_nome || r.settlements?.pessoa_fatura_nome || 'Não identificado',
+                debt?.pessoa_fatura_nome ||
+                result?.settlements?.pessoa_fatura_nome ||
+                'Não identificado',
+              is_reverted: !!result,
+              result_data: result,
             }
           })
           setRawResults(enriched)
@@ -65,14 +72,18 @@ export default function Reversions() {
     let res = rawResults
 
     if (view === 'meus') {
-      res = res.filter((r) => r.contact_history?.operator_id === user?.id)
+      res = res.filter((r) => r.operator_id === user?.id)
+    }
+
+    if (filterStatus === 'revertidos') {
+      res = res.filter((r) => r.is_reverted)
     }
 
     if (debouncedSearch) {
       const lowerSearch = debouncedSearch.toLowerCase()
       res = res.filter(
         (r) =>
-          r.uc.toLowerCase().includes(lowerSearch) ||
+          r.uc?.toLowerCase().includes(lowerSearch) ||
           (r.nome_cliente && r.nome_cliente.toLowerCase().includes(lowerSearch)),
       )
     }
@@ -85,9 +96,9 @@ export default function Reversions() {
     const groups: Record<string, { opName: string; opColor: string; items: any[] }> = {}
 
     res.forEach((item) => {
-      const opId = item.contact_history?.operator_id || 'unassigned'
+      const opId = item.operator_id || 'unassigned'
       if (!groups[opId]) {
-        const profile = item.contact_history?.profiles
+        const profile = item.profiles
         groups[opId] = {
           opName: profile?.first_name
             ? `${profile.first_name} ${profile.last_name || ''}`.trim()
@@ -99,8 +110,14 @@ export default function Reversions() {
       groups[opId].items.push(item)
     })
 
+    Object.values(groups).forEach((group) => {
+      group.items.sort(
+        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+      )
+    })
+
     return Object.values(groups).sort((a, b) => a.opName.localeCompare(b.opName))
-  }, [rawResults, view, user?.id, debouncedSearch, debouncedSearchAddress])
+  }, [rawResults, view, filterStatus, user?.id, debouncedSearch, debouncedSearchAddress])
 
   return (
     <div className="space-y-6 animate-fade-in-up pb-10">
@@ -135,7 +152,7 @@ export default function Reversions() {
             </Popover>
           </div>
           <p className="text-slate-500 mt-1 font-medium">
-            Acompanhamento de conversões de acordos e pagamentos efetuados.
+            Acompanhamento de todos os atendimentos e suas eventuais conversões.
           </p>
         </div>
 
@@ -160,12 +177,12 @@ export default function Reversions() {
               />
             </div>
           </div>
-          <div className="flex gap-3 w-full sm:w-auto">
-            <div className="bg-slate-200/50 p-1 rounded-lg inline-flex w-full sm:w-auto">
+          <div className="flex flex-wrap gap-3 w-full sm:w-auto">
+            <div className="bg-slate-200/50 p-1 rounded-lg inline-flex flex-1 sm:flex-none">
               <button
                 onClick={() => setView('meus')}
                 className={cn(
-                  'px-4 py-2 rounded-md text-sm font-semibold transition-all flex-1 sm:flex-none',
+                  'px-4 py-2 rounded-md text-sm font-semibold transition-all flex-1 sm:flex-none whitespace-nowrap',
                   view === 'meus'
                     ? 'bg-white shadow text-primary'
                     : 'text-slate-500 hover:text-slate-700',
@@ -176,13 +193,38 @@ export default function Reversions() {
               <button
                 onClick={() => setView('todos')}
                 className={cn(
-                  'px-4 py-2 rounded-md text-sm font-semibold transition-all flex-1 sm:flex-none',
+                  'px-4 py-2 rounded-md text-sm font-semibold transition-all flex-1 sm:flex-none whitespace-nowrap',
                   view === 'todos'
                     ? 'bg-white shadow text-primary'
                     : 'text-slate-500 hover:text-slate-700',
                 )}
               >
                 Todos
+              </button>
+            </div>
+
+            <div className="bg-slate-200/50 p-1 rounded-lg inline-flex flex-1 sm:flex-none">
+              <button
+                onClick={() => setFilterStatus('todos')}
+                className={cn(
+                  'px-4 py-2 rounded-md text-sm font-semibold transition-all flex-1 sm:flex-none whitespace-nowrap',
+                  filterStatus === 'todos'
+                    ? 'bg-white shadow text-primary'
+                    : 'text-slate-500 hover:text-slate-700',
+                )}
+              >
+                Todos Atendimentos
+              </button>
+              <button
+                onClick={() => setFilterStatus('revertidos')}
+                className={cn(
+                  'px-4 py-2 rounded-md text-sm font-semibold transition-all flex-1 sm:flex-none whitespace-nowrap',
+                  filterStatus === 'revertidos'
+                    ? 'bg-white shadow text-primary'
+                    : 'text-slate-500 hover:text-slate-700',
+                )}
+              >
+                Só Revertidos
               </button>
             </div>
           </div>
@@ -196,7 +238,7 @@ export default function Reversions() {
       ) : groupedResults.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-slate-500 bg-white rounded-xl border border-slate-200 shadow-sm">
           <TrendingUp className="w-10 h-10 text-slate-300 mb-4" />
-          <p className="font-medium text-lg">Nenhuma conversão encontrada.</p>
+          <p className="font-medium text-lg">Nenhum atendimento encontrado.</p>
           <p className="text-sm">Altere os filtros para buscar mais resultados.</p>
         </div>
       ) : (
@@ -217,19 +259,20 @@ export default function Reversions() {
                   <CardTitle className="text-base text-slate-800">{group.opName}</CardTitle>
                 </div>
                 <div className="bg-white border px-3 py-1 rounded-full text-xs font-bold text-slate-600 shadow-sm">
-                  {group.items.length} conversões
+                  {group.items.length} atendimentos
                 </div>
               </CardHeader>
               <CardContent className="p-0">
-                <div className="max-h-[350px] overflow-y-auto">
+                <div className="max-h-[450px] overflow-y-auto">
                   <Table>
                     <TableHeader className="bg-slate-50 sticky top-0 z-10 shadow-sm">
                       <TableRow>
                         <TableHead>Devedor / UC</TableHead>
-                        <TableHead>Snapshot do Atendimento</TableHead>
+                        <TableHead>Atendimento / Snapshot</TableHead>
                         <TableHead>Baixa Detectada</TableHead>
                         <TableHead className="text-center">Tempo</TableHead>
                         <TableHead className="text-right">Pontos</TableHead>
+                        <TableHead className="text-center">Status</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -265,51 +308,80 @@ export default function Reversions() {
                                 <span className="text-slate-500">Valor Dívida:</span>
                                 <span className="font-semibold">
                                   R${' '}
-                                  {(res.contact_history?.snapshot_valor_total || 0).toLocaleString(
-                                    'pt-BR',
-                                    { minimumFractionDigits: 2 },
-                                  )}
+                                  {(res.snapshot_valor_total || 0).toLocaleString('pt-BR', {
+                                    minimumFractionDigits: 2,
+                                  })}
                                 </span>
                               </div>
-                              <div className="text-xs text-slate-400">
-                                {res.contact_history?.created_at
-                                  ? format(parseISO(res.contact_history.created_at), 'dd/MM/yyyy')
+                              <div className="text-xs text-slate-600 font-medium flex items-center gap-1">
+                                {res.created_at
+                                  ? format(parseISO(res.created_at), 'dd/MM/yyyy HH:mm')
                                   : '-'}
                               </div>
                             </div>
                           </TableCell>
                           <TableCell>
-                            <div className="space-y-1">
-                              <div className="flex items-center gap-2 text-sm">
-                                <span className="text-slate-500">Valor Baixado:</span>
-                                <span className="font-bold text-emerald-600">
-                                  R${' '}
-                                  {(res.valor_recuperado || 0).toLocaleString('pt-BR', {
-                                    minimumFractionDigits: 2,
-                                  })}
-                                </span>
+                            {res.is_reverted && res.result_data ? (
+                              <div className="space-y-1">
+                                <div className="flex items-center gap-2 text-sm">
+                                  <span className="text-slate-500">Valor Baixado:</span>
+                                  <span className="font-bold text-emerald-600">
+                                    R${' '}
+                                    {(res.result_data.valor_recuperado || 0).toLocaleString(
+                                      'pt-BR',
+                                      {
+                                        minimumFractionDigits: 2,
+                                      },
+                                    )}
+                                  </span>
+                                </div>
+                                <div className="text-xs text-slate-400 flex items-center gap-1">
+                                  {res.result_data.data_baixa
+                                    ? format(parseISO(res.result_data.data_baixa), 'dd/MM/yyyy')
+                                    : '-'}
+                                  <span className="mx-1">•</span>
+                                  <span className="uppercase font-semibold">
+                                    {res.result_data.settlements?.tipo_baixa || 'N/A'}
+                                  </span>
+                                </div>
                               </div>
-                              <div className="text-xs text-slate-400 flex items-center gap-1">
-                                {res.data_baixa
-                                  ? format(parseISO(res.data_baixa), 'dd/MM/yyyy')
-                                  : '-'}
-                                <span className="mx-1">•</span>
-                                <span className="uppercase font-semibold">
-                                  {res.settlements?.tipo_baixa || 'N/A'}
-                                </span>
+                            ) : (
+                              <div className="text-sm text-slate-400 italic">
+                                Aguardando pagamento...
                               </div>
-                            </div>
+                            )}
                           </TableCell>
                           <TableCell className="text-center">
-                            <span className="inline-flex items-center px-2 py-1 rounded-md bg-blue-50 text-blue-700 text-xs font-semibold">
-                              {res.dias_para_reversao}{' '}
-                              {res.dias_para_reversao === 1 ? 'dia' : 'dias'}
-                            </span>
+                            {res.is_reverted && res.result_data ? (
+                              <span className="inline-flex items-center px-2 py-1 rounded-md bg-blue-50 text-blue-700 text-xs font-semibold">
+                                {res.result_data.dias_para_reversao}{' '}
+                                {res.result_data.dias_para_reversao === 1 ? 'dia' : 'dias'}
+                              </span>
+                            ) : (
+                              <span className="text-slate-300">-</span>
+                            )}
                           </TableCell>
                           <TableCell className="text-right">
-                            <span className="inline-flex items-center px-2 py-1 rounded-md bg-orange-50 text-orange-600 text-sm font-bold">
-                              +{res.pontos_reversao}
-                            </span>
+                            {res.is_reverted && res.result_data ? (
+                              <span className="inline-flex items-center px-2 py-1 rounded-md bg-orange-50 text-orange-600 text-sm font-bold">
+                                +{res.result_data.pontos_reversao}
+                              </span>
+                            ) : (
+                              <span className="text-slate-300">-</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            {res.is_reverted ? (
+                              <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-emerald-50 text-emerald-700 text-xs font-bold border border-emerald-200 shadow-sm">
+                                <CheckCircle2 className="w-3 h-3" />
+                                Revertido
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-slate-100 text-slate-500 text-xs font-semibold border border-slate-200">
+                                <Clock className="w-3 h-3" />
+                                Pendente
+                              </span>
+                            )}
                           </TableCell>
                         </TableRow>
                       ))}

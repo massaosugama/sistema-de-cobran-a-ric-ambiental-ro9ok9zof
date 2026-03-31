@@ -502,6 +502,7 @@ export type Database = {
     }
     Functions: {
       cleanup_old_settlements: { Args: never; Returns: undefined }
+      execute_post_import_routines: { Args: never; Returns: undefined }
       get_dashboard_evolution: { Args: { tz?: string }; Returns: Json }
       get_operator_stats: {
         Args: never
@@ -921,6 +922,21 @@ export const Constants = {
 //     -- Remove as movimentações de baixas mais antigas que o prazo estipulado (priorizando a data de criação real do registro no GIS)
 //     DELETE FROM public.settlements
 //     WHERE COALESCE(datacriacao, created_at) < NOW() - (retention_days || ' days')::interval;
+//   END;
+//   $function$
+//
+// FUNCTION execute_post_import_routines()
+//   CREATE OR REPLACE FUNCTION public.execute_post_import_routines()
+//    RETURNS void
+//    LANGUAGE plpgsql
+//    SECURITY DEFINER
+//   AS $function$
+//   BEGIN
+//     -- 1º: Limpeza de dados baseada no prazo de retenção (retention_days lido do app_settings)
+//     PERFORM public.cleanup_old_settlements();
+//
+//     -- 2º: Processamento do motor de cálculo de conversões apenas nos dados que restaram e são elegíveis
+//     PERFORM public.process_conversions();
 //   END;
 //   $function$
 //
