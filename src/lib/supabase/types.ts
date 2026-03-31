@@ -430,6 +430,7 @@ export type Database = {
       settlements: {
         Row: {
           cod_pess_fat: string | null
+          created_at: string
           databaixa_final: string | null
           databaixa_inicial: string | null
           datacredito_final: string | null
@@ -450,6 +451,7 @@ export type Database = {
         }
         Insert: {
           cod_pess_fat?: string | null
+          created_at?: string
           databaixa_final?: string | null
           databaixa_inicial?: string | null
           datacredito_final?: string | null
@@ -470,6 +472,7 @@ export type Database = {
         }
         Update: {
           cod_pess_fat?: string | null
+          created_at?: string
           databaixa_final?: string | null
           databaixa_inicial?: string | null
           datacredito_final?: string | null
@@ -495,6 +498,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      cleanup_old_settlements: { Args: never; Returns: undefined }
       get_dashboard_evolution: { Args: { tz?: string }; Returns: Json }
       get_operator_stats: {
         Args: never
@@ -789,6 +793,7 @@ export const Constants = {
 //   neg_valor_acordo: numeric (nullable)
 //   neg_parcelas: integer (nullable)
 //   neg_desconto: numeric (nullable)
+//   created_at: timestamp with time zone (not null, default: now())
 
 // --- CONSTRAINTS ---
 // Table: app_settings
@@ -888,6 +893,30 @@ export const Constants = {
 //           row_to_json(NEW)
 //       );
 //       RETURN NEW;
+//   END;
+//   $function$
+//
+// FUNCTION cleanup_old_settlements()
+//   CREATE OR REPLACE FUNCTION public.cleanup_old_settlements()
+//    RETURNS void
+//    LANGUAGE plpgsql
+//    SECURITY DEFINER
+//   AS $function$
+//   DECLARE
+//     retention_days INT;
+//   BEGIN
+//     -- Tenta ler o parâmetro de retenção do app_settings, se não encontrar usa 90 como padrão
+//     SELECT (value->>'retention_days')::int INTO retention_days
+//     FROM public.app_settings
+//     WHERE key = 'conversion_params';
+//
+//     IF retention_days IS NULL THEN
+//       retention_days := 90;
+//     END IF;
+//
+//     -- Remove as movimentações de baixas mais antigas que o prazo estipulado
+//     DELETE FROM public.settlements
+//     WHERE created_at < NOW() - (retention_days || ' days')::interval;
 //   END;
 //   $function$
 //

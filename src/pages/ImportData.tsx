@@ -61,6 +61,7 @@ const settlementsColumns = [
   'tipo_baixa',
   'uc',
   'valor_total',
+  'datacriacao',
 ]
 
 const parseCSV = async (file: File) => {
