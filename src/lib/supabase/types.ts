@@ -435,6 +435,7 @@ export type Database = {
           databaixa_inicial: string | null
           datacredito_final: string | null
           datacredito_inicial: string | null
+          datacriacao: string | null
           id: string
           neg_data: string | null
           neg_desconto: number | null
@@ -456,6 +457,7 @@ export type Database = {
           databaixa_inicial?: string | null
           datacredito_final?: string | null
           datacredito_inicial?: string | null
+          datacriacao?: string | null
           id?: string
           neg_data?: string | null
           neg_desconto?: number | null
@@ -477,6 +479,7 @@ export type Database = {
           databaixa_inicial?: string | null
           datacredito_final?: string | null
           datacredito_inicial?: string | null
+          datacriacao?: string | null
           id?: string
           neg_data?: string | null
           neg_desconto?: number | null
@@ -794,6 +797,7 @@ export const Constants = {
 //   neg_parcelas: integer (nullable)
 //   neg_desconto: numeric (nullable)
 //   created_at: timestamp with time zone (not null, default: now())
+//   datacriacao: timestamp with time zone (nullable)
 
 // --- CONSTRAINTS ---
 // Table: app_settings
@@ -914,9 +918,9 @@ export const Constants = {
 //       retention_days := 90;
 //     END IF;
 //
-//     -- Remove as movimentações de baixas mais antigas que o prazo estipulado
+//     -- Remove as movimentações de baixas mais antigas que o prazo estipulado (priorizando a data de criação real do registro no GIS)
 //     DELETE FROM public.settlements
-//     WHERE created_at < NOW() - (retention_days || ' days')::interval;
+//     WHERE COALESCE(datacriacao, created_at) < NOW() - (retention_days || ' days')::interval;
 //   END;
 //   $function$
 //
@@ -1088,7 +1092,7 @@ export const Constants = {
 //     max_days INT;
 //     max_score_days INT;
 //   BEGIN
-//     -- Get params
+//     -- Parametros do sistema
 //     SELECT (value->>'max_days')::int INTO max_days FROM public.app_settings WHERE key = 'conversion_params';
 //     SELECT (value->>'max_score_days')::int INTO max_score_days FROM public.app_settings WHERE key = 'conversion_params';
 //
@@ -1102,16 +1106,16 @@ export const Constants = {
 //       COALESCE(s.cod_pess_fat, ch.cod_pess_fat) as cod_pess_fat,
 //       s.id as settlement_id,
 //       s.valor_total as valor_recuperado,
-//       COALESCE(s.databaixa_final, s.databaixa_inicial, s.datacredito_final, s.datacredito_inicial, s.neg_data) as data_baixa,
-//       (COALESCE(s.databaixa_final, s.databaixa_inicial, s.datacredito_final, s.datacredito_inicial, s.neg_data) - (ch.created_at AT TIME ZONE 'America/Sao_Paulo')::date) as dias_para_reversao,
-//       CASE WHEN (COALESCE(s.databaixa_final, s.databaixa_inicial, s.datacredito_final, s.datacredito_inicial, s.neg_data) - (ch.created_at AT TIME ZONE 'America/Sao_Paulo')::date) <= max_score_days THEN 5 ELSE 2 END as pontos_reversao
+//       COALESCE(s.datacriacao::date, s.databaixa_final, s.databaixa_inicial, s.datacredito_final, s.datacredito_inicial, s.neg_data) as data_baixa,
+//       (COALESCE(s.datacriacao::date, s.databaixa_final, s.databaixa_inicial, s.datacredito_final, s.datacredito_inicial, s.neg_data) - (ch.created_at AT TIME ZONE 'America/Sao_Paulo')::date) as dias_para_reversao,
+//       CASE WHEN (COALESCE(s.datacriacao::date, s.databaixa_final, s.databaixa_inicial, s.datacredito_final, s.datacredito_inicial, s.neg_data) - (ch.created_at AT TIME ZONE 'America/Sao_Paulo')::date) <= max_score_days THEN 5 ELSE 2 END as pontos_reversao
 //     FROM public.settlements s
 //     JOIN public.contact_history ch ON ch.uc = s.uc AND (ch.cod_pess_fat = s.cod_pess_fat OR s.cod_pess_fat IS NULL)
 //     WHERE
 //       ch.is_active = true
-//       AND s.tipo_baixa IN ('CONV.ARREC', 'DEB.AUTO') -- REVISED BUSINESS RULE
-//       AND COALESCE(s.databaixa_final, s.databaixa_inicial, s.datacredito_final, s.datacredito_inicial, s.neg_data) >= (ch.created_at AT TIME ZONE 'America/Sao_Paulo')::date
-//       AND (COALESCE(s.databaixa_final, s.databaixa_inicial, s.datacredito_final, s.datacredito_inicial, s.neg_data) - (ch.created_at AT TIME ZONE 'America/Sao_Paulo')::date) <= max_days
+//       AND s.tipo_baixa IN ('CONV.ARREC', 'DEB.AUTO')
+//       AND COALESCE(s.datacriacao::date, s.databaixa_final, s.databaixa_inicial, s.datacredito_final, s.datacredito_inicial, s.neg_data) >= (ch.created_at AT TIME ZONE 'America/Sao_Paulo')::date
+//       AND (COALESCE(s.datacriacao::date, s.databaixa_final, s.databaixa_inicial, s.datacredito_final, s.datacredito_inicial, s.neg_data) - (ch.created_at AT TIME ZONE 'America/Sao_Paulo')::date) <= max_days
 //     ON CONFLICT (contact_id, settlement_id) DO NOTHING;
 //   END;
 //   $function$
