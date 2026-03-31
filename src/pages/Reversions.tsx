@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/table'
 import { Input } from '@/components/ui/input'
 import { supabase } from '@/lib/supabase/client'
-import { format, parseISO } from 'date-fns'
+import { format, parseISO, subDays, startOfDay, endOfDay } from 'date-fns'
 import { useAuth } from '@/hooks/use-auth'
 import { useDebounce } from '@/hooks/use-debounce'
 import { cn } from '@/lib/utils'
@@ -30,43 +30,55 @@ export default function Reversions() {
   const debouncedSearch = useDebounce(search, 500)
   const debouncedSearchAddress = useDebounce(searchAddress, 500)
 
+  const [startDate, setStartDate] = useState<Date>(subDays(new Date(), 30))
+  const [endDate, setEndDate] = useState<Date>(new Date())
+
   useEffect(() => {
     setLoading(true)
-    supabase
+
+    let query = supabase
       .from('contact_history')
       .select('*, profiles(name, first_name, last_name, color), contact_results(*, settlements(*))')
       .order('created_at', { ascending: false })
-      .limit(2000)
-      .then(async ({ data }) => {
-        if (data && data.length > 0) {
-          const ucs = [...new Set(data.map((d) => d.uc).filter(Boolean))]
-          const { data: debts } = await supabase
-            .from('pending_debts')
-            .select('uc, cod_pess_fat, endereco, pessoa_fatura_nome')
-            .in('uc', ucs)
+      .limit(5000)
 
-          const enriched = data.map((r) => {
-            const debt = debts?.find((d) => d.uc === r.uc && d.cod_pess_fat === r.cod_pess_fat)
-            const result =
-              r.contact_results && r.contact_results.length > 0 ? r.contact_results[0] : null
-            return {
-              ...r,
-              endereco: debt?.endereco || '',
-              nome_cliente:
-                debt?.pessoa_fatura_nome ||
-                result?.settlements?.pessoa_fatura_nome ||
-                'Não identificado',
-              is_reverted: !!result,
-              result_data: result,
-            }
-          })
-          setRawResults(enriched)
-        } else {
-          setRawResults([])
-        }
-        setLoading(false)
-      })
-  }, [])
+    if (startDate) {
+      query = query.gte('created_at', startOfDay(startDate).toISOString())
+    }
+    if (endDate) {
+      query = query.lte('created_at', endOfDay(endDate).toISOString())
+    }
+
+    query.then(async ({ data }) => {
+      if (data && data.length > 0) {
+        const ucs = [...new Set(data.map((d) => d.uc).filter(Boolean))]
+        const { data: debts } = await supabase
+          .from('pending_debts')
+          .select('uc, cod_pess_fat, endereco, pessoa_fatura_nome')
+          .in('uc', ucs)
+
+        const enriched = data.map((r) => {
+          const debt = debts?.find((d) => d.uc === r.uc && d.cod_pess_fat === r.cod_pess_fat)
+          const result =
+            r.contact_results && r.contact_results.length > 0 ? r.contact_results[0] : null
+          return {
+            ...r,
+            endereco: debt?.endereco || '',
+            nome_cliente:
+              debt?.pessoa_fatura_nome ||
+              result?.settlements?.pessoa_fatura_nome ||
+              'Não identificado',
+            is_reverted: !!result,
+            result_data: result,
+          }
+        })
+        setRawResults(enriched)
+      } else {
+        setRawResults([])
+      }
+      setLoading(false)
+    })
+  }, [startDate, endDate])
 
   const groupedResults = useMemo(() => {
     let res = rawResults
@@ -156,33 +168,59 @@ export default function Reversions() {
           </p>
         </div>
 
-        <div className="flex flex-col sm:flex-row items-center gap-3 w-full xl:w-auto">
-          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-            <div className="relative w-full sm:w-[220px]">
+        <div className="flex flex-col xl:flex-row items-start xl:items-center gap-3 w-full xl:w-auto">
+          <div className="flex flex-wrap items-end gap-2 w-full xl:w-auto">
+            <div className="flex flex-col w-[48%] sm:w-auto">
+              <span className="text-[10px] text-slate-500 uppercase font-bold ml-1 mb-0.5">
+                Data De
+              </span>
+              <Input
+                type="date"
+                value={startDate ? format(startDate, 'yyyy-MM-dd') : ''}
+                onChange={(e) =>
+                  setStartDate(e.target.value ? parseISO(e.target.value) : new Date())
+                }
+                className="h-10 bg-white rounded-xl border-slate-200 text-sm px-3 shadow-sm focus-visible:ring-primary/20 w-full sm:w-[135px]"
+              />
+            </div>
+            <div className="flex flex-col w-[48%] sm:w-auto">
+              <span className="text-[10px] text-slate-500 uppercase font-bold ml-1 mb-0.5">
+                Data Até
+              </span>
+              <Input
+                type="date"
+                value={endDate ? format(endDate, 'yyyy-MM-dd') : ''}
+                onChange={(e) => setEndDate(e.target.value ? parseISO(e.target.value) : new Date())}
+                className="h-10 bg-white rounded-xl border-slate-200 text-sm px-3 shadow-sm focus-visible:ring-primary/20 w-full sm:w-[135px]"
+              />
+            </div>
+
+            <div className="relative w-full sm:w-[180px] mt-1 sm:mt-0">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
               <Input
                 placeholder="Filtre UC, Nome..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="pl-9 rounded-full bg-white border-slate-200 shadow-sm h-10 w-full focus-visible:ring-primary/20"
+                className="pl-9 rounded-xl bg-white border-slate-200 shadow-sm h-10 w-full focus-visible:ring-primary/20"
               />
             </div>
-            <div className="relative w-full sm:w-[220px]">
+            <div className="relative w-full sm:w-[180px] mt-1 sm:mt-0">
               <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
               <Input
                 placeholder="Filtre Endereço"
                 value={searchAddress}
                 onChange={(e) => setSearchAddress(e.target.value)}
-                className="pl-9 rounded-full bg-white border-slate-200 shadow-sm h-10 w-full focus-visible:ring-primary/20"
+                className="pl-9 rounded-xl bg-white border-slate-200 shadow-sm h-10 w-full focus-visible:ring-primary/20"
               />
             </div>
           </div>
-          <div className="flex flex-wrap gap-3 w-full sm:w-auto">
-            <div className="bg-slate-200/50 p-1 rounded-lg inline-flex flex-1 sm:flex-none">
+
+          <div className="flex flex-wrap gap-2 w-full sm:w-auto mt-2 xl:mt-0">
+            <div className="bg-slate-200/50 p-1 rounded-lg inline-flex flex-1 sm:flex-none h-10 items-center">
               <button
                 onClick={() => setView('meus')}
                 className={cn(
-                  'px-4 py-2 rounded-md text-sm font-semibold transition-all flex-1 sm:flex-none whitespace-nowrap',
+                  'px-3 py-1.5 rounded-md text-xs font-semibold transition-all flex-1 sm:flex-none whitespace-nowrap',
                   view === 'meus'
                     ? 'bg-white shadow text-primary'
                     : 'text-slate-500 hover:text-slate-700',
@@ -193,7 +231,7 @@ export default function Reversions() {
               <button
                 onClick={() => setView('todos')}
                 className={cn(
-                  'px-4 py-2 rounded-md text-sm font-semibold transition-all flex-1 sm:flex-none whitespace-nowrap',
+                  'px-3 py-1.5 rounded-md text-xs font-semibold transition-all flex-1 sm:flex-none whitespace-nowrap',
                   view === 'todos'
                     ? 'bg-white shadow text-primary'
                     : 'text-slate-500 hover:text-slate-700',
@@ -203,11 +241,11 @@ export default function Reversions() {
               </button>
             </div>
 
-            <div className="bg-slate-200/50 p-1 rounded-lg inline-flex flex-1 sm:flex-none">
+            <div className="bg-slate-200/50 p-1 rounded-lg inline-flex flex-1 sm:flex-none h-10 items-center">
               <button
                 onClick={() => setFilterStatus('todos')}
                 className={cn(
-                  'px-4 py-2 rounded-md text-sm font-semibold transition-all flex-1 sm:flex-none whitespace-nowrap',
+                  'px-3 py-1.5 rounded-md text-xs font-semibold transition-all flex-1 sm:flex-none whitespace-nowrap',
                   filterStatus === 'todos'
                     ? 'bg-white shadow text-primary'
                     : 'text-slate-500 hover:text-slate-700',
@@ -218,7 +256,7 @@ export default function Reversions() {
               <button
                 onClick={() => setFilterStatus('revertidos')}
                 className={cn(
-                  'px-4 py-2 rounded-md text-sm font-semibold transition-all flex-1 sm:flex-none whitespace-nowrap',
+                  'px-3 py-1.5 rounded-md text-xs font-semibold transition-all flex-1 sm:flex-none whitespace-nowrap',
                   filterStatus === 'revertidos'
                     ? 'bg-white shadow text-primary'
                     : 'text-slate-500 hover:text-slate-700',
