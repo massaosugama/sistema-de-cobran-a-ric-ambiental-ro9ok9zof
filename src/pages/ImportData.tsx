@@ -496,8 +496,11 @@ export default function ImportData() {
     try {
       // Disparar cruzamento de conversões
       await (supabase as any).rpc('process_conversions')
+
+      // Limpar registros de baixas antigas com base na regra de retenção
+      await (supabase as any).rpc('cleanup_old_settlements')
     } catch (err) {
-      console.error('Falha não-crítica ao processar conversões:', err)
+      console.error('Falha não-crítica ao processar conversões ou limpar base:', err)
     }
 
     setProgress(100)

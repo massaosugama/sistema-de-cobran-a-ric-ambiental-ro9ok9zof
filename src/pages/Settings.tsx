@@ -118,7 +118,11 @@ export default function Settings() {
   const [copied, setCopied] = useState(false)
 
   // Rules state
-  const [conversionParams, setConversionParams] = useState({ max_days: 30, max_score_days: 7 })
+  const [conversionParams, setConversionParams] = useState({
+    max_days: 30,
+    max_score_days: 7,
+    retention_days: 90,
+  })
   const [isSavingRules, setIsSavingRules] = useState(false)
 
   useEffect(() => {
@@ -457,6 +461,24 @@ export default function Settings() {
                         />
                         <p className="text-xs text-slate-500">
                           Baixas ocorridas dentro deste prazo recebem a pontuação máxima.
+                        </p>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="retentionDays">Prazo de retenção de baixas (dias)</Label>
+                        <Input
+                          id="retentionDays"
+                          type="number"
+                          value={conversionParams.retention_days}
+                          onChange={(e) =>
+                            setConversionParams({
+                              ...conversionParams,
+                              retention_days: parseInt(e.target.value) || 0,
+                            })
+                          }
+                        />
+                        <p className="text-xs text-slate-500">
+                          Movimentações de baixas mais antigas que este prazo serão excluídas
+                          automaticamente após novas importações.
                         </p>
                       </div>
                     </div>
