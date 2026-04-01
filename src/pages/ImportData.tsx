@@ -4,7 +4,16 @@ import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Badge } from '@/components/ui/badge'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 import { useToast } from '@/hooks/use-toast'
+import { format } from 'date-fns'
 import {
   UploadCloud,
   FileText,
@@ -64,6 +73,23 @@ const settlementsColumns = [
   'valor_total',
   'datacriacao',
 ]
+
+const parseDateFromAny = (dateStr: string | null): number => {
+  if (!dateStr) return 0
+  const s = String(dateStr).trim()
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) {
+    const d = new Date(s)
+    return isNaN(d.getTime()) ? 0 : d.getTime()
+  }
+  const brMatch = s.match(/^(\d{2})\/(\d{2})\/(\d{4})/)
+  if (brMatch) {
+    const [, d, m, y] = brMatch
+    const ds = new Date(`${y}-${m}-${d}T12:00:00`)
+    return isNaN(ds.getTime()) ? 0 : ds.getTime()
+  }
+  const d = new Date(s)
+  return isNaN(d.getTime()) ? 0 : d.getTime()
+}
 
 const parseCSV = async (file: File) => {
   const text = await file.text()
@@ -404,22 +430,46 @@ function ImportCard({
   )
 }
 
+interface ImportHistoryRow {
+  id: string
+  created_at: string
+  table_name: string
+  total_records: number
+  inserted_records: number
+  ignored_records: number
+  latest_record_date: string | null
+}
+
 export default function ImportData() {
   const { setIsImporting } = useAppState()
 
-  // Fila de processamento inteligente (Orquestrador)
   const [queue, setQueue] = useState<Array<{ id: string; run: () => Promise<void> }>>([])
   const [activeTask, setActiveTask] = useState<string | null>(null)
+  const [history, setHistory] = useState<ImportHistoryRow[]>([])
+
+  const loadHistory = useCallback(async () => {
+    const { data, error } = await (supabase as any)
+      .from('import_history')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(20)
+    if (!error && data) {
+      setHistory(data)
+    }
+  }, [])
+
+  useEffect(() => {
+    loadHistory()
+  }, [loadHistory])
 
   useEffect(() => {
     return () => setIsImporting(false)
   }, [setIsImporting])
 
-  // Processamento sequencial da fila
   useEffect(() => {
     if (queue.length > 0 && !activeTask) {
       const nextTask = queue[0]
-      setQueue((q) => q.slice(1)) // Remove imediatamente para não contabilizar como "em espera"
+      setQueue((q) => q.slice(1))
       setActiveTask(nextTask.id)
       setIsImporting(true)
 
@@ -441,28 +491,22 @@ export default function ImportData() {
     if (truncErr) throw new Error('Erro ao limpar a base: ' + truncErr.message)
     setProgress(10)
 
-    // Chunk reduzido drasticamente para evitar statement timeout no Supabase
     const chunkSize = 100
 
     for (let i = 0; i < data.length; i += chunkSize) {
       const chunk = data.slice(i, i + chunkSize)
-
       let attempt = 0
       let success = false
       let lastError: any = null
 
-      // Lógica de retry com exponential backoff para suportar oscilações de conexão
       while (attempt < 3 && !success) {
         attempt++
         const { error: insErr } = await supabase.from('pending_debts').insert(chunk)
         if (insErr) {
           lastError = insErr
-          console.warn(
-            `Tentativa ${attempt} falhou na inserção de pendências (linhas ${i}-${i + chunk.length}):`,
-            insErr,
-          )
+          console.warn(`Tentativa ${attempt} falhou na inserção de pendências:`, insErr)
           if (attempt < 3) {
-            await new Promise((r) => setTimeout(r, attempt * 1500)) // Espera antes de tentar de novo
+            await new Promise((r) => setTimeout(r, attempt * 1500))
           }
         } else {
           success = true
@@ -476,11 +520,10 @@ export default function ImportData() {
       }
 
       setProgress(10 + Math.floor((i / data.length) * 80))
-      await new Promise((r) => setTimeout(r, 25)) // Yield um pouco maior para dar respiro ao banco
+      await new Promise((r) => setTimeout(r, 25))
     }
 
     try {
-      // Atualizar snapshot da carteira após finalizar a inserção para não estourar timeout do DB
       await supabase.rpc('record_portfolio_snapshot')
     } catch (err) {
       console.error('Falha não-crítica ao registrar snapshot da carteira:', err)
@@ -488,11 +531,26 @@ export default function ImportData() {
 
     setProgress(100)
 
-    return {
+    const result = {
       total: data.length,
       inserted: data.length,
       redundant: 0,
     }
+
+    try {
+      await (supabase as any).from('import_history').insert({
+        table_name: 'Pendências (Substituição Total)',
+        total_records: result.total,
+        inserted_records: result.inserted,
+        ignored_records: result.redundant,
+        latest_record_date: null,
+      })
+      loadHistory()
+    } catch (e) {
+      console.error('Falha ao gravar histórico', e)
+    }
+
+    return result
   }
 
   const processSettlements = async (data: any[], setProgress: (p: number) => void) => {
@@ -501,8 +559,32 @@ export default function ImportData() {
     let insertedCount = 0
     let redundantCount = 0
 
+    let maxDate = 0
+    let maxDateStr: string | null = null
+
     for (let i = 0; i < data.length; i += chunkSize) {
       const chunk = data.slice(i, i + chunkSize)
+
+      chunk.forEach((row: any) => {
+        const dateCols = [
+          'datacriacao',
+          'databaixa_final',
+          'databaixa_inicial',
+          'datacredito_final',
+          'datacredito_inicial',
+          'neg_data',
+        ]
+        dateCols.forEach((col) => {
+          const dStr = row[col]
+          if (dStr) {
+            const ts = parseDateFromAny(dStr)
+            if (ts > maxDate) {
+              maxDate = ts
+              maxDateStr = new Date(ts).toISOString()
+            }
+          }
+        })
+      })
 
       const ids = chunk.map((c: any) => c.id).filter(Boolean)
       let existingIds = new Set<string>()
@@ -527,10 +609,7 @@ export default function ImportData() {
           const { error: insErr } = await supabase.from('settlements').insert(newRecords)
           if (insErr) {
             lastError = insErr
-            console.warn(
-              `Tentativa ${attempt} falhou na inserção de baixas (linhas ${i}-${i + chunk.length}):`,
-              insErr,
-            )
+            console.warn(`Tentativa ${attempt} falhou na inserção de baixas:`, insErr)
             if (attempt < 3) {
               await new Promise((r) => setTimeout(r, attempt * 1500))
             }
@@ -552,10 +631,7 @@ export default function ImportData() {
     }
 
     try {
-      // Disparar cruzamento de conversões
       await (supabase as any).rpc('process_conversions')
-
-      // Limpar registros de baixas antigas com base na regra de retenção
       await (supabase as any).rpc('cleanup_old_settlements')
     } catch (err) {
       console.error('Falha não-crítica ao processar conversões ou limpar base:', err)
@@ -563,11 +639,26 @@ export default function ImportData() {
 
     setProgress(100)
 
-    return {
+    const result = {
       total: data.length,
       inserted: insertedCount,
       redundant: redundantCount,
     }
+
+    try {
+      await (supabase as any).from('import_history').insert({
+        table_name: 'Baixas (Carga Incremental)',
+        total_records: result.total,
+        inserted_records: result.inserted,
+        ignored_records: result.redundant,
+        latest_record_date: maxDateStr ? maxDateStr.split('T')[0] : null,
+      })
+      loadHistory()
+    } catch (e) {
+      console.error('Falha ao gravar histórico', e)
+    }
+
+    return result
   }
 
   return (
@@ -580,7 +671,6 @@ export default function ImportData() {
           </p>
         </div>
 
-        {/* Indicador Global de Fila */}
         {(activeTask || queue.length > 0) && (
           <div className="flex items-center gap-3 bg-white px-4 py-2 rounded-lg border border-slate-200 shadow-sm animate-fade-in shrink-0">
             <div className="relative flex h-3 w-3">
@@ -618,6 +708,91 @@ export default function ImportData() {
           onProcess={processSettlements}
           enqueueTask={enqueueTask}
         />
+      </div>
+
+      <div className="mt-8 space-y-4 animate-fade-in">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h2 className="text-xl font-bold tracking-tight text-slate-900">
+              Últimos Processamentos
+            </h2>
+            <p className="text-slate-500 text-sm mt-1">
+              Histórico das últimas cargas realizadas no sistema (máx. 20 registros).
+            </p>
+          </div>
+          <Button variant="outline" size="sm" onClick={loadHistory} className="shrink-0 bg-white">
+            <RefreshCw className="h-4 w-4 mr-2" /> Atualizar Histórico
+          </Button>
+        </div>
+        <Card className="border-slate-200 shadow-sm overflow-hidden">
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader className="bg-slate-50 border-b">
+                <TableRow>
+                  <TableHead className="w-[180px] font-semibold text-slate-700">
+                    Data/Hora Execução
+                  </TableHead>
+                  <TableHead className="font-semibold text-slate-700">Tipo de Carga</TableHead>
+                  <TableHead className="text-right font-semibold text-slate-700">
+                    Total Arquivo
+                  </TableHead>
+                  <TableHead className="text-right font-semibold text-slate-700">
+                    Inseridos
+                  </TableHead>
+                  <TableHead className="text-right font-semibold text-slate-700">
+                    Ignorados
+                  </TableHead>
+                  <TableHead className="text-right font-semibold text-slate-700">
+                    Ref. Mais Recente (GIS)
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {history.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-8 text-slate-500">
+                      Nenhum histórico de importação encontrado.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  history.map((item) => (
+                    <TableRow key={item.id} className="hover:bg-slate-50/50">
+                      <TableCell className="font-medium text-slate-900 whitespace-nowrap">
+                        {format(new Date(item.created_at), 'dd/MM/yyyy HH:mm')}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        <Badge
+                          variant="secondary"
+                          className={
+                            item.table_name.includes('Baixas')
+                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
+                              : 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100'
+                          }
+                        >
+                          {item.table_name}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right text-slate-600">
+                        {item.total_records}
+                      </TableCell>
+                      <TableCell className="text-right text-emerald-600 font-medium">
+                        {item.inserted_records}
+                      </TableCell>
+                      <TableCell className="text-right text-amber-600 font-medium">
+                        {item.ignored_records}
+                      </TableCell>
+                      <TableCell className="text-right font-medium text-slate-900 whitespace-nowrap">
+                        {item.latest_record_date
+                          ? format(new Date(item.latest_record_date + 'T12:00:00'), 'dd/MM/yyyy')
+                          : '-'}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </Card>
       </div>
     </div>
   )
