@@ -1,7 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
 import {
   Table,
   TableBody,
@@ -17,14 +15,11 @@ import {
   Headphones,
   ListTodo,
   UserCheck,
-  ArrowRight,
-  Info,
   TrendingUp,
   TrendingDown,
 } from 'lucide-react'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-import { getDebts, getDashboardEvolution, ParsedDebt } from '@/services/debts'
+import { getDashboardEvolution } from '@/services/debts'
 import { getProfiles, getOperatorStats } from '@/services/data'
 import { useAuth } from '@/hooks/use-auth'
 import { supabase } from '@/lib/supabase/client'
@@ -64,7 +59,6 @@ const EvolutionIndicator = ({
 }
 
 export default function Index() {
-  const [queue, setQueue] = useState<ParsedDebt[]>([])
   const [evolution, setEvolution] = useState<{ portfolio: any; productivity: any }>({
     portfolio: { current: {}, previous: {} },
     productivity: { current: {}, previous: {} },
@@ -80,19 +74,6 @@ export default function Index() {
     const timer = setInterval(() => setNowTime(Date.now()), 60000)
     return () => clearInterval(timer)
   }, [])
-
-  useEffect(() => {
-    // Limits the query to avoid timeouts while getting the top pending debts
-    getDebts(undefined, user?.id, undefined, undefined, 50)
-      .then((d) => {
-        if (Array.isArray(d)) {
-          setQueue(d.slice(0, 3))
-        } else if (d && d.unattended) {
-          setQueue(d.unattended.slice(0, 3))
-        }
-      })
-      .catch(console.error)
-  }, [user?.id])
 
   useEffect(() => {
     getDashboardEvolution()
@@ -238,48 +219,48 @@ export default function Index() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-sm font-medium flex items-center gap-1.5">
-              Valor Total da Carteira
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Info className="h-4 w-4 text-muted-foreground/70 hover:text-foreground transition-colors cursor-help" />
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Atenção: considera valores de faturas retidas (remoção em desenvolvimento).</p>
-                </TooltipContent>
-              </Tooltip>
-            </CardTitle>
+            <CardTitle className="text-sm font-medium">Valores da Carteira</CardTitle>
             <CircleDollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-primary">
-              R${' '}
-              {(evolution.portfolio.current.total_value || 0).toLocaleString('pt-BR', {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2,
-              })}
+            <div className="flex justify-between items-start mt-1">
+              <div>
+                <p className="text-xs text-muted-foreground mb-0.5">Faturas Emitidas</p>
+                <div className="text-lg font-bold text-primary">
+                  R${' '}
+                  {(evolution.portfolio.current.total_value || 0).toLocaleString('pt-BR', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
+                </div>
+                <EvolutionIndicator
+                  current={evolution.portfolio.current.total_value}
+                  previous={evolution.portfolio.previous.total_value}
+                  inverse
+                />
+              </div>
+              <div className="text-right">
+                <p className="text-xs text-muted-foreground mb-0.5">Faturas Retidas</p>
+                <div className="text-lg font-bold text-slate-700">
+                  R${' '}
+                  {(evolution.portfolio.current.total_retidas || 0).toLocaleString('pt-BR', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
+                </div>
+                <EvolutionIndicator
+                  current={evolution.portfolio.current.total_retidas}
+                  previous={evolution.portfolio.previous.total_retidas}
+                  inverse
+                />
+              </div>
             </div>
-            <EvolutionIndicator
-              current={evolution.portfolio.current.total_value}
-              previous={evolution.portfolio.previous.total_value}
-              inverse
-            />
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-sm font-medium flex items-center gap-1.5">
-              Saldo Vencido vs. A Vencer
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Info className="h-4 w-4 text-muted-foreground/70 hover:text-foreground transition-colors cursor-help" />
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Atenção: considera valores de faturas retidas (remoção em desenvolvimento).</p>
-                </TooltipContent>
-              </Tooltip>
-            </CardTitle>
+            <CardTitle className="text-sm font-medium">Saldo Vencido vs. A Vencer</CardTitle>
             <Split className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -361,45 +342,6 @@ export default function Index() {
       </div>
 
       <div className="flex flex-col gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Fila Rápida</CardTitle>
-            <CardDescription>Próximas ações agendadas para o seu turno.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {queue.length === 0 ? (
-                <p className="text-sm text-slate-500">Nenhuma ação pendente.</p>
-              ) : (
-                queue.map((debt) => (
-                  <div
-                    key={debt.id}
-                    className="flex items-center justify-between p-3 border rounded-lg hover:bg-slate-50 transition-colors"
-                  >
-                    <div className="flex flex-col gap-1">
-                      <span className="font-semibold text-sm">
-                        {debt.name} (UC {debt.uc})
-                      </span>
-                      <span className="text-xs text-muted-foreground">
-                        Valor: R${' '}
-                        {debt.totalDebt.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                      </span>
-                    </div>
-                    <Button size="sm" variant="secondary" asChild>
-                      <Link to={`/customer/${debt.id}`}>Atender</Link>
-                    </Button>
-                  </div>
-                ))
-              )}
-            </div>
-            <Button variant="ghost" className="w-full mt-4 text-primary" asChild>
-              <Link to="/queue">
-                Ver todas <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
-            </Button>
-          </CardContent>
-        </Card>
-
         <Card>
           <CardHeader>
             <CardTitle>Equipe Operacional</CardTitle>

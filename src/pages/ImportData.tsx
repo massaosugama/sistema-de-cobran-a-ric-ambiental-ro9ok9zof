@@ -40,6 +40,7 @@ const pendingDebtsColumns = [
   'valor_total',
   'valor_vencido',
   'valor_a_vencer',
+  'valor_retidas_em_aberto',
 ]
 
 const settlementsColumns = [
@@ -82,7 +83,7 @@ const parseCSV = async (file: File) => {
 
         if (
           typeof val === 'string' &&
-          ['valor_total', 'valor_vencido', 'valor_a_vencer'].includes(h)
+          ['valor_total', 'valor_vencido', 'valor_a_vencer', 'valor_retidas_em_aberto'].includes(h)
         ) {
           if (val.includes(',') && !val.includes('.')) {
             val = parseFloat(val.replace(',', '.'))

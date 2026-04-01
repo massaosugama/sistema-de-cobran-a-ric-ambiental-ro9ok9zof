@@ -40,7 +40,7 @@ import logoImg from '@/assets/ricambiental_logo-01-500-porcento-fbb5f.png'
 import { SidebarQuote } from './SidebarQuote'
 
 const navigation = [
-  { name: 'Dashboard', href: '/', icon: LayoutDashboard },
+  { name: 'Visão Geral', href: '/', icon: LayoutDashboard },
   { name: 'Fila Rápida', href: '/queue', icon: PhoneCall },
   { name: 'Follow-up', href: '/follow-up', icon: CalendarDays },
   { name: 'Baixas', href: '/settlements', icon: CreditCard },
