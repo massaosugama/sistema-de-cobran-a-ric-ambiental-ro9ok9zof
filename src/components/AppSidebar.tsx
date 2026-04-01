@@ -23,17 +23,9 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarFooter,
   useSidebar,
 } from '@/components/ui/sidebar'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
+import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/hooks/use-auth'
 import logoImg from '@/assets/ricambiental_logo-01-500-porcento-fbb5f.png'
@@ -63,6 +55,34 @@ export function AppSidebar() {
       <SidebarHeader className="flex flex-col border-b py-3 px-2 relative transition-all duration-200">
         {state === 'expanded' ? (
           <>
+            <div className="absolute left-1 top-1 hidden md:flex z-10">
+              <HoverCard openDelay={100} closeDelay={150}>
+                <HoverCardTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 focus-visible:ring-0 focus-visible:ring-offset-0"
+                    title="Minha Conta"
+                  >
+                    <User className="h-4 w-4" />
+                  </Button>
+                </HoverCardTrigger>
+                <HoverCardContent align="start" side="bottom" sideOffset={8} className="w-56 p-2">
+                  <div className="flex flex-col space-y-1 p-2">
+                    <p className="text-sm font-medium leading-none">Conectado como</p>
+                    <p className="text-xs leading-none text-muted-foreground">{user?.email}</p>
+                  </div>
+                  <div className="h-px bg-slate-100 my-1" />
+                  <div
+                    onClick={() => signOut()}
+                    className="relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-slate-100 text-red-600 font-medium"
+                  >
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>Sair do Sistema</span>
+                  </div>
+                </HoverCardContent>
+              </HoverCard>
+            </div>
             <Button
               variant="ghost"
               size="icon"
@@ -72,22 +92,52 @@ export function AppSidebar() {
             >
               <Menu className="h-4 w-4" />
             </Button>
-            <div className="flex flex-col items-center gap-2 mt-5 px-2 mb-2">
+            <div className="flex flex-col items-center gap-2 mt-5 px-2 mb-2 relative">
               <img src={logoImg} alt="RIC Ambiental" className="w-full h-11 object-contain" />
               <h1 className="text-[13px] font-black tracking-tight text-slate-800 text-center leading-tight">
                 Ric Recupera &<br />
                 Desenvolve
               </h1>
+              <span className="text-[10px] text-slate-400 font-medium tracking-wider select-none -mt-1">
+                v0.0.106
+              </span>
             </div>
           </>
         ) : (
-          <div
-            className="flex flex-col items-center justify-center cursor-pointer hover:opacity-80 transition-opacity mt-1 mb-1"
-            onClick={toggleSidebar}
-            title="Expandir Menu Lateral"
-          >
-            <div className="flex items-center justify-center w-8 h-8 rounded-md bg-primary text-primary-foreground font-bold">
-              =&gt;
+          <div className="flex flex-col items-center gap-4 mt-1 mb-1">
+            <HoverCard openDelay={100} closeDelay={150}>
+              <HoverCardTrigger asChild>
+                <div
+                  className="flex items-center justify-center h-8 w-8 rounded-full bg-slate-200 cursor-pointer hover:opacity-80 transition-opacity"
+                  title="Minha Conta"
+                >
+                  <User className="h-4 w-4 text-slate-600" />
+                </div>
+              </HoverCardTrigger>
+              <HoverCardContent align="start" side="right" sideOffset={8} className="w-56 p-2">
+                <div className="flex flex-col space-y-1 p-2">
+                  <p className="text-sm font-medium leading-none">Conectado como</p>
+                  <p className="text-xs leading-none text-muted-foreground">{user?.email}</p>
+                </div>
+                <div className="h-px bg-slate-100 my-1" />
+                <div
+                  onClick={() => signOut()}
+                  className="relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-slate-100 text-red-600 font-medium"
+                >
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Sair do Sistema</span>
+                </div>
+              </HoverCardContent>
+            </HoverCard>
+
+            <div
+              className="flex flex-col items-center justify-center cursor-pointer hover:opacity-80 transition-opacity"
+              onClick={toggleSidebar}
+              title="Expandir Menu Lateral"
+            >
+              <div className="flex items-center justify-center w-8 h-8 rounded-md bg-primary text-primary-foreground font-bold">
+                =&gt;
+              </div>
             </div>
           </div>
         )}
@@ -117,67 +167,11 @@ export function AppSidebar() {
 
         {/* Knowledge Base Area */}
         {!isCustomerScreen && state === 'expanded' && (
-          <div className="mt-auto">
+          <div className="mt-auto mb-4">
             <SidebarQuote />
           </div>
         )}
       </SidebarContent>
-
-      <SidebarFooter className="border-t p-2">
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <SidebarMenuButton
-                  size="lg"
-                  className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
-                >
-                  <div className="flex items-center justify-center h-8 w-8 rounded-full bg-slate-200 shrink-0">
-                    <User className="h-4 w-4 text-slate-600" />
-                  </div>
-                  {state === 'expanded' && (
-                    <div className="grid flex-1 text-left text-sm leading-tight ml-2">
-                      <span className="truncate font-semibold">Minha Conta</span>
-                      <span className="truncate text-xs text-slate-500">
-                        {user?.email || 'Usuário'}
-                      </span>
-                    </div>
-                  )}
-                </SidebarMenuButton>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent
-                align="start"
-                side={state === 'collapsed' ? 'right' : 'top'}
-                sideOffset={8}
-                className="w-56"
-              >
-                <DropdownMenuLabel>
-                  <div className="flex flex-col space-y-1">
-                    <p className="text-sm font-medium leading-none">Conectado como</p>
-                    <p className="text-xs leading-none text-muted-foreground">{user?.email}</p>
-                  </div>
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  onClick={() => signOut()}
-                  className="text-red-600 focus:text-red-600 cursor-pointer"
-                >
-                  <LogOut className="mr-2 h-4 w-4" />
-                  <span>Sair do Sistema</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </SidebarMenuItem>
-        </SidebarMenu>
-
-        {state === 'expanded' && (
-          <div className="mt-3 mb-1 flex justify-center">
-            <span className="text-[10px] text-slate-400 font-medium tracking-wider select-none">
-              v0.0.106
-            </span>
-          </div>
-        )}
-      </SidebarFooter>
     </Sidebar>
   )
 }

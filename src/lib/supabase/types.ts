@@ -235,6 +235,7 @@ export type Database = {
           uc: string
           uc_repete: string | null
           valor_a_vencer: number | null
+          valor_retidas_em_aberto: number | null
           valor_total: number | null
           valor_vencido: number | null
         }
@@ -258,6 +259,7 @@ export type Database = {
           uc: string
           uc_repete?: string | null
           valor_a_vencer?: number | null
+          valor_retidas_em_aberto?: number | null
           valor_total?: number | null
           valor_vencido?: number | null
         }
@@ -281,6 +283,7 @@ export type Database = {
           uc?: string
           uc_repete?: string | null
           valor_a_vencer?: number | null
+          valor_retidas_em_aberto?: number | null
           valor_total?: number | null
           valor_vencido?: number | null
         }
@@ -293,6 +296,7 @@ export type Database = {
           snapshot_date: string
           total_a_vencer: number
           total_cases: number
+          total_retidas: number | null
           total_value: number
           total_vencido: number
         }
@@ -302,6 +306,7 @@ export type Database = {
           snapshot_date: string
           total_a_vencer?: number
           total_cases?: number
+          total_retidas?: number | null
           total_value?: number
           total_vencido?: number
         }
@@ -311,6 +316,7 @@ export type Database = {
           snapshot_date?: string
           total_a_vencer?: number
           total_cases?: number
+          total_retidas?: number | null
           total_value?: number
           total_vencido?: number
         }
@@ -744,6 +750,7 @@ export const Constants = {
 //   responsavel_celular: text (nullable)
 //   valor_vencido: numeric (nullable, default: 0)
 //   valor_a_vencer: numeric (nullable, default: 0)
+//   valor_retidas_em_aberto: numeric (nullable, default: 0)
 // Table: portfolio_history
 //   id: uuid (not null, default: gen_random_uuid())
 //   snapshot_date: date (not null)
@@ -752,6 +759,7 @@ export const Constants = {
 //   created_at: timestamp with time zone (not null, default: now())
 //   total_vencido: numeric (not null, default: 0)
 //   total_a_vencer: numeric (not null, default: 0)
+//   total_retidas: numeric (nullable, default: 0)
 // Table: profiles
 //   id: uuid (not null)
 //   email: text (not null)
@@ -961,7 +969,8 @@ export const Constants = {
 //       count(*) as total_cases,
 //       COALESCE(sum(valor_total), 0) as total_value,
 //       COALESCE(sum(valor_vencido), 0) as total_vencido,
-//       COALESCE(sum(valor_a_vencer), 0) as total_a_vencer
+//       COALESCE(sum(valor_a_vencer), 0) as total_a_vencer,
+//       COALESCE(sum(valor_retidas_em_aberto), 0) as total_retidas
 //     INTO curr_portfolio
 //     FROM public.pending_debts;
 //
@@ -992,13 +1001,15 @@ export const Constants = {
 //            'total_cases', curr_portfolio.total_cases,
 //            'total_value', curr_portfolio.total_value,
 //            'total_vencido', curr_portfolio.total_vencido,
-//            'total_a_vencer', curr_portfolio.total_a_vencer
+//            'total_a_vencer', curr_portfolio.total_a_vencer,
+//            'total_retidas', curr_portfolio.total_retidas
 //          ),
 //          'previous', json_build_object(
 //            'total_cases', COALESCE(prev_portfolio.total_cases, curr_portfolio.total_cases),
 //            'total_value', COALESCE(prev_portfolio.total_value, curr_portfolio.total_value),
 //            'total_vencido', COALESCE(prev_portfolio.total_vencido, curr_portfolio.total_vencido),
-//            'total_a_vencer', COALESCE(prev_portfolio.total_a_vencer, curr_portfolio.total_a_vencer)
+//            'total_a_vencer', COALESCE(prev_portfolio.total_a_vencer, curr_portfolio.total_a_vencer),
+//            'total_retidas', COALESCE(prev_portfolio.total_retidas, curr_portfolio.total_retidas)
 //          )
 //       ),
 //       'productivity', json_build_object(
@@ -1066,7 +1077,8 @@ export const Constants = {
 //       'total_cases', count(*),
 //       'total_value', COALESCE(sum(valor_total), 0),
 //       'total_vencido', COALESCE(sum(valor_vencido), 0),
-//       'total_a_vencer', COALESCE(sum(valor_a_vencer), 0)
+//       'total_a_vencer', COALESCE(sum(valor_a_vencer), 0),
+//       'total_retidas', COALESCE(sum(valor_retidas_em_aberto), 0)
 //     ) INTO result
 //     FROM public.pending_debts;
 //
@@ -1143,19 +1155,21 @@ export const Constants = {
 //    SECURITY DEFINER
 //   AS $function$
 //   BEGIN
-//       INSERT INTO public.portfolio_history (snapshot_date, total_cases, total_value, total_vencido, total_a_vencer)
+//       INSERT INTO public.portfolio_history (snapshot_date, total_cases, total_value, total_vencido, total_a_vencer, total_retidas)
 //       SELECT
 //           CURRENT_DATE,
 //           COUNT(*),
 //           COALESCE(SUM(valor_total), 0),
 //           COALESCE(SUM(valor_vencido), 0),
-//           COALESCE(SUM(valor_a_vencer), 0)
+//           COALESCE(SUM(valor_a_vencer), 0),
+//           COALESCE(SUM(valor_retidas_em_aberto), 0)
 //       FROM public.pending_debts
 //       ON CONFLICT (snapshot_date) DO UPDATE
 //       SET total_cases = EXCLUDED.total_cases,
 //           total_value = EXCLUDED.total_value,
 //           total_vencido = EXCLUDED.total_vencido,
-//           total_a_vencer = EXCLUDED.total_a_vencer;
+//           total_a_vencer = EXCLUDED.total_a_vencer,
+//           total_retidas = EXCLUDED.total_retidas;
 //   END;
 //   $function$
 //
