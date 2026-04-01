@@ -104,13 +104,19 @@ const parseCSV = async (file: File) => {
   return { headers, data }
 }
 
+interface ImportResult {
+  total: number
+  inserted: number
+  redundant: number
+}
+
 interface ImportCardProps {
   title: string
   description: string
   icon: React.ReactNode
   tableName: 'pending_debts' | 'settlements'
   allowedColumns: string[]
-  onProcess: (data: any[], setProgress: (p: number) => void) => Promise<void>
+  onProcess: (data: any[], setProgress: (p: number) => void) => Promise<ImportResult | void>
   enqueueTask: (id: string, run: () => Promise<void>) => void
 }
 
@@ -135,6 +141,7 @@ function ImportCard({
   const [extraColumns, setExtraColumns] = useState<string[]>([])
   const [rememberedColumns, setRememberedColumns] = useState<string[]>([])
   const [ignoredColumns, setIgnoredColumns] = useState<Record<string, boolean>>({})
+  const [importResult, setImportResult] = useState<ImportResult | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const handleStart = async () => {
@@ -183,9 +190,13 @@ function ImportCard({
     enqueueTask(tableName, async () => {
       setStatus('uploading')
       setProgress(5)
+      setImportResult(null)
 
       try {
-        await onProcess(cleanedData, setProgress)
+        const result = await onProcess(cleanedData, setProgress)
+        if (result) {
+          setImportResult(result)
+        }
         setStatus('success')
         setProgress(100)
         toast({ title: 'Sucesso!', description: 'Arquivo processado.', variant: 'default' })
@@ -335,8 +346,29 @@ function ImportCard({
             )}
 
             {status === 'success' && (
-              <div className="flex items-center gap-2 text-sm font-medium text-emerald-600 bg-emerald-50 p-3 rounded-lg border border-emerald-100 mt-auto animate-fade-in">
-                <CheckCircle2 className="h-5 w-5 shrink-0" /> Base atualizada com sucesso!
+              <div className="flex flex-col gap-3 mt-auto animate-fade-in">
+                <div className="flex items-center gap-2 text-sm font-medium text-emerald-600 bg-emerald-50 p-3 rounded-lg border border-emerald-100">
+                  <CheckCircle2 className="h-5 w-5 shrink-0" /> Base atualizada com sucesso!
+                </div>
+                {importResult && (
+                  <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 space-y-2">
+                    <h4 className="text-sm font-semibold text-slate-900 mb-3">
+                      Resumo da Importação
+                    </h4>
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-slate-600">Total de registros no arquivo:</span>
+                      <span className="font-medium text-slate-900">{importResult.total}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-slate-600">Novos registros inseridos:</span>
+                      <span className="font-medium text-emerald-600">{importResult.inserted}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-slate-600">Registros redundantes (ignorados):</span>
+                      <span className="font-medium text-amber-600">{importResult.redundant}</span>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
@@ -455,40 +487,64 @@ export default function ImportData() {
     }
 
     setProgress(100)
+
+    return {
+      total: data.length,
+      inserted: data.length,
+      redundant: 0,
+    }
   }
 
   const processSettlements = async (data: any[], setProgress: (p: number) => void) => {
     setProgress(5)
     const chunkSize = 100
+    let insertedCount = 0
+    let redundantCount = 0
 
     for (let i = 0; i < data.length; i += chunkSize) {
       const chunk = data.slice(i, i + chunkSize)
 
-      let attempt = 0
-      let success = false
-      let lastError: any = null
+      const ids = chunk.map((c: any) => c.id).filter(Boolean)
+      let existingIds = new Set<string>()
 
-      while (attempt < 3 && !success) {
-        attempt++
-        const { error: insErr } = await supabase.from('settlements').insert(chunk)
-        if (insErr) {
-          lastError = insErr
-          console.warn(
-            `Tentativa ${attempt} falhou na inserção de baixas (linhas ${i}-${i + chunk.length}):`,
-            insErr,
-          )
-          if (attempt < 3) {
-            await new Promise((r) => setTimeout(r, attempt * 1500))
-          }
-        } else {
-          success = true
+      if (ids.length > 0) {
+        const { data: existing } = await supabase.from('settlements').select('id').in('id', ids)
+        if (existing) {
+          existing.forEach((e: any) => existingIds.add(e.id))
         }
       }
 
-      if (!success) {
-        throw new Error(
-          `Erro na inserção (Linha ${i + 1}) - Detalhe: ${lastError?.message || 'Erro desconhecido'}`,
-        )
+      const newRecords = chunk.filter((c: any) => !c.id || !existingIds.has(c.id))
+      redundantCount += chunk.length - newRecords.length
+
+      if (newRecords.length > 0) {
+        let attempt = 0
+        let success = false
+        let lastError: any = null
+
+        while (attempt < 3 && !success) {
+          attempt++
+          const { error: insErr } = await supabase.from('settlements').insert(newRecords)
+          if (insErr) {
+            lastError = insErr
+            console.warn(
+              `Tentativa ${attempt} falhou na inserção de baixas (linhas ${i}-${i + chunk.length}):`,
+              insErr,
+            )
+            if (attempt < 3) {
+              await new Promise((r) => setTimeout(r, attempt * 1500))
+            }
+          } else {
+            success = true
+            insertedCount += newRecords.length
+          }
+        }
+
+        if (!success) {
+          throw new Error(
+            `Erro na inserção (Linha ${i + 1}) - Detalhe: ${lastError?.message || 'Erro desconhecido'}`,
+          )
+        }
       }
 
       setProgress(5 + Math.floor((i / data.length) * 80))
@@ -506,6 +562,12 @@ export default function ImportData() {
     }
 
     setProgress(100)
+
+    return {
+      total: data.length,
+      inserted: insertedCount,
+      redundant: redundantCount,
+    }
   }
 
   return (
