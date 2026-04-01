@@ -214,6 +214,36 @@ export type Database = {
         }
         Relationships: []
       }
+      import_history: {
+        Row: {
+          created_at: string
+          id: string
+          ignored_records: number
+          inserted_records: number
+          latest_record_date: string | null
+          table_name: string
+          total_records: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          ignored_records?: number
+          inserted_records?: number
+          latest_record_date?: string | null
+          table_name: string
+          total_records?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          ignored_records?: number
+          inserted_records?: number
+          latest_record_date?: string | null
+          table_name?: string
+          total_records?: number
+        }
+        Relationships: []
+      }
       pending_debts: {
         Row: {
           cod_pess_fat: string
@@ -728,6 +758,14 @@ export const Constants = {
 //   created_at: timestamp with time zone (not null, default: now())
 //   cod_pess_fat: text (nullable)
 //   is_active: boolean (nullable, default: true)
+// Table: import_history
+//   id: uuid (not null, default: gen_random_uuid())
+//   created_at: timestamp with time zone (not null, default: now())
+//   table_name: text (not null)
+//   total_records: integer (not null, default: 0)
+//   inserted_records: integer (not null, default: 0)
+//   ignored_records: integer (not null, default: 0)
+//   latest_record_date: date (nullable)
 // Table: pending_debts
 //   uc: text (not null)
 //   setor: text (nullable)
@@ -826,6 +864,8 @@ export const Constants = {
 // Table: follow_up_tasks
 //   FOREIGN KEY follow_up_tasks_operator_id_fkey: FOREIGN KEY (operator_id) REFERENCES auth.users(id) ON DELETE SET NULL
 //   PRIMARY KEY follow_up_tasks_pkey: PRIMARY KEY (id)
+// Table: import_history
+//   PRIMARY KEY import_history_pkey: PRIMARY KEY (id)
 // Table: pending_debts
 //   PRIMARY KEY pending_debts_pkey: PRIMARY KEY (uc, cod_pess_fat)
 // Table: portfolio_history
@@ -861,6 +901,10 @@ export const Constants = {
 //     USING: true
 //     WITH CHECK: true
 // Table: follow_up_tasks
+//   Policy "authenticated_all" (ALL, PERMISSIVE) roles={authenticated}
+//     USING: true
+//     WITH CHECK: true
+// Table: import_history
 //   Policy "authenticated_all" (ALL, PERMISSIVE) roles={authenticated}
 //     USING: true
 //     WITH CHECK: true
@@ -1110,6 +1154,23 @@ export const Constants = {
 //   END;
 //   $function$
 //
+// FUNCTION keep_latest_20_import_history()
+//   CREATE OR REPLACE FUNCTION public.keep_latest_20_import_history()
+//    RETURNS trigger
+//    LANGUAGE plpgsql
+//    SECURITY DEFINER
+//   AS $function$
+//   BEGIN
+//       DELETE FROM public.import_history
+//       WHERE id NOT IN (
+//           SELECT id FROM public.import_history
+//           ORDER BY created_at DESC
+//           LIMIT 20
+//       );
+//       RETURN NEW;
+//   END;
+//   $function$
+//
 // FUNCTION process_conversions()
 //   CREATE OR REPLACE FUNCTION public.process_conversions()
 //    RETURNS void
@@ -1211,6 +1272,8 @@ export const Constants = {
 // --- TRIGGERS ---
 // Table: contact_history
 //   trg_audit_contact_history: CREATE TRIGGER trg_audit_contact_history AFTER UPDATE ON public.contact_history FOR EACH ROW WHEN ((old.* IS DISTINCT FROM new.*)) EXECUTE FUNCTION audit_contact_history_changes()
+// Table: import_history
+//   trg_limit_import_history: CREATE TRIGGER trg_limit_import_history AFTER INSERT ON public.import_history FOR EACH ROW EXECUTE FUNCTION keep_latest_20_import_history()
 // Table: profiles
 //   set_profiles_updated_at: CREATE TRIGGER set_profiles_updated_at BEFORE UPDATE ON public.profiles FOR EACH ROW EXECUTE FUNCTION set_current_timestamp_updated_at()
 
