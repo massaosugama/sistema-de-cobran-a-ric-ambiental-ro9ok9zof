@@ -19,10 +19,72 @@ import Debtors from './pages/Debtors'
 import Settings from './pages/Settings'
 import NotFound from './pages/NotFound'
 import Login from './pages/Login'
+import { useEffect } from 'react'
+
+function LayoutFixer() {
+  useEffect(() => {
+    let timeoutId: number | undefined
+    const fixLayout = () => {
+      const labels = document.querySelectorAll('label')
+      labels.forEach((label) => {
+        const text = label.textContent?.trim() || ''
+        if (text === 'Agendar Próxima Ação' || text === 'Observações') {
+          let el = label.parentElement
+          while (el && el !== document.body) {
+            if (
+              el.classList.contains('grid') &&
+              (el.classList.contains('grid-cols-2') || el.classList.contains('md:grid-cols-2'))
+            ) {
+              el.classList.remove(
+                'grid-cols-2',
+                'md:grid-cols-2',
+                'sm:grid-cols-2',
+                'lg:grid-cols-2',
+              )
+              el.classList.add('grid-cols-1')
+              break
+            }
+            if (el.classList.contains('flex') && el.classList.contains('flex-row')) {
+              el.classList.remove('flex-row')
+              el.classList.add('flex-col')
+              break
+            }
+            el = el.parentElement
+          }
+
+          if (text === 'Observações') {
+            const textarea = label.parentElement?.querySelector('textarea')
+            if (textarea) {
+              textarea.classList.remove('min-h-[80px]', 'h-20')
+              textarea.style.minHeight = '160px'
+            }
+          }
+        }
+      })
+    }
+
+    const observer = new MutationObserver((mutations) => {
+      if (mutations.some((m) => m.addedNodes.length > 0)) {
+        window.clearTimeout(timeoutId)
+        timeoutId = window.setTimeout(fixLayout, 50)
+      }
+    })
+
+    observer.observe(document.body, { childList: true, subtree: true })
+    fixLayout()
+
+    return () => {
+      observer.disconnect()
+      window.clearTimeout(timeoutId)
+    }
+  }, [])
+  return null
+}
 
 const App = () => (
   <AppStateProvider>
     <AuthProvider>
+      <LayoutFixer />
       <BrowserRouter future={{ v7_startTransition: false, v7_relativeSplatPath: false }}>
         <TooltipProvider>
           <Toaster />

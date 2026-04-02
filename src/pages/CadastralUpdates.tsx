@@ -233,7 +233,7 @@ export default function CadastralUpdates() {
                 value={resolutionNotes}
                 onChange={(e) => setResolutionNotes(e.target.value)}
                 placeholder="Descreva o que foi atualizado no sistema GIS..."
-                className="min-h-[140px] resize-none rounded-xl border-slate-200 shadow-sm bg-slate-50 focus-visible:bg-white"
+                className="min-h-[180px] resize-none rounded-xl border-slate-200 shadow-sm bg-slate-50 focus-visible:bg-white text-base leading-relaxed"
               />
             </div>
           </div>
