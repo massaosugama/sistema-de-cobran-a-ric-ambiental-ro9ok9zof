@@ -27,6 +27,66 @@ export type Database = {
         }
         Relationships: []
       }
+      cadastral_updates: {
+        Row: {
+          cod_pess_fat: string | null
+          created_at: string
+          customer_name: string | null
+          id: string
+          is_active: boolean | null
+          notes: string | null
+          requester_id: string | null
+          resolution_notes: string | null
+          resolved_at: string | null
+          resolver_id: string | null
+          status: string
+          uc: string
+        }
+        Insert: {
+          cod_pess_fat?: string | null
+          created_at?: string
+          customer_name?: string | null
+          id?: string
+          is_active?: boolean | null
+          notes?: string | null
+          requester_id?: string | null
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          resolver_id?: string | null
+          status?: string
+          uc: string
+        }
+        Update: {
+          cod_pess_fat?: string | null
+          created_at?: string
+          customer_name?: string | null
+          id?: string
+          is_active?: boolean | null
+          notes?: string | null
+          requester_id?: string | null
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          resolver_id?: string | null
+          status?: string
+          uc?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'cadastral_updates_requester_id_fkey'
+            columns: ['requester_id']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'cadastral_updates_resolver_id_fkey'
+            columns: ['resolver_id']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       contact_history: {
         Row: {
           cod_pess_fat: string | null
@@ -715,6 +775,19 @@ export const Constants = {
 //   key: text (not null)
 //   value: jsonb (not null)
 //   updated_at: timestamp with time zone (nullable, default: now())
+// Table: cadastral_updates
+//   id: uuid (not null, default: gen_random_uuid())
+//   uc: text (not null)
+//   cod_pess_fat: text (nullable)
+//   customer_name: text (nullable)
+//   requester_id: uuid (nullable)
+//   resolver_id: uuid (nullable)
+//   status: text (not null, default: 'pending'::text)
+//   notes: text (nullable)
+//   resolution_notes: text (nullable)
+//   created_at: timestamp with time zone (not null, default: now())
+//   resolved_at: timestamp with time zone (nullable)
+//   is_active: boolean (nullable, default: true)
 // Table: contact_history
 //   id: uuid (not null, default: gen_random_uuid())
 //   uc: text (nullable)
@@ -850,6 +923,10 @@ export const Constants = {
 // --- CONSTRAINTS ---
 // Table: app_settings
 //   PRIMARY KEY app_settings_pkey: PRIMARY KEY (key)
+// Table: cadastral_updates
+//   PRIMARY KEY cadastral_updates_pkey: PRIMARY KEY (id)
+//   FOREIGN KEY cadastral_updates_requester_id_fkey: FOREIGN KEY (requester_id) REFERENCES profiles(id) ON DELETE SET NULL
+//   FOREIGN KEY cadastral_updates_resolver_id_fkey: FOREIGN KEY (resolver_id) REFERENCES profiles(id) ON DELETE SET NULL
 // Table: contact_history
 //   FOREIGN KEY contact_history_operator_id_fkey: FOREIGN KEY (operator_id) REFERENCES profiles(id) ON DELETE SET NULL
 //   PRIMARY KEY contact_history_pkey: PRIMARY KEY (id)
@@ -886,6 +963,10 @@ export const Constants = {
 
 // --- ROW LEVEL SECURITY POLICIES ---
 // Table: app_settings
+//   Policy "authenticated_all" (ALL, PERMISSIVE) roles={authenticated}
+//     USING: true
+//     WITH CHECK: true
+// Table: cadastral_updates
 //   Policy "authenticated_all" (ALL, PERMISSIVE) roles={authenticated}
 //     USING: true
 //     WITH CHECK: true
@@ -1362,6 +1443,9 @@ export const Constants = {
 //   set_profiles_updated_at: CREATE TRIGGER set_profiles_updated_at BEFORE UPDATE ON public.profiles FOR EACH ROW EXECUTE FUNCTION set_current_timestamp_updated_at()
 
 // --- INDEXES ---
+// Table: cadastral_updates
+//   CREATE INDEX cadastral_updates_created_at_idx ON public.cadastral_updates USING btree (created_at)
+//   CREATE INDEX cadastral_updates_status_idx ON public.cadastral_updates USING btree (status)
 // Table: contact_history
 //   CREATE INDEX contact_history_created_at_idx ON public.contact_history USING btree (created_at)
 //   CREATE INDEX contact_history_operator_id_idx ON public.contact_history USING btree (operator_id)

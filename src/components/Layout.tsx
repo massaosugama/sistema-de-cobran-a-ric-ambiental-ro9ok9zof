@@ -2,8 +2,11 @@ import { Outlet } from 'react-router-dom'
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar'
 import { AppSidebar } from './AppSidebar'
 import { CompleteProfileDialog } from './CompleteProfileDialog'
+import { useFollowUpReminders } from '@/hooks/use-follow-up-reminders'
 
 export default function Layout() {
+  useFollowUpReminders()
+
   return (
     <>
       <CompleteProfileDialog />
