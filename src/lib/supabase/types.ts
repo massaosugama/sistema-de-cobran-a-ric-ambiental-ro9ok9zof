@@ -765,7 +765,7 @@ export const Constants = {
 //   total_records: integer (not null, default: 0)
 //   inserted_records: integer (not null, default: 0)
 //   ignored_records: integer (not null, default: 0)
-//   latest_record_date: date (nullable)
+//   latest_record_date: timestamp with time zone (nullable)
 // Table: pending_debts
 //   uc: text (not null)
 //   setor: text (nullable)

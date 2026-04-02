@@ -565,6 +565,24 @@ export default function ImportData() {
     let maxDate = 0
     let maxDateStr: string | null = null
 
+    const fileSeenKeys = new Set<string>()
+
+    const normalizeKeyDate = (dateStr: string | null): string => {
+      if (!dateStr) return ''
+      const s = String(dateStr).trim()
+      const brMatch = s.match(/^(\d{2})\/(\d{2})\/(\d{4})(?:\s+(\d{2}):(\d{2})(?::(\d{2}))?)?/)
+      if (brMatch) {
+        const [, d, m, y, h, min, s2] = brMatch
+        return `${y}${m}${d}${h || '00'}${min || '00'}${s2 || '00'}`
+      }
+      const isoMatch = s.match(/^(\d{4})-(\d{2})-(\d{2})(?:[T\s](\d{2}):(\d{2})(?::(\d{2}))?)?/)
+      if (isoMatch) {
+        const [, y, m, d, h, min, s2] = isoMatch
+        return `${y}${m}${d}${h || '00'}${min || '00'}${s2 || '00'}`
+      }
+      return s.replace(/\D/g, '')
+    }
+
     for (let i = 0; i < data.length; i += chunkSize) {
       const chunk = data.slice(i, i + chunkSize)
 
@@ -579,17 +597,31 @@ export default function ImportData() {
         }
       })
 
-      const ids = chunk.map((c: any) => c.id).filter(Boolean)
-      let existingIds = new Set<string>()
+      const ucs = chunk.map((c: any) => c.uc).filter(Boolean)
+      let existingKeys = new Set<string>()
 
-      if (ids.length > 0) {
-        const { data: existing } = await supabase.from('settlements').select('id').in('id', ids)
+      if (ucs.length > 0) {
+        const { data: existing } = await supabase
+          .from('settlements')
+          .select('uc, cod_pess_fat, valor_total, datacriacao')
+          .in('uc', ucs)
+
         if (existing) {
-          existing.forEach((e: any) => existingIds.add(e.id))
+          existing.forEach((e: any) => {
+            const key = `${e.uc || ''}|${e.cod_pess_fat || ''}|${Number(e.valor_total || 0).toFixed(2)}|${normalizeKeyDate(e.datacriacao)}`
+            existingKeys.add(key)
+          })
         }
       }
 
-      const newRecords = chunk.filter((c: any) => !c.id || !existingIds.has(c.id))
+      const newRecords = chunk.filter((c: any) => {
+        const key = `${c.uc || ''}|${c.cod_pess_fat || ''}|${Number(c.valor_total || 0).toFixed(2)}|${normalizeKeyDate(c.datacriacao)}`
+        if (existingKeys.has(key) || fileSeenKeys.has(key)) {
+          return false
+        }
+        fileSeenKeys.add(key)
+        return true
+      })
       redundantCount += chunk.length - newRecords.length
 
       if (newRecords.length > 0) {
