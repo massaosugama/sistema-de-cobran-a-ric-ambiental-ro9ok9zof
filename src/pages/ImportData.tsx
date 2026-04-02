@@ -77,15 +77,18 @@ const settlementsColumns = [
 const parseDateFromAny = (dateStr: string | null): number => {
   if (!dateStr) return 0
   const s = String(dateStr).trim()
-  if (/^\d{4}-\d{2}-\d{2}/.test(s)) {
-    const d = new Date(s)
-    return isNaN(d.getTime()) ? 0 : d.getTime()
-  }
-  const brMatch = s.match(/^(\d{2})\/(\d{2})\/(\d{4})/)
+  const brMatch = s.match(/^(\d{2})\/(\d{2})\/(\d{4})(?:\s+(\d{2}):(\d{2})(?::(\d{2}))?)?/)
   if (brMatch) {
-    const [, d, m, y] = brMatch
-    const ds = new Date(`${y}-${m}-${d}T12:00:00`)
+    const [, d, m, y, h, min, s2] = brMatch
+    const hr = h || '12'
+    const mn = min || '00'
+    const sc = s2 || '00'
+    const ds = new Date(`${y}-${m}-${d}T${hr}:${mn}:${sc}`)
     return isNaN(ds.getTime()) ? 0 : ds.getTime()
+  }
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) {
+    const d = new Date(s.replace(' ', 'T'))
+    return isNaN(d.getTime()) ? 0 : d.getTime()
   }
   const d = new Date(s)
   return isNaN(d.getTime()) ? 0 : d.getTime()
@@ -566,24 +569,14 @@ export default function ImportData() {
       const chunk = data.slice(i, i + chunkSize)
 
       chunk.forEach((row: any) => {
-        const dateCols = [
-          'datacriacao',
-          'databaixa_final',
-          'databaixa_inicial',
-          'datacredito_final',
-          'datacredito_inicial',
-          'neg_data',
-        ]
-        dateCols.forEach((col) => {
-          const dStr = row[col]
-          if (dStr) {
-            const ts = parseDateFromAny(dStr)
-            if (ts > maxDate) {
-              maxDate = ts
-              maxDateStr = new Date(ts).toISOString()
-            }
+        const dStr = row['datacriacao']
+        if (dStr) {
+          const ts = parseDateFromAny(dStr)
+          if (ts > maxDate) {
+            maxDate = ts
+            maxDateStr = new Date(ts).toISOString()
           }
-        })
+        }
       })
 
       const ids = chunk.map((c: any) => c.id).filter(Boolean)
@@ -651,7 +644,7 @@ export default function ImportData() {
         total_records: result.total,
         inserted_records: result.inserted,
         ignored_records: result.redundant,
-        latest_record_date: maxDateStr ? maxDateStr.split('T')[0] : null,
+        latest_record_date: maxDateStr || null,
       })
       loadHistory()
     } catch (e) {
@@ -783,7 +776,13 @@ export default function ImportData() {
                       </TableCell>
                       <TableCell className="text-right font-medium text-slate-900 whitespace-nowrap">
                         {item.latest_record_date
-                          ? format(new Date(item.latest_record_date + 'T12:00:00'), 'dd/MM/yyyy')
+                          ? format(
+                              new Date(
+                                item.latest_record_date +
+                                  (item.latest_record_date.length <= 10 ? 'T12:00:00' : ''),
+                              ),
+                              'dd/MM/yyyy HH:mm',
+                            )
                           : '-'}
                       </TableCell>
                     </TableRow>

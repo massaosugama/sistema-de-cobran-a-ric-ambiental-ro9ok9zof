@@ -811,7 +811,7 @@ export const Constants = {
 //   is_active: boolean (nullable, default: true)
 //   updated_at: timestamp with time zone (nullable, default: now())
 //   last_login: timestamp with time zone (nullable)
-//   role: text (nullable, default: 'operator'::text)
+//   role: text (nullable, default: 'consultas'::text)
 // Table: quote_clicks
 //   id: uuid (not null, default: gen_random_uuid())
 //   user_id: uuid (not null)
@@ -917,9 +917,16 @@ export const Constants = {
 //     USING: true
 //     WITH CHECK: true
 // Table: profiles
-//   Policy "authenticated_all" (ALL, PERMISSIVE) roles={authenticated}
+//   Policy "profiles_delete_admin" (DELETE, PERMISSIVE) roles={authenticated}
+//     USING: (EXISTS ( SELECT 1    FROM profiles profiles_1   WHERE ((profiles_1.id = auth.uid()) AND ((profiles_1.role = 'admin'::text) OR (profiles_1.is_admin = true)))))
+//   Policy "profiles_select_all" (SELECT, PERMISSIVE) roles={authenticated}
 //     USING: true
-//     WITH CHECK: true
+//   Policy "profiles_update_admin" (UPDATE, PERMISSIVE) roles={authenticated}
+//     USING: (EXISTS ( SELECT 1    FROM profiles profiles_1   WHERE ((profiles_1.id = auth.uid()) AND ((profiles_1.role = 'admin'::text) OR (profiles_1.is_admin = true)))))
+//     WITH CHECK: (EXISTS ( SELECT 1    FROM profiles profiles_1   WHERE ((profiles_1.id = auth.uid()) AND ((profiles_1.role = 'admin'::text) OR (profiles_1.is_admin = true)))))
+//   Policy "profiles_update_own" (UPDATE, PERMISSIVE) roles={authenticated}
+//     USING: (auth.uid() = id)
+//     WITH CHECK: (auth.uid() = id)
 // Table: quote_clicks
 //   Policy "authenticated_insert_quote_clicks" (INSERT, PERMISSIVE) roles={authenticated}
 //     WITH CHECK: (auth.uid() = user_id)
@@ -1137,13 +1144,14 @@ export const Constants = {
 //    SECURITY DEFINER
 //   AS $function$
 //   BEGIN
-//     INSERT INTO public.profiles (id, email, name, first_name, last_name)
+//     INSERT INTO public.profiles (id, email, name, first_name, last_name, role)
 //     VALUES (
 //       NEW.id,
 //       NEW.email,
 //       COALESCE(NEW.raw_user_meta_data->>'name', ''),
 //       NEW.raw_user_meta_data->>'first_name',
-//       NEW.raw_user_meta_data->>'last_name'
+//       NEW.raw_user_meta_data->>'last_name',
+//       'consultas'
 //     )
 //     ON CONFLICT (id) DO UPDATE SET
 //       email = EXCLUDED.email,
@@ -1206,6 +1214,41 @@ export const Constants = {
 //       AND COALESCE(s.datacriacao::date, s.databaixa_final, s.databaixa_inicial, s.datacredito_final, s.datacredito_inicial, s.neg_data) >= (ch.created_at AT TIME ZONE 'America/Sao_Paulo')::date
 //       AND (COALESCE(s.datacriacao::date, s.databaixa_final, s.databaixa_inicial, s.datacredito_final, s.datacredito_inicial, s.neg_data) - (ch.created_at AT TIME ZONE 'America/Sao_Paulo')::date) <= max_days
 //     ON CONFLICT (contact_id, settlement_id) DO NOTHING;
+//   END;
+//   $function$
+//
+// FUNCTION protect_profile_roles()
+//   CREATE OR REPLACE FUNCTION public.protect_profile_roles()
+//    RETURNS trigger
+//    LANGUAGE plpgsql
+//    SECURITY DEFINER
+//   AS $function$
+//   DECLARE
+//     is_caller_admin boolean;
+//   BEGIN
+//     -- If role and is_admin are not being changed, proceed normally
+//     IF NEW.role IS NOT DISTINCT FROM OLD.role AND NEW.is_admin IS NOT DISTINCT FROM OLD.is_admin THEN
+//       RETURN NEW;
+//     END IF;
+//
+//     -- If system/service_role bypass (auth.uid() is null)
+//     IF auth.uid() IS NULL THEN
+//       RETURN NEW;
+//     END IF;
+//
+//     -- Check if the caller is an admin
+//     SELECT (role = 'admin' OR is_admin = true) INTO is_caller_admin
+//     FROM public.profiles
+//     WHERE id = auth.uid();
+//
+//     IF COALESCE(is_caller_admin, false) THEN
+//       RETURN NEW;
+//     ELSE
+//       -- If not admin, ignore the role changes (revert them to OLD values to prevent privilege escalation)
+//       NEW.role = OLD.role;
+//       NEW.is_admin = OLD.is_admin;
+//       RETURN NEW;
+//     END IF;
 //   END;
 //   $function$
 //
@@ -1275,6 +1318,7 @@ export const Constants = {
 // Table: import_history
 //   trg_limit_import_history: CREATE TRIGGER trg_limit_import_history AFTER INSERT ON public.import_history FOR EACH ROW EXECUTE FUNCTION keep_latest_20_import_history()
 // Table: profiles
+//   on_profile_role_update: CREATE TRIGGER on_profile_role_update BEFORE UPDATE ON public.profiles FOR EACH ROW EXECUTE FUNCTION protect_profile_roles()
 //   set_profiles_updated_at: CREATE TRIGGER set_profiles_updated_at BEFORE UPDATE ON public.profiles FOR EACH ROW EXECUTE FUNCTION set_current_timestamp_updated_at()
 
 // --- INDEXES ---
