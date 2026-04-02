@@ -553,6 +553,7 @@ export type Database = {
       get_portfolio_stats: { Args: never; Returns: Json }
       process_conversions: { Args: never; Returns: undefined }
       record_portfolio_snapshot: { Args: never; Returns: undefined }
+      remove_duplicate_settlements: { Args: never; Returns: Json }
       truncate_pending_debts: { Args: never; Returns: undefined }
     }
     Enums: {
@@ -1274,6 +1275,45 @@ export const Constants = {
 //           total_vencido = EXCLUDED.total_vencido,
 //           total_a_vencer = EXCLUDED.total_a_vencer,
 //           total_retidas = EXCLUDED.total_retidas;
+//   END;
+//   $function$
+//
+// FUNCTION remove_duplicate_settlements()
+//   CREATE OR REPLACE FUNCTION public.remove_duplicate_settlements()
+//    RETURNS json
+//    LANGUAGE plpgsql
+//    SECURITY DEFINER
+//   AS $function$
+//   DECLARE
+//     deleted_count INT := 0;
+//   BEGIN
+//     WITH ranked_settlements AS (
+//       SELECT
+//         s.id,
+//         EXISTS (SELECT 1 FROM public.contact_results cr WHERE cr.settlement_id = s.id) as is_referenced,
+//         ROW_NUMBER() OVER (
+//           PARTITION BY
+//             s.uc,
+//             s.cod_pess_fat,
+//             s.valor_total,
+//             COALESCE(s.datacriacao::date, s.databaixa_final, s.databaixa_inicial, s.datacredito_final, s.datacredito_inicial, s.neg_data)
+//           ORDER BY
+//             CASE WHEN EXISTS (SELECT 1 FROM public.contact_results cr WHERE cr.settlement_id = s.id) THEN 0 ELSE 1 END,
+//             s.created_at ASC
+//         ) as rn
+//       FROM public.settlements s
+//     ),
+//     to_delete AS (
+//       SELECT id
+//       FROM ranked_settlements
+//       WHERE rn > 1 AND is_referenced = false
+//     )
+//     DELETE FROM public.settlements
+//     WHERE id IN (SELECT id FROM to_delete);
+//
+//     GET DIAGNOSTICS deleted_count = ROW_COUNT;
+//
+//     RETURN json_build_object('deleted_count', deleted_count);
 //   END;
 //   $function$
 //

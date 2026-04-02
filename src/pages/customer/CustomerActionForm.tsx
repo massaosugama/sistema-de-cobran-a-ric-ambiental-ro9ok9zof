@@ -42,7 +42,7 @@ export function CustomerActionForm({
   const [phoneStatuses, setPhoneStatuses] = useState<
     Record<string, 'a_verificar' | 'validado' | 'invalido'>
   >({})
-  const [talkedToOwner, setTalkedToOwner] = useState(false)
+  const [talkedToOwner, setTalkedToOwner] = useState<boolean | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const { toast } = useToast()
   const { user, profile } = useAuth()
@@ -65,6 +65,30 @@ export function CustomerActionForm({
       toast({
         title: 'Atenção',
         description: 'Selecione o resultado do contato.',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    const isPhoneChannel = channel.includes('TEL') || channel.includes('WTK')
+    if (isPhoneChannel && customer.phones && customer.phones.length > 0) {
+      const hasValidOrInvalid = Object.values(phoneStatuses).some(
+        (s) => s === 'validado' || s === 'invalido',
+      )
+      if (!hasValidOrInvalid) {
+        toast({
+          title: 'Qualidade Cadastral',
+          description: 'Por favor, classifique o status de pelo menos um telefone.',
+          variant: 'destructive',
+        })
+        return
+      }
+    }
+
+    if (talkedToOwner === null) {
+      toast({
+        title: 'Qualidade Cadastral',
+        description: 'Por favor, informe se falou com o titular (Sim ou Não).',
         variant: 'destructive',
       })
       return
@@ -113,7 +137,7 @@ export function CustomerActionForm({
       setStatus('')
       setNotes('')
       setDate(undefined)
-      setTalkedToOwner(false)
+      setTalkedToOwner(null)
 
       setTimeout(() => {
         if (isSheet) {
@@ -192,7 +216,9 @@ export function CustomerActionForm({
           </h4>
 
           <div className="space-y-3">
-            <Label className="font-semibold text-sm text-slate-700">Status dos Telefones</Label>
+            <Label className="font-semibold text-sm text-slate-700 flex items-center gap-1">
+              Status dos Telefones <span className="text-red-500">*</span>
+            </Label>
 
             {customer.phones && customer.phones.length > 0 ? (
               <div className="space-y-3">
@@ -271,22 +297,38 @@ export function CustomerActionForm({
           </div>
 
           <div className="flex items-center justify-between pt-2 border-t border-slate-200">
-            <Label
-              htmlFor="achei-pessoa"
-              className={cn(
-                'font-semibold text-sm text-slate-700',
-                !isConsultas && 'cursor-pointer',
-              )}
-            >
-              Falei com o Titular?
+            <Label className={cn('font-semibold text-sm text-slate-700 flex items-center gap-1')}>
+              Falei com o Titular? <span className="text-red-500">*</span>
             </Label>
-            <Switch
-              id="achei-pessoa"
-              checked={talkedToOwner}
-              onCheckedChange={setTalkedToOwner}
-              disabled={isSubmitting || isConsultas}
-              className="data-[state=checked]:bg-primary"
-            />
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant={talkedToOwner === true ? 'default' : 'outline'}
+                size="sm"
+                className={cn(
+                  'h-8 px-4 rounded-lg transition-all',
+                  talkedToOwner === true && 'bg-primary text-primary-foreground shadow-sm',
+                )}
+                onClick={() => setTalkedToOwner(true)}
+                disabled={isSubmitting || isConsultas}
+              >
+                Sim
+              </Button>
+              <Button
+                type="button"
+                variant={talkedToOwner === false ? 'default' : 'outline'}
+                size="sm"
+                className={cn(
+                  'h-8 px-4 rounded-lg transition-all',
+                  talkedToOwner === false &&
+                    'bg-rose-500 hover:bg-rose-600 text-white border-transparent shadow-sm',
+                )}
+                onClick={() => setTalkedToOwner(false)}
+                disabled={isSubmitting || isConsultas}
+              >
+                Não
+              </Button>
+            </div>
           </div>
         </div>
 
