@@ -54,9 +54,17 @@ export function useFollowUpReminders() {
           return
         }
 
+        const sortedTasks = [...tasks].sort((a, b) => {
+          const dateA = a.due_date || today
+          const dateB = b.due_date || today
+          if (dateA < dateB) return -1
+          if (dateA > dateB) return 1
+          return 0
+        })
+
         const now = Date.now()
 
-        for (const task of tasks) {
+        for (const task of sortedTasks) {
           // Pula se está sonecando
           if (snoozedTasks.current.has(task.id) && snoozedTasks.current.get(task.id)! > now) {
             continue
@@ -102,18 +110,28 @@ export function useFollowUpReminders() {
               }
             : undefined
 
-          toast(`Heiy, lembre-se que você ficou de contatar "${customerName}", da UC ${task.uc}.`, {
-            duration: 30000,
-            icon: '⏰',
-            action: actionBtn,
-            cancel: cancelBtn,
-            onDismiss: () => {
-              notifiedTasks.current.add(task.id)
+          const isOverdue = task.due_date && task.due_date < today
+
+          toast(
+            isOverdue
+              ? `Atrasado: Você tem um contato pendente com "${customerName}", da UC ${task.uc}.`
+              : `Heiy, lembre-se que você ficou de contatar "${customerName}", da UC ${task.uc}.`,
+            {
+              duration: 30000,
+              icon: isOverdue ? '⚠️' : '⏰',
+              style: isOverdue
+                ? { backgroundColor: '#fef2f2', borderColor: '#fecaca', color: '#7f1d1d' }
+                : undefined,
+              action: actionBtn,
+              cancel: cancelBtn,
+              onDismiss: () => {
+                notifiedTasks.current.add(task.id)
+              },
+              onAutoClose: () => {
+                notifiedTasks.current.add(task.id)
+              },
             },
-            onAutoClose: () => {
-              notifiedTasks.current.add(task.id)
-            },
-          })
+          )
 
           notifiedTasks.current.add(task.id)
           await new Promise((r) => setTimeout(r, 1000))
