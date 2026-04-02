@@ -125,6 +125,9 @@ export default function Settings() {
   })
   const [isSavingRules, setIsSavingRules] = useState(false)
 
+  // General state
+  const [isCleaning, setIsCleaning] = useState(false)
+
   useEffect(() => {
     if (!isAdmin && activeTab !== 'profile') {
       handleTabChange('profile')
@@ -309,6 +312,28 @@ export default function Settings() {
     })
   }
 
+  const handleCleanupDuplicates = async () => {
+    if (
+      !confirm(
+        'Tem certeza que deseja executar a Limpeza Seletiva?\n\nIsso removerá as baixas duplicadas do banco de dados de forma irreversível. Suas reversões (contact_results) serão mantidas intactas.',
+      )
+    )
+      return
+
+    setIsCleaning(true)
+    const { data, error } = await (supabase as any).rpc('remove_duplicate_settlements')
+    setIsCleaning(false)
+
+    if (error) {
+      toast({ title: 'Erro na Limpeza', description: error.message, variant: 'destructive' })
+    } else {
+      toast({
+        title: 'Limpeza Concluída',
+        description: `Foram removidos ${data?.deleted_count || 0} registros duplicados com sucesso.`,
+      })
+    }
+  }
+
   return (
     <div className="space-y-6 animate-fade-in-up pb-10">
       <div>
@@ -491,19 +516,41 @@ export default function Settings() {
             </TabsContent>
 
             <TabsContent value="general" className="mt-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <SettingsIcon className="h-5 w-5 text-slate-700" /> Opções do Sistema
-                  </CardTitle>
-                  <CardDescription>Página em construção.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-slate-600">
-                    As configurações de integrações externas ficarão disponíveis aqui em breve.
-                  </p>
-                </CardContent>
-              </Card>
+              <div className="grid gap-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <SettingsIcon className="h-5 w-5 text-slate-700" /> Manutenção de Dados
+                    </CardTitle>
+                    <CardDescription>
+                      Ferramentas para limpeza e correção de inconsistências no banco de dados.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-lg border border-slate-200 bg-slate-50/50">
+                      <div className="space-y-1">
+                        <h4 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
+                          <Trash2 className="h-4 w-4 text-destructive" /> Limpeza Seletiva
+                          (Soft-Delete)
+                        </h4>
+                        <p className="text-xs text-slate-500 max-w-[600px]">
+                          Remove registros duplicados de baixas (Settlements) mantendo as suas
+                          reversões e históricos intactos. O processo verifica a combinação de UC,
+                          Pessoa, Data e Valor.
+                        </p>
+                      </div>
+                      <Button
+                        variant="destructive"
+                        onClick={handleCleanupDuplicates}
+                        disabled={isCleaning}
+                        className="shrink-0"
+                      >
+                        {isCleaning ? 'Limpando...' : 'Executar Limpeza'}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
             </TabsContent>
 
             <TabsContent value="operators" className="mt-6">
