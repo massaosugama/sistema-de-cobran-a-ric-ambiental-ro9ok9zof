@@ -129,6 +129,9 @@ export default function Settings() {
     max_score_days: 7,
     retention_days: 90,
   })
+  const [cadastralRules, setCadastralRules] = useState({
+    required: false,
+  })
   const [isSavingRules, setIsSavingRules] = useState(false)
 
   // General state
@@ -199,13 +202,22 @@ export default function Settings() {
   }
 
   const fetchSettingsData = async () => {
-    const { data } = await (supabase as any)
+    const { data: convData } = await (supabase as any)
       .from('app_settings')
       .select('*')
       .eq('key', 'conversion_params')
       .single()
-    if (data?.value) {
-      setConversionParams(data.value)
+    if (convData?.value) {
+      setConversionParams(convData.value)
+    }
+    
+    const { data: cadData } = await (supabase as any)
+      .from('app_settings')
+      .select('*')
+      .eq('key', 'cadastral_quality_params')
+      .single()
+    if (cadData?.value) {
+      setCadastralRules(cadData.value)
     }
   }
 
@@ -268,12 +280,12 @@ export default function Settings() {
     }
   }
 
-  const handleSaveConversionParams = async () => {
+  const handleSaveRules = async () => {
     setIsSavingRules(true)
-    const { error } = await (supabase as any).from('app_settings').upsert({
-      key: 'conversion_params',
-      value: conversionParams,
-    })
+    const { error } = await (supabase as any).from('app_settings').upsert([
+      { key: 'conversion_params', value: conversionParams },
+      { key: 'cadastral_quality_params', value: cadastralRules }
+    ])
     setIsSavingRules(false)
     if (error) {
       toast({ title: 'Erro', description: error.message, variant: 'destructive' })
@@ -680,12 +692,30 @@ export default function Settings() {
                         </p>
                       </div>
                     </div>
+                  
+                    <div className="space-y-4 pt-6 border-t border-slate-200 md:col-span-2">
+                      <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wide">Qualidade Cadastral</h3>
+                      <div className="flex items-center justify-between rounded-lg border border-slate-200 p-4 bg-slate-50/50">
+                        <div className="space-y-0.5">
+                          <Label className="text-sm font-semibold text-slate-900">
+                            Obrigatoriedade de Preenchimento
+                          </Label>
+                          <p className="text-xs text-slate-500">
+                            Exigir que os operadores preencham os campos de Qualidade Cadastral (telefones, titularidade, etc) ao registrar um atendimento.
+                          </p>
+                        </div>
+                        <Switch
+                          checked={cadastralRules.required}
+                          onCheckedChange={(v) => setCadastralRules({ ...cadastralRules, required: v })}
+                        />
+                      </div>
+                    </div>
+                  </div>
                   )}
-                  <Button onClick={handleSaveConversionParams} disabled={isSavingRules}>
-                    {isSavingRules ? 'Salvando...' : 'Salvar Parâmetros'}
+                  <Button onClick={handleSaveRules} disabled={isSavingRules}>
+                    {isSavingRules ? 'Salvando...' : 'Salvar Regras'}
                   </Button>
-                </CardContent>
-              </Card>
+                </CardContent>              </Card>
             </TabsContent>
 
             <TabsContent value="operators" className="mt-6">

@@ -49,10 +49,25 @@ export function CustomerActionForm({
 
   const [showErrors, setShowErrors] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [requireCadastral, setRequireCadastral] = useState(false)
   const { toast } = useToast()
   const { user, profile } = useAuth()
 
   const isConsultas = profile?.role === 'consultas'
+
+  useEffect(() => {
+    const fetchRules = async () => {
+      const { data } = await supabase
+        .from('app_settings')
+        .select('value')
+        .eq('key', 'cadastral_quality_params')
+        .single()
+      if (data?.value) {
+        setRequireCadastral(data.value.required === true)
+      }
+    }
+    fetchRules()
+  }, [])
 
   useEffect(() => {
     if (customer.phones && customer.phones.length > 0) {
@@ -75,16 +90,19 @@ export function CustomerActionForm({
     if (!status) hasError = true
     if (status === 'Outro' && !notes.trim()) hasError = true
 
-    if (isPhoneChannel && hasPhones) {
-      const hasValidOrInvalid = Object.values(phoneStatuses).some(
-        (s) => s === 'validado' || s === 'invalido',
-      )
-      if (!hasValidOrInvalid) hasError = true
+    if (requireCadastral) {
+      if (isPhoneChannel && hasPhones) {
+        const hasValidOrInvalid = Object.values(phoneStatuses).some(
+          (s) => s === 'validado' || s === 'invalido',
+        )
+        if (!hasValidOrInvalid) hasError = true
+      }
+
+      if (talkedToOwner === null) hasError = true
+      if (unknownProperty === null) hasError = true
+      if (generateUpdate === null) hasError = true
     }
 
-    if (talkedToOwner === null) hasError = true
-    if (unknownProperty === null) hasError = true
-    if (generateUpdate === null) hasError = true
     if (generateUpdate === true && !updateNotes.trim()) hasError = true
 
     if (hasError) {
@@ -334,6 +352,7 @@ export function CustomerActionForm({
             className={cn(
               'space-y-3 rounded-xl transition-all',
               showErrors &&
+                requireCadastral &&
                 isPhoneChannel &&
                 hasPhones &&
                 !Object.values(phoneStatuses).some((s) => s === 'validado' || s === 'invalido') &&
@@ -344,6 +363,7 @@ export function CustomerActionForm({
               className={cn(
                 'font-semibold text-sm flex items-center gap-1',
                 showErrors &&
+                  requireCadastral &&
                   isPhoneChannel &&
                   hasPhones &&
                   !Object.values(phoneStatuses).some((s) => s === 'validado' || s === 'invalido')
@@ -352,7 +372,9 @@ export function CustomerActionForm({
               )}
             >
               Status dos Telefones{' '}
-              {isPhoneChannel && hasPhones && <span className="text-red-500">*</span>}
+              {requireCadastral && isPhoneChannel && hasPhones && (
+                <span className="text-red-500">*</span>
+              )}
             </Label>
 
             {hasPhones ? (
@@ -436,6 +458,7 @@ export function CustomerActionForm({
             className={cn(
               'flex flex-col gap-3 pt-4 border-t border-slate-200 rounded-xl transition-all',
               showErrors &&
+                requireCadastral &&
                 talkedToOwner === null &&
                 'p-3 -mx-3 border-t-0 border border-red-500 bg-red-50/50',
             )}
@@ -444,10 +467,12 @@ export function CustomerActionForm({
               <Label
                 className={cn(
                   'font-semibold text-sm flex items-center gap-1',
-                  showErrors && talkedToOwner === null ? 'text-red-500' : 'text-slate-700',
+                  showErrors && requireCadastral && talkedToOwner === null
+                    ? 'text-red-500'
+                    : 'text-slate-700',
                 )}
               >
-                Falei com o Titular? <span className="text-red-500">*</span>
+                Falei com o Titular? {requireCadastral && <span className="text-red-500">*</span>}
               </Label>
               <div className="flex items-center gap-2">
                 <Button
@@ -458,7 +483,10 @@ export function CustomerActionForm({
                     'h-8 px-4 rounded-lg transition-all',
                     talkedToOwner === true &&
                       'bg-primary text-primary-foreground shadow-sm border-transparent',
-                    showErrors && talkedToOwner === null && 'border-red-500 bg-white',
+                    showErrors &&
+                      requireCadastral &&
+                      talkedToOwner === null &&
+                      'border-red-500 bg-white',
                   )}
                   onClick={() => {
                     setTalkedToOwner(true)
@@ -476,7 +504,10 @@ export function CustomerActionForm({
                     'h-8 px-4 rounded-lg transition-all',
                     talkedToOwner === false &&
                       'bg-rose-500 hover:bg-rose-600 text-white shadow-sm border-transparent',
-                    showErrors && talkedToOwner === null && 'border-red-500 bg-white',
+                    showErrors &&
+                      requireCadastral &&
+                      talkedToOwner === null &&
+                      'border-red-500 bg-white',
                   )}
                   onClick={() => {
                     setTalkedToOwner(false)
@@ -494,6 +525,7 @@ export function CustomerActionForm({
             className={cn(
               'flex flex-col gap-3 pt-4 border-t border-slate-200 rounded-xl transition-all',
               showErrors &&
+                requireCadastral &&
                 unknownProperty === null &&
                 'p-3 -mx-3 border-t-0 border border-red-500 bg-red-50/50',
             )}
@@ -502,10 +534,13 @@ export function CustomerActionForm({
               <Label
                 className={cn(
                   'font-semibold text-sm flex items-center gap-1',
-                  showErrors && unknownProperty === null ? 'text-red-500' : 'text-slate-700',
+                  showErrors && requireCadastral && unknownProperty === null
+                    ? 'text-red-500'
+                    : 'text-slate-700',
                 )}
               >
-                A pessoa desconhece o imóvel? <span className="text-red-500">*</span>
+                A pessoa desconhece o imóvel?{' '}
+                {requireCadastral && <span className="text-red-500">*</span>}
               </Label>
               <div className="flex items-center gap-2">
                 <Button
@@ -516,7 +551,10 @@ export function CustomerActionForm({
                     'h-8 px-4 rounded-lg transition-all',
                     unknownProperty === true &&
                       'bg-rose-500 hover:bg-rose-600 text-white shadow-sm border-transparent',
-                    showErrors && unknownProperty === null && 'border-red-500 bg-white',
+                    showErrors &&
+                      requireCadastral &&
+                      unknownProperty === null &&
+                      'border-red-500 bg-white',
                   )}
                   onClick={() => {
                     setUnknownProperty(true)
@@ -534,7 +572,10 @@ export function CustomerActionForm({
                     'h-8 px-4 rounded-lg transition-all',
                     unknownProperty === false &&
                       'bg-primary text-primary-foreground shadow-sm border-transparent',
-                    showErrors && unknownProperty === null && 'border-red-500 bg-white',
+                    showErrors &&
+                      requireCadastral &&
+                      unknownProperty === null &&
+                      'border-red-500 bg-white',
                   )}
                   onClick={() => {
                     setUnknownProperty(false)
@@ -552,6 +593,7 @@ export function CustomerActionForm({
             className={cn(
               'flex flex-col gap-3 pt-4 border-t border-slate-200 rounded-xl transition-all',
               showErrors &&
+                requireCadastral &&
                 generateUpdate === null &&
                 'p-3 -mx-3 border-t-0 border border-red-500 bg-red-50/50',
             )}
@@ -560,10 +602,13 @@ export function CustomerActionForm({
               <Label
                 className={cn(
                   'font-semibold text-sm flex items-center gap-1',
-                  showErrors && generateUpdate === null ? 'text-red-500' : 'text-slate-700',
+                  showErrors && requireCadastral && generateUpdate === null
+                    ? 'text-red-500'
+                    : 'text-slate-700',
                 )}
               >
-                Gerar registro para Atualizações Cadastrais? <span className="text-red-500">*</span>
+                Gerar registro para Atualizações Cadastrais?{' '}
+                {requireCadastral && <span className="text-red-500">*</span>}
               </Label>
               <div className="flex items-center gap-2">
                 <Button
@@ -574,7 +619,10 @@ export function CustomerActionForm({
                     'h-8 px-4 rounded-lg transition-all',
                     generateUpdate === true &&
                       'bg-primary text-primary-foreground shadow-sm border-transparent',
-                    showErrors && generateUpdate === null && 'border-red-500 bg-white',
+                    showErrors &&
+                      requireCadastral &&
+                      generateUpdate === null &&
+                      'border-red-500 bg-white',
                   )}
                   onClick={() => {
                     setGenerateUpdate(true)
@@ -592,7 +640,10 @@ export function CustomerActionForm({
                     'h-8 px-4 rounded-lg transition-all',
                     generateUpdate === false &&
                       'bg-slate-500 hover:bg-slate-600 text-white shadow-sm border-transparent',
-                    showErrors && generateUpdate === null && 'border-red-500 bg-white',
+                    showErrors &&
+                      requireCadastral &&
+                      generateUpdate === null &&
+                      'border-red-500 bg-white',
                   )}
                   onClick={() => {
                     setGenerateUpdate(false)

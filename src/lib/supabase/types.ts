@@ -425,7 +425,11 @@ export type Database = {
           last_name: string | null
           last_quote_index: number | null
           name: string | null
+          reminder_enabled: boolean | null
+          reminder_interval: number | null
           role: string | null
+          snooze_enabled: boolean | null
+          snooze_interval: number | null
           updated_at: string | null
         }
         Insert: {
@@ -440,7 +444,11 @@ export type Database = {
           last_name?: string | null
           last_quote_index?: number | null
           name?: string | null
+          reminder_enabled?: boolean | null
+          reminder_interval?: number | null
           role?: string | null
+          snooze_enabled?: boolean | null
+          snooze_interval?: number | null
           updated_at?: string | null
         }
         Update: {
@@ -455,7 +463,11 @@ export type Database = {
           last_name?: string | null
           last_quote_index?: number | null
           name?: string | null
+          reminder_enabled?: boolean | null
+          reminder_interval?: number | null
           role?: string | null
+          snooze_enabled?: boolean | null
+          snooze_interval?: number | null
           updated_at?: string | null
         }
         Relationships: []
@@ -886,6 +898,10 @@ export const Constants = {
 //   updated_at: timestamp with time zone (nullable, default: now())
 //   last_login: timestamp with time zone (nullable)
 //   role: text (nullable, default: 'consultas'::text)
+//   reminder_enabled: boolean (nullable, default: true)
+//   snooze_enabled: boolean (nullable, default: true)
+//   reminder_interval: integer (nullable, default: 30)
+//   snooze_interval: integer (nullable, default: 15)
 // Table: quote_clicks
 //   id: uuid (not null, default: gen_random_uuid())
 //   user_id: uuid (not null)
