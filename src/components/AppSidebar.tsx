@@ -12,6 +12,7 @@ import {
   User,
   LogOut,
   TrendingUp,
+  UserCog,
 } from 'lucide-react'
 import {
   Sidebar,
@@ -35,6 +36,7 @@ const navigation = [
   { name: 'Visão Geral', href: '/', icon: LayoutDashboard },
   { name: 'Fila Rápida', href: '/queue', icon: PhoneCall },
   { name: 'Follow-up', href: '/follow-up', icon: CalendarDays },
+  { name: 'Atualizar Cadastros', href: '/cadastral-updates', icon: UserCog },
   { name: 'Baixas', href: '/settlements', icon: CreditCard },
   { name: 'Reversões', href: '/reversions', icon: TrendingUp },
   { name: 'Devedores', href: '/debtors', icon: Users },

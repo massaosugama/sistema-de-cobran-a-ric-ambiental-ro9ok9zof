@@ -12,6 +12,7 @@ import FollowUp from './pages/FollowUp'
 import CustomerPage from './pages/customer/CustomerPage'
 import Reports from './pages/Reports'
 import ImportData from './pages/ImportData'
+import CadastralUpdates from './pages/CadastralUpdates'
 import Settlements from './pages/Settlements'
 import Reversions from './pages/Reversions'
 import Debtors from './pages/Debtors'
@@ -33,6 +34,7 @@ const App = () => (
                 <Route path="/" element={<Index />} />
                 <Route path="/queue" element={<Queue />} />
                 <Route path="/follow-up" element={<FollowUp />} />
+                <Route path="/cadastral-updates" element={<CadastralUpdates />} />
                 <Route path="/customer/:id" element={<CustomerPage />} />
                 <Route path="/reports" element={<Reports />} />
                 <Route path="/import" element={<ImportData />} />

@@ -10,7 +10,6 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
-import { Switch } from '@/components/ui/switch'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
@@ -19,6 +18,7 @@ import { ptBR } from 'date-fns/locale'
 import { useToast } from '@/hooks/use-toast'
 import { useAuth } from '@/hooks/use-auth'
 import { addContact } from '@/services/data'
+import { supabase } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
 import type { ParsedDebt } from '@/services/debts'
 
@@ -43,6 +43,11 @@ export function CustomerActionForm({
     Record<string, 'a_verificar' | 'validado' | 'invalido'>
   >({})
   const [talkedToOwner, setTalkedToOwner] = useState<boolean | null>(null)
+  const [unknownProperty, setUnknownProperty] = useState<boolean | null>(null)
+  const [generateUpdate, setGenerateUpdate] = useState<boolean | null>(null)
+  const [updateNotes, setUpdateNotes] = useState('')
+
+  const [showErrors, setShowErrors] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const { toast } = useToast()
   const { user, profile } = useAuth()
@@ -59,36 +64,34 @@ export function CustomerActionForm({
     }
   }, [customer])
 
+  const isPhoneChannel = channel.includes('TEL') || channel.includes('WTK')
+  const hasPhones = customer.phones && customer.phones.length > 0
+
   const handleSave = async () => {
     if (isConsultas) return
-    if (!status) {
-      toast({
-        title: 'Atenção',
-        description: 'Selecione o resultado do contato.',
-        variant: 'destructive',
-      })
-      return
-    }
 
-    const isPhoneChannel = channel.includes('TEL') || channel.includes('WTK')
-    if (isPhoneChannel && customer.phones && customer.phones.length > 0) {
+    let hasError = false
+
+    if (!status) hasError = true
+    if (status === 'Outro' && !notes.trim()) hasError = true
+
+    if (isPhoneChannel && hasPhones) {
       const hasValidOrInvalid = Object.values(phoneStatuses).some(
         (s) => s === 'validado' || s === 'invalido',
       )
-      if (!hasValidOrInvalid) {
-        toast({
-          title: 'Qualidade Cadastral',
-          description: 'Por favor, classifique o status de pelo menos um telefone.',
-          variant: 'destructive',
-        })
-        return
-      }
+      if (!hasValidOrInvalid) hasError = true
     }
 
-    if (talkedToOwner === null) {
+    if (talkedToOwner === null) hasError = true
+    if (unknownProperty === null) hasError = true
+    if (generateUpdate === null) hasError = true
+    if (generateUpdate === true && !updateNotes.trim()) hasError = true
+
+    if (hasError) {
+      setShowErrors(true)
       toast({
-        title: 'Qualidade Cadastral',
-        description: 'Por favor, informe se falou com o titular (Sim ou Não).',
+        title: 'Atenção',
+        description: 'Preencha todos os campos obrigatórios destacados em vermelho.',
         variant: 'destructive',
       })
       return
@@ -102,7 +105,7 @@ export function CustomerActionForm({
         operator_id: user?.id,
         contact_type: channel,
         status,
-        quality_result: JSON.stringify({ phoneStatuses, talkedToOwner }),
+        quality_result: JSON.stringify({ phoneStatuses, talkedToOwner, unknownProperty }),
         notes,
         snapshot_valor_total: customer.totalDebt,
         snapshot_valor_vencido: customer.valorVencido,
@@ -123,6 +126,20 @@ export function CustomerActionForm({
 
       await addContact(contactData, taskData)
 
+      if (generateUpdate) {
+        const { error: updateError } = await supabase.from('cadastral_updates').insert({
+          uc: customer.uc,
+          cod_pess_fat: customer.personCode,
+          customer_name: customer.name,
+          requester_id: user?.id,
+          notes: updateNotes,
+          status: 'pending',
+        })
+        if (updateError) {
+          console.error('Error creating cadastral update', updateError)
+        }
+      }
+
       toast({
         title: 'Contato Registrado com Sucesso!',
         description: 'Esforço contabilizado (+1 ponto). Acompanhe o resultado.',
@@ -138,6 +155,10 @@ export function CustomerActionForm({
       setNotes('')
       setDate(undefined)
       setTalkedToOwner(null)
+      setUnknownProperty(null)
+      setGenerateUpdate(null)
+      setUpdateNotes('')
+      setShowErrors(false)
 
       setTimeout(() => {
         if (isSheet) {
@@ -170,6 +191,7 @@ export function CustomerActionForm({
             <Eye className="w-4 h-4 shrink-0" /> Seu perfil tem permissão apenas de leitura.
           </div>
         )}
+
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
           <div className="space-y-2.5">
             <Label className="font-bold text-slate-700">Canal de Contato</Label>
@@ -191,10 +213,33 @@ export function CustomerActionForm({
               </SelectContent>
             </Select>
           </div>
-          <div className="space-y-2.5">
-            <Label className="font-bold text-slate-700">Resultado</Label>
-            <Select value={status} onValueChange={setStatus} disabled={isSubmitting || isConsultas}>
-              <SelectTrigger className="rounded-xl border-slate-200 h-11 bg-slate-50 font-medium">
+          <div
+            className={cn(
+              'space-y-2.5 rounded-xl transition-all',
+              showErrors && !status && 'p-2 -m-2 border border-red-500 bg-red-50/50',
+            )}
+          >
+            <Label
+              className={cn('font-bold', showErrors && !status ? 'text-red-500' : 'text-slate-700')}
+            >
+              Resultado <span className="text-red-500">*</span>
+            </Label>
+            <Select
+              value={status}
+              onValueChange={(v) => {
+                setStatus(v)
+                setShowErrors(false)
+              }}
+              disabled={isSubmitting || isConsultas}
+            >
+              <SelectTrigger
+                className={cn(
+                  'rounded-xl border-slate-200 h-11 font-medium',
+                  showErrors && !status
+                    ? 'bg-white border-red-500 ring-1 ring-red-500'
+                    : 'bg-slate-50',
+                )}
+              >
                 <SelectValue placeholder="Selecione o status" />
               </SelectTrigger>
               <SelectContent className="rounded-xl">
@@ -209,18 +254,108 @@ export function CustomerActionForm({
           </div>
         </div>
 
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+          <div className="space-y-2.5">
+            <Label className="font-bold text-slate-700">Agendar Próxima Ação</Label>
+            <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant={'outline'}
+                  disabled={isSubmitting || isConsultas}
+                  className={`w-full justify-start text-left font-medium h-11 rounded-xl border-slate-200 bg-slate-50 ${!date && 'text-slate-400'}`}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4 text-primary" />
+                  {date ? format(date, 'PPP', { locale: ptBR }) : <span>Selecione uma data</span>}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent
+                className="w-auto p-0 rounded-xl border-slate-200 shadow-xl"
+                align="start"
+              >
+                <Calendar
+                  mode="single"
+                  selected={date}
+                  onSelect={(newDate) => {
+                    setDate(newDate)
+                    setIsCalendarOpen(false)
+                  }}
+                  initialFocus
+                  className="p-3"
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
+
+          <div
+            className={cn(
+              'space-y-2.5 rounded-xl transition-all flex flex-col',
+              showErrors &&
+                status === 'Outro' &&
+                !notes.trim() &&
+                'p-2 -m-2 border border-red-500 bg-red-50/50',
+            )}
+          >
+            <Label
+              className={cn(
+                'font-bold flex-shrink-0',
+                showErrors && status === 'Outro' && !notes.trim()
+                  ? 'text-red-500'
+                  : 'text-slate-700',
+              )}
+            >
+              Observações {status === 'Outro' && <span className="text-red-500">*</span>}
+            </Label>
+            <Textarea
+              value={notes}
+              onChange={(e) => {
+                setNotes(e.target.value)
+                setShowErrors(false)
+              }}
+              disabled={isSubmitting || isConsultas}
+              placeholder="Detalhe o acordo, objeções ou motivo de insucesso..."
+              className={cn(
+                'resize-none rounded-xl border-slate-200 font-medium placeholder:text-slate-400 flex-1',
+                showErrors && status === 'Outro' && !notes.trim()
+                  ? 'bg-white border-red-500 focus-visible:ring-red-500 ring-1 ring-red-500'
+                  : 'bg-slate-50',
+                !showErrors ? 'min-h-[44px]' : '',
+              )}
+            />
+          </div>
+        </div>
+
         <div className="p-5 bg-slate-50 rounded-xl border border-slate-100 space-y-5">
           <h4 className="text-xs font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
             Qualidade Cadastral
             <div className="h-px flex-1 bg-slate-200"></div>
           </h4>
 
-          <div className="space-y-3">
-            <Label className="font-semibold text-sm text-slate-700 flex items-center gap-1">
-              Status dos Telefones <span className="text-red-500">*</span>
+          <div
+            className={cn(
+              'space-y-3 rounded-xl transition-all',
+              showErrors &&
+                isPhoneChannel &&
+                hasPhones &&
+                !Object.values(phoneStatuses).some((s) => s === 'validado' || s === 'invalido') &&
+                'p-3 -m-3 border border-red-500 bg-red-50/50',
+            )}
+          >
+            <Label
+              className={cn(
+                'font-semibold text-sm flex items-center gap-1',
+                showErrors &&
+                  isPhoneChannel &&
+                  hasPhones &&
+                  !Object.values(phoneStatuses).some((s) => s === 'validado' || s === 'invalido')
+                  ? 'text-red-500'
+                  : 'text-slate-700',
+              )}
+            >
+              Status dos Telefones{' '}
+              {isPhoneChannel && hasPhones && <span className="text-red-500">*</span>}
             </Label>
 
-            {customer.phones && customer.phones.length > 0 ? (
+            {hasPhones ? (
               <div className="space-y-3">
                 {customer.phones.map((phone, idx) => (
                   <div
@@ -234,9 +369,10 @@ export function CustomerActionForm({
                       <button
                         type="button"
                         disabled={isConsultas}
-                        onClick={() =>
+                        onClick={() => {
                           setPhoneStatuses({ ...phoneStatuses, [phone.number]: 'a_verificar' })
-                        }
+                          setShowErrors(false)
+                        }}
                         className={cn(
                           'flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg border bg-white text-slate-600 transition-all flex-1',
                           phoneStatuses[phone.number] === 'a_verificar' &&
@@ -252,9 +388,10 @@ export function CustomerActionForm({
                       <button
                         type="button"
                         disabled={isConsultas}
-                        onClick={() =>
+                        onClick={() => {
                           setPhoneStatuses({ ...phoneStatuses, [phone.number]: 'validado' })
-                        }
+                          setShowErrors(false)
+                        }}
                         className={cn(
                           'flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg border bg-white text-slate-600 transition-all flex-1',
                           phoneStatuses[phone.number] === 'validado' &&
@@ -270,9 +407,10 @@ export function CustomerActionForm({
                       <button
                         type="button"
                         disabled={isConsultas}
-                        onClick={() =>
+                        onClick={() => {
                           setPhoneStatuses({ ...phoneStatuses, [phone.number]: 'invalido' })
-                        }
+                          setShowErrors(false)
+                        }}
                         className={cn(
                           'flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg border bg-white text-slate-600 transition-all flex-1',
                           phoneStatuses[phone.number] === 'invalido' &&
@@ -290,92 +428,222 @@ export function CustomerActionForm({
                 ))}
               </div>
             ) : (
-              <div className="text-xs text-slate-500 italic p-2">
-                Nenhum telefone registrado para classificação.
-              </div>
+              <div className="text-xs text-slate-500 italic p-2">Nenhum telefone registrado.</div>
             )}
           </div>
 
-          <div className="flex items-center justify-between pt-2 border-t border-slate-200">
-            <Label className={cn('font-semibold text-sm text-slate-700 flex items-center gap-1')}>
-              Falei com o Titular? <span className="text-red-500">*</span>
-            </Label>
-            <div className="flex items-center gap-2">
-              <Button
-                type="button"
-                variant={talkedToOwner === true ? 'default' : 'outline'}
-                size="sm"
+          <div
+            className={cn(
+              'flex flex-col gap-3 pt-4 border-t border-slate-200 rounded-xl transition-all',
+              showErrors &&
+                talkedToOwner === null &&
+                'p-3 -mx-3 border-t-0 border border-red-500 bg-red-50/50',
+            )}
+          >
+            <div className="flex items-center justify-between">
+              <Label
                 className={cn(
-                  'h-8 px-4 rounded-lg transition-all',
-                  talkedToOwner === true && 'bg-primary text-primary-foreground shadow-sm',
+                  'font-semibold text-sm flex items-center gap-1',
+                  showErrors && talkedToOwner === null ? 'text-red-500' : 'text-slate-700',
                 )}
-                onClick={() => setTalkedToOwner(true)}
-                disabled={isSubmitting || isConsultas}
               >
-                Sim
-              </Button>
-              <Button
-                type="button"
-                variant={talkedToOwner === false ? 'default' : 'outline'}
-                size="sm"
-                className={cn(
-                  'h-8 px-4 rounded-lg transition-all',
-                  talkedToOwner === false &&
-                    'bg-rose-500 hover:bg-rose-600 text-white border-transparent shadow-sm',
-                )}
-                onClick={() => setTalkedToOwner(false)}
-                disabled={isSubmitting || isConsultas}
-              >
-                Não
-              </Button>
+                Falei com o Titular? <span className="text-red-500">*</span>
+              </Label>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant={talkedToOwner === true ? 'default' : 'outline'}
+                  size="sm"
+                  className={cn(
+                    'h-8 px-4 rounded-lg transition-all',
+                    talkedToOwner === true &&
+                      'bg-primary text-primary-foreground shadow-sm border-transparent',
+                    showErrors && talkedToOwner === null && 'border-red-500 bg-white',
+                  )}
+                  onClick={() => {
+                    setTalkedToOwner(true)
+                    setShowErrors(false)
+                  }}
+                  disabled={isSubmitting || isConsultas}
+                >
+                  Sim
+                </Button>
+                <Button
+                  type="button"
+                  variant={talkedToOwner === false ? 'default' : 'outline'}
+                  size="sm"
+                  className={cn(
+                    'h-8 px-4 rounded-lg transition-all',
+                    talkedToOwner === false &&
+                      'bg-rose-500 hover:bg-rose-600 text-white shadow-sm border-transparent',
+                    showErrors && talkedToOwner === null && 'border-red-500 bg-white',
+                  )}
+                  onClick={() => {
+                    setTalkedToOwner(false)
+                    setShowErrors(false)
+                  }}
+                  disabled={isSubmitting || isConsultas}
+                >
+                  Não
+                </Button>
+              </div>
             </div>
           </div>
-        </div>
 
-        <div className="space-y-2.5">
-          <Label className="font-bold text-slate-700">Agendar Próxima Ação</Label>
-          <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
-            <PopoverTrigger asChild>
-              <Button
-                variant={'outline'}
-                disabled={isSubmitting || isConsultas}
-                className={`w-full justify-start text-left font-medium h-11 rounded-xl border-slate-200 bg-slate-50 ${!date && 'text-slate-400'}`}
-              >
-                <CalendarIcon className="mr-2 h-4 w-4 text-primary" />
-                {date ? (
-                  format(date, 'PPP', { locale: ptBR })
-                ) : (
-                  <span>Selecione uma data no calendário</span>
+          <div
+            className={cn(
+              'flex flex-col gap-3 pt-4 border-t border-slate-200 rounded-xl transition-all',
+              showErrors &&
+                unknownProperty === null &&
+                'p-3 -mx-3 border-t-0 border border-red-500 bg-red-50/50',
+            )}
+          >
+            <div className="flex items-center justify-between">
+              <Label
+                className={cn(
+                  'font-semibold text-sm flex items-center gap-1',
+                  showErrors && unknownProperty === null ? 'text-red-500' : 'text-slate-700',
                 )}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent
-              className="w-auto p-0 rounded-xl border-slate-200 shadow-xl"
-              align="start"
-            >
-              <Calendar
-                mode="single"
-                selected={date}
-                onSelect={(newDate) => {
-                  setDate(newDate)
-                  setIsCalendarOpen(false)
-                }}
-                initialFocus
-                className="p-3"
-              />
-            </PopoverContent>
-          </Popover>
-        </div>
+              >
+                A pessoa desconhece o imóvel? <span className="text-red-500">*</span>
+              </Label>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant={unknownProperty === true ? 'default' : 'outline'}
+                  size="sm"
+                  className={cn(
+                    'h-8 px-4 rounded-lg transition-all',
+                    unknownProperty === true &&
+                      'bg-rose-500 hover:bg-rose-600 text-white shadow-sm border-transparent',
+                    showErrors && unknownProperty === null && 'border-red-500 bg-white',
+                  )}
+                  onClick={() => {
+                    setUnknownProperty(true)
+                    setShowErrors(false)
+                  }}
+                  disabled={isSubmitting || isConsultas}
+                >
+                  Sim
+                </Button>
+                <Button
+                  type="button"
+                  variant={unknownProperty === false ? 'default' : 'outline'}
+                  size="sm"
+                  className={cn(
+                    'h-8 px-4 rounded-lg transition-all',
+                    unknownProperty === false &&
+                      'bg-primary text-primary-foreground shadow-sm border-transparent',
+                    showErrors && unknownProperty === null && 'border-red-500 bg-white',
+                  )}
+                  onClick={() => {
+                    setUnknownProperty(false)
+                    setShowErrors(false)
+                  }}
+                  disabled={isSubmitting || isConsultas}
+                >
+                  Não
+                </Button>
+              </div>
+            </div>
+          </div>
 
-        <div className="space-y-2.5">
-          <Label className="font-bold text-slate-700">Observações (Obrigatório para 'Outro')</Label>
-          <Textarea
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            disabled={isSubmitting || isConsultas}
-            placeholder="Detalhe o acordo, objeções ou motivo de insucesso..."
-            className="resize-none min-h-[110px] rounded-xl border-slate-200 bg-slate-50 font-medium placeholder:text-slate-400"
-          />
+          <div
+            className={cn(
+              'flex flex-col gap-3 pt-4 border-t border-slate-200 rounded-xl transition-all',
+              showErrors &&
+                generateUpdate === null &&
+                'p-3 -mx-3 border-t-0 border border-red-500 bg-red-50/50',
+            )}
+          >
+            <div className="flex items-center justify-between">
+              <Label
+                className={cn(
+                  'font-semibold text-sm flex items-center gap-1',
+                  showErrors && generateUpdate === null ? 'text-red-500' : 'text-slate-700',
+                )}
+              >
+                Gerar registro para Atualizações Cadastrais? <span className="text-red-500">*</span>
+              </Label>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant={generateUpdate === true ? 'default' : 'outline'}
+                  size="sm"
+                  className={cn(
+                    'h-8 px-4 rounded-lg transition-all',
+                    generateUpdate === true &&
+                      'bg-primary text-primary-foreground shadow-sm border-transparent',
+                    showErrors && generateUpdate === null && 'border-red-500 bg-white',
+                  )}
+                  onClick={() => {
+                    setGenerateUpdate(true)
+                    setShowErrors(false)
+                  }}
+                  disabled={isSubmitting || isConsultas}
+                >
+                  Sim
+                </Button>
+                <Button
+                  type="button"
+                  variant={generateUpdate === false ? 'default' : 'outline'}
+                  size="sm"
+                  className={cn(
+                    'h-8 px-4 rounded-lg transition-all',
+                    generateUpdate === false &&
+                      'bg-slate-500 hover:bg-slate-600 text-white shadow-sm border-transparent',
+                    showErrors && generateUpdate === null && 'border-red-500 bg-white',
+                  )}
+                  onClick={() => {
+                    setGenerateUpdate(false)
+                    setShowErrors(false)
+                  }}
+                  disabled={isSubmitting || isConsultas}
+                >
+                  Não
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          {generateUpdate && (
+            <div
+              className={cn(
+                'pt-4 border-t border-slate-200 space-y-2.5 animate-fade-in-up rounded-xl transition-all',
+                showErrors &&
+                  generateUpdate &&
+                  !updateNotes.trim() &&
+                  'p-3 -mx-3 border-t-0 border border-red-500 bg-red-50/50',
+              )}
+            >
+              <Label
+                className={cn(
+                  'font-bold',
+                  showErrors && generateUpdate && !updateNotes.trim()
+                    ? 'text-red-500'
+                    : 'text-slate-700',
+                )}
+              >
+                Observações para Cadastro <span className="text-red-500">*</span>
+              </Label>
+              <Textarea
+                value={updateNotes}
+                onChange={(e) => {
+                  setUpdateNotes(e.target.value)
+                  setShowErrors(false)
+                }}
+                disabled={isSubmitting || isConsultas}
+                placeholder="Dicas do que exatamente a equipe precisa fazer..."
+                className={cn(
+                  'resize-none min-h-[80px] rounded-xl border-slate-200 bg-white font-medium placeholder:text-slate-400',
+                  showErrors &&
+                    generateUpdate &&
+                    !updateNotes.trim() &&
+                    'border-red-500 focus-visible:ring-red-500 ring-1 ring-red-500',
+                )}
+              />
+            </div>
+          )}
         </div>
       </CardContent>
       <CardFooter className="bg-slate-50/80 border-t border-slate-100 p-6 flex flex-col gap-3">
