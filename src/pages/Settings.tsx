@@ -210,7 +210,7 @@ export default function Settings() {
     if (convData?.value) {
       setConversionParams(convData.value)
     }
-    
+
     const { data: cadData } = await (supabase as any)
       .from('app_settings')
       .select('*')
@@ -284,7 +284,7 @@ export default function Settings() {
     setIsSavingRules(true)
     const { error } = await (supabase as any).from('app_settings').upsert([
       { key: 'conversion_params', value: conversionParams },
-      { key: 'cadastral_quality_params', value: cadastralRules }
+      { key: 'cadastral_quality_params', value: cadastralRules },
     ])
     setIsSavingRules(false)
     if (error) {
@@ -635,87 +635,96 @@ export default function Settings() {
                   {loading ? (
                     <p className="text-sm text-slate-500">Carregando parâmetros...</p>
                   ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl">
-                      <div className="space-y-2">
-                        <Label htmlFor="maxDays">
-                          Qtd Dias máximo para considerar em Conversão
-                        </Label>
-                        <Input
-                          id="maxDays"
-                          type="number"
-                          value={conversionParams.max_days}
-                          onChange={(e) =>
-                            setConversionParams({
-                              ...conversionParams,
-                              max_days: parseInt(e.target.value) || 0,
-                            })
-                          }
-                        />
-                        <p className="text-xs text-slate-500">
-                          Prazo máximo (em dias) entre o atendimento e a baixa para ser considerada
-                          uma reversão.
-                        </p>
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="maxScoreDays">Dias para pontuação máxima de reversão</Label>
-                        <Input
-                          id="maxScoreDays"
-                          type="number"
-                          value={conversionParams.max_score_days}
-                          onChange={(e) =>
-                            setConversionParams({
-                              ...conversionParams,
-                              max_score_days: parseInt(e.target.value) || 0,
-                            })
-                          }
-                        />
-                        <p className="text-xs text-slate-500">
-                          Baixas ocorridas dentro deste prazo recebem a pontuação máxima.
-                        </p>
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="retentionDays">Prazo de retenção de baixas (dias)</Label>
-                        <Input
-                          id="retentionDays"
-                          type="number"
-                          value={conversionParams.retention_days}
-                          onChange={(e) =>
-                            setConversionParams({
-                              ...conversionParams,
-                              retention_days: parseInt(e.target.value) || 0,
-                            })
-                          }
-                        />
-                        <p className="text-xs text-slate-500">
-                          Movimentações de baixas mais antigas que este prazo serão excluídas
-                          automaticamente após novas importações.
-                        </p>
-                      </div>
-                    </div>
-                  
-                    <div className="space-y-4 pt-6 border-t border-slate-200 md:col-span-2">
-                      <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wide">Qualidade Cadastral</h3>
-                      <div className="flex items-center justify-between rounded-lg border border-slate-200 p-4 bg-slate-50/50">
-                        <div className="space-y-0.5">
-                          <Label className="text-sm font-semibold text-slate-900">
-                            Obrigatoriedade de Preenchimento
+                    <div className="space-y-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl">
+                        <div className="space-y-2">
+                          <Label htmlFor="maxDays">
+                            Qtd Dias máximo para considerar em Conversão
                           </Label>
+                          <Input
+                            id="maxDays"
+                            type="number"
+                            value={conversionParams.max_days}
+                            onChange={(e) =>
+                              setConversionParams({
+                                ...conversionParams,
+                                max_days: parseInt(e.target.value) || 0,
+                              })
+                            }
+                          />
                           <p className="text-xs text-slate-500">
-                            Exigir que os operadores preencham os campos de Qualidade Cadastral (telefones, titularidade, etc) ao registrar um atendimento.
+                            Prazo máximo (em dias) entre o atendimento e a baixa para ser
+                            considerada uma reversão.
                           </p>
                         </div>
-                        <Switch
-                          checked={cadastralRules.required}
-                          onCheckedChange={(v) => setCadastralRules({ ...cadastralRules, required: v })}
-                        />
+                        <div className="space-y-2">
+                          <Label htmlFor="maxScoreDays">
+                            Dias para pontuação máxima de reversão
+                          </Label>
+                          <Input
+                            id="maxScoreDays"
+                            type="number"
+                            value={conversionParams.max_score_days}
+                            onChange={(e) =>
+                              setConversionParams({
+                                ...conversionParams,
+                                max_score_days: parseInt(e.target.value) || 0,
+                              })
+                            }
+                          />
+                          <p className="text-xs text-slate-500">
+                            Baixas ocorridas dentro deste prazo recebem a pontuação máxima.
+                          </p>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="retentionDays">Prazo de retenção de baixas (dias)</Label>
+                          <Input
+                            id="retentionDays"
+                            type="number"
+                            value={conversionParams.retention_days}
+                            onChange={(e) =>
+                              setConversionParams({
+                                ...conversionParams,
+                                retention_days: parseInt(e.target.value) || 0,
+                              })
+                            }
+                          />
+                          <p className="text-xs text-slate-500">
+                            Movimentações de baixas mais antigas que este prazo serão excluídas
+                            automaticamente após novas importações.
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="space-y-4 pt-6 border-t border-slate-200 md:col-span-2">
+                        <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wide">
+                          Qualidade Cadastral
+                        </h3>
+                        <div className="flex items-center justify-between rounded-lg border border-slate-200 p-4 bg-slate-50/50">
+                          <div className="space-y-0.5">
+                            <Label className="text-sm font-semibold text-slate-900">
+                              Obrigatoriedade de Preenchimento
+                            </Label>
+                            <p className="text-xs text-slate-500">
+                              Exigir que os operadores preencham os campos de Qualidade Cadastral
+                              (telefones, titularidade, etc) ao registrar um atendimento.
+                            </p>
+                          </div>
+                          <Switch
+                            checked={cadastralRules.required}
+                            onCheckedChange={(v) =>
+                              setCadastralRules({ ...cadastralRules, required: v })
+                            }
+                          />
+                        </div>
                       </div>
                     </div>
-                  </div>
                   )}
                   <Button onClick={handleSaveRules} disabled={isSavingRules}>
                     {isSavingRules ? 'Salvando...' : 'Salvar Regras'}
                   </Button>
-                </CardContent>              </Card>
+                </CardContent>{' '}
+              </Card>
             </TabsContent>
 
             <TabsContent value="operators" className="mt-6">
