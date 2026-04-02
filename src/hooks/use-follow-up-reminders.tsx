@@ -11,89 +11,138 @@ export function useFollowUpReminders() {
   useEffect(() => {
     if (!user) return
 
+    let isChecking = false
+    let checkTimeoutId: NodeJS.Timeout
+    let snoozeIntervalId: NodeJS.Timeout
+
     const checkTasks = async () => {
-      const today = new Date().toISOString().split('T')[0]
+      if (isChecking) return
+      isChecking = true
 
-      const { data: tasks, error } = await supabase
-        .from('follow_up_tasks')
-        .select('*')
-        .eq('operator_id', user.id)
-        .eq('completed', false)
-        .eq('is_active', true)
-        .lte('due_date', today)
+      try {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('reminder_enabled, snooze_enabled, reminder_interval, snooze_interval')
+          .eq('id', user.id)
+          .single()
 
-      if (error || !tasks) return
+        const reminderEnabled = profile?.reminder_enabled ?? true
+        const snoozeEnabled = profile?.snooze_enabled ?? true
+        const reminderInterval = (profile?.reminder_interval ?? 30) * 60 * 1000
+        const snoozeInterval = (profile?.snooze_interval ?? 15) * 60 * 1000
 
-      const now = Date.now()
+        clearTimeout(checkTimeoutId)
 
-      for (const task of tasks) {
-        // Pula se está sonecando
-        if (snoozedTasks.current.has(task.id) && snoozedTasks.current.get(task.id)! > now) {
-          continue
+        if (!reminderEnabled) {
+          // Se desligado, checa de novo em 5 min apenas para caso reative sem realtime
+          checkTimeoutId = setTimeout(checkTasks, 5 * 60 * 1000)
+          return
         }
 
-        // Pula se já foi notificado
-        if (notifiedTasks.current.has(task.id)) {
-          continue
+        const today = new Date().toISOString().split('T')[0]
+
+        const { data: tasks, error } = await supabase
+          .from('follow_up_tasks')
+          .select('*')
+          .eq('operator_id', user.id)
+          .eq('completed', false)
+          .eq('is_active', true)
+          .lte('due_date', today)
+
+        if (error || !tasks) {
+          checkTimeoutId = setTimeout(checkTasks, reminderInterval)
+          return
         }
 
-        let customerName = 'Cliente'
-        if (task.uc) {
-          const { data: debt } = await supabase
-            .from('pending_debts')
-            .select('pessoa_fatura_nome')
-            .eq('uc', task.uc)
-            .limit(1)
-            .maybeSingle()
+        const now = Date.now()
 
-          if (debt?.pessoa_fatura_nome) {
-            customerName = debt.pessoa_fatura_nome
+        for (const task of tasks) {
+          // Pula se está sonecando
+          if (snoozedTasks.current.has(task.id) && snoozedTasks.current.get(task.id)! > now) {
+            continue
           }
-        }
 
-        toast(`Heiy, lembre-se que você ficou de contatar "${customerName}", da UC ${task.uc}.`, {
-          duration: 30000, // 30 segundos na tela
-          icon: '⏰',
-          action: {
+          // Pula se já foi notificado
+          if (notifiedTasks.current.has(task.id)) {
+            continue
+          }
+
+          let customerName = 'Cliente'
+          if (task.uc) {
+            const { data: debt } = await supabase
+              .from('pending_debts')
+              .select('pessoa_fatura_nome')
+              .eq('uc', task.uc)
+              .limit(1)
+              .maybeSingle()
+
+            if (debt?.pessoa_fatura_nome) {
+              customerName = debt.pessoa_fatura_nome
+            }
+          }
+
+          const actionBtn = {
             label: 'Já Concluído',
             onClick: async () => {
               await supabase.from('follow_up_tasks').update({ completed: true }).eq('id', task.id)
-
               toast.success('Atividade concluída com sucesso!')
               notifiedTasks.current.add(task.id)
               snoozedTasks.current.delete(task.id)
             },
-          },
-          cancel: {
-            label: 'Sonecar',
-            onClick: () => {
-              snoozedTasks.current.set(task.id, now + 15 * 60 * 1000) // soneca por 15 minutos
-              notifiedTasks.current.delete(task.id)
-              toast.info('Lembrete adiado por 15 minutos.')
+          }
+
+          const cancelBtn = snoozeEnabled
+            ? {
+                label: 'Sonecar',
+                onClick: () => {
+                  snoozedTasks.current.set(task.id, now + snoozeInterval)
+                  notifiedTasks.current.delete(task.id)
+                  toast.info(`Lembrete adiado por ${profile?.snooze_interval ?? 15} minutos.`)
+                },
+              }
+            : undefined
+
+          toast(`Heiy, lembre-se que você ficou de contatar "${customerName}", da UC ${task.uc}.`, {
+            duration: 30000,
+            icon: '⏰',
+            action: actionBtn,
+            cancel: cancelBtn,
+            onDismiss: () => {
+              notifiedTasks.current.add(task.id)
             },
-          },
-          onDismiss: () => {
-            notifiedTasks.current.add(task.id)
-          },
-          onAutoClose: () => {
-            notifiedTasks.current.add(task.id)
-          },
-        })
+            onAutoClose: () => {
+              notifiedTasks.current.add(task.id)
+            },
+          })
 
-        notifiedTasks.current.add(task.id)
+          notifiedTasks.current.add(task.id)
+          await new Promise((r) => setTimeout(r, 1000))
+        }
 
-        // Pequeno delay para não sobrepor muitos alertas ao mesmo tempo
-        await new Promise((r) => setTimeout(r, 1000))
+        checkTimeoutId = setTimeout(checkTasks, reminderInterval)
+      } catch (err) {
+        checkTimeoutId = setTimeout(checkTasks, 30 * 60 * 1000)
+      } finally {
+        isChecking = false
       }
     }
 
     checkTasks()
 
-    // Verifica de 30 em 30 minutos
-    const interval = setInterval(checkTasks, 30 * 60 * 1000)
+    // Realtime para quando o usuário atualizar as preferências na tela de configurações
+    const channel = supabase
+      .channel('profile-changes')
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${user.id}` },
+        () => {
+          checkTasks()
+        },
+      )
+      .subscribe()
 
     // Verifica os lembretes sonecados a cada 1 minuto
-    const snoozeInterval = setInterval(() => {
+    snoozeIntervalId = setInterval(() => {
       const now = Date.now()
       let shouldCheck = false
       snoozedTasks.current.forEach((snoozeUntil, taskId) => {
@@ -109,8 +158,9 @@ export function useFollowUpReminders() {
     }, 60 * 1000)
 
     return () => {
-      clearInterval(interval)
-      clearInterval(snoozeInterval)
+      clearTimeout(checkTimeoutId)
+      clearInterval(snoozeIntervalId)
+      supabase.removeChannel(channel)
     }
   }, [user])
 }

@@ -88,6 +88,12 @@ export default function Settings() {
   const { user, profile, updatePassword } = useAuth()
   const isAdmin = profile?.role === 'admin' || !!profile?.is_admin
 
+  const [reminderEnabled, setReminderEnabled] = useState(true)
+  const [snoozeEnabled, setSnoozeEnabled] = useState(true)
+  const [reminderInterval, setReminderInterval] = useState(30)
+  const [snoozeInterval, setSnoozeInterval] = useState(15)
+  const [isSavingPreferences, setIsSavingPreferences] = useState(false)
+
   const [quotes, setQuotes] = useState<any[]>([])
   const [clicks, setClicks] = useState<any[]>([])
   const [operators, setOperators] = useState<any[]>([])
@@ -129,10 +135,47 @@ export default function Settings() {
   const [isCleaning, setIsCleaning] = useState(false)
 
   useEffect(() => {
-    if (!isAdmin && activeTab !== 'profile') {
+    if (!isAdmin && activeTab !== 'profile' && activeTab !== 'general') {
       handleTabChange('profile')
     }
   }, [isAdmin, activeTab])
+
+  useEffect(() => {
+    if (user) {
+      ;(supabase as any)
+        .from('profiles')
+        .select('reminder_enabled, snooze_enabled, reminder_interval, snooze_interval')
+        .eq('id', user.id)
+        .single()
+        .then(({ data }: any) => {
+          if (data) {
+            setReminderEnabled(data.reminder_enabled ?? true)
+            setSnoozeEnabled(data.snooze_enabled ?? true)
+            setReminderInterval(data.reminder_interval ?? 30)
+            setSnoozeInterval(data.snooze_interval ?? 15)
+          }
+        })
+    }
+  }, [user])
+
+  const handleSavePreferences = async () => {
+    setIsSavingPreferences(true)
+    const { error } = await (supabase as any)
+      .from('profiles')
+      .update({
+        reminder_enabled: reminderEnabled,
+        snooze_enabled: snoozeEnabled,
+        reminder_interval: reminderInterval,
+        snooze_interval: snoozeInterval,
+      })
+      .eq('id', user?.id)
+    setIsSavingPreferences(false)
+    if (error) {
+      toast({ title: 'Erro', description: error.message, variant: 'destructive' })
+    } else {
+      toast({ title: 'Sucesso', description: 'Preferências salvas com sucesso.' })
+    }
+  }
 
   const fetchQuotes = async () => {
     const { data } = await (supabase as any).from('quotes').select('*').order('order_index')
@@ -347,19 +390,19 @@ export default function Settings() {
             'grid w-full',
             isAdmin
               ? 'max-w-6xl grid-cols-2 md:grid-cols-3 lg:grid-cols-6'
-              : 'max-w-xs grid-cols-1',
+              : 'max-w-md grid-cols-2',
           )}
         >
           <TabsTrigger value="profile" className="flex items-center gap-2">
             <UserCircle className="h-4 w-4" /> Meu Perfil
           </TabsTrigger>
+          <TabsTrigger value="general" className="flex items-center gap-2">
+            <SettingsIcon className="h-4 w-4" /> Geral
+          </TabsTrigger>
           {isAdmin && (
             <>
               <TabsTrigger value="rules" className="flex items-center gap-2">
                 <Briefcase className="h-4 w-4" /> Regras de Negócio
-              </TabsTrigger>
-              <TabsTrigger value="general" className="flex items-center gap-2">
-                <SettingsIcon className="h-4 w-4" /> Geral
               </TabsTrigger>
               <TabsTrigger value="operators" className="flex items-center gap-2">
                 <Users className="h-4 w-4" /> Usuários
@@ -432,6 +475,136 @@ export default function Settings() {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="general" className="mt-6">
+          <div className="grid gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <SettingsIcon className="h-5 w-5 text-slate-700" /> Preferências do Sistema
+                </CardTitle>
+                <CardDescription>
+                  Configure os alertas e notificações do sistema para o seu usuário.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="flex flex-col gap-4 p-4 rounded-lg border border-slate-200 bg-slate-50/50">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label className="text-sm font-semibold text-slate-900">
+                        Ativar Lembretes de Follow-up
+                      </Label>
+                      <p className="text-xs text-slate-500">
+                        Receba notificações sobre atividades pendentes de follow-up.
+                      </p>
+                    </div>
+                    <Switch checked={reminderEnabled} onCheckedChange={setReminderEnabled} />
+                  </div>
+                  {reminderEnabled && (
+                    <div className="pt-4 border-t border-slate-200 animate-fade-in">
+                      <Label className="text-sm text-slate-700 mb-3 block">
+                        Tempo para disparo de lembretes
+                      </Label>
+                      <div className="flex flex-wrap gap-2">
+                        {[10, 20, 30, 40, 50, 60].map((val) => (
+                          <Button
+                            key={val}
+                            type="button"
+                            variant={reminderInterval === val ? 'default' : 'outline'}
+                            size="sm"
+                            onClick={() => setReminderInterval(val)}
+                            className="min-w-[70px]"
+                          >
+                            {val} min
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex flex-col gap-4 p-4 rounded-lg border border-slate-200 bg-slate-50/50">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label className="text-sm font-semibold text-slate-900">
+                        Ativar Função de Soneca
+                      </Label>
+                      <p className="text-xs text-slate-500">
+                        Permite adiar os lembretes temporariamente direto no balão de notificação.
+                      </p>
+                    </div>
+                    <Switch
+                      checked={snoozeEnabled}
+                      onCheckedChange={setSnoozeEnabled}
+                      disabled={!reminderEnabled}
+                    />
+                  </div>
+                  {reminderEnabled && snoozeEnabled && (
+                    <div className="pt-4 border-t border-slate-200 animate-fade-in">
+                      <Label className="text-sm text-slate-700 mb-3 block">
+                        Tempo para sonecar
+                      </Label>
+                      <div className="flex flex-wrap gap-2">
+                        {[5, 10, 15, 20].map((val) => (
+                          <Button
+                            key={val}
+                            type="button"
+                            variant={snoozeInterval === val ? 'default' : 'outline'}
+                            size="sm"
+                            onClick={() => setSnoozeInterval(val)}
+                            className="min-w-[70px]"
+                          >
+                            {val} min
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <Button onClick={handleSavePreferences} disabled={isSavingPreferences}>
+                  {isSavingPreferences ? 'Salvando...' : 'Salvar Preferências'}
+                </Button>
+              </CardContent>
+            </Card>
+
+            {isAdmin && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Trash2 className="h-5 w-5 text-slate-700" /> Manutenção de Dados
+                  </CardTitle>
+                  <CardDescription>
+                    Ferramentas para limpeza e correção de inconsistências no banco de dados.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-lg border border-slate-200 bg-slate-50/50">
+                    <div className="space-y-1">
+                      <h4 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
+                        <Trash2 className="h-4 w-4 text-destructive" /> Limpeza Seletiva
+                        (Soft-Delete)
+                      </h4>
+                      <p className="text-xs text-slate-500 max-w-[600px]">
+                        Remove registros duplicados de baixas (Settlements) mantendo as suas
+                        reversões e históricos intactos. O processo verifica a combinação de UC,
+                        Pessoa, Data e Valor.
+                      </p>
+                    </div>
+                    <Button
+                      variant="destructive"
+                      onClick={handleCleanupDuplicates}
+                      disabled={isCleaning}
+                      className="shrink-0"
+                    >
+                      {isCleaning ? 'Limpando...' : 'Executar Limpeza'}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
         </TabsContent>
 
         {isAdmin && (
@@ -513,44 +686,6 @@ export default function Settings() {
                   </Button>
                 </CardContent>
               </Card>
-            </TabsContent>
-
-            <TabsContent value="general" className="mt-6">
-              <div className="grid gap-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <SettingsIcon className="h-5 w-5 text-slate-700" /> Manutenção de Dados
-                    </CardTitle>
-                    <CardDescription>
-                      Ferramentas para limpeza e correção de inconsistências no banco de dados.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-lg border border-slate-200 bg-slate-50/50">
-                      <div className="space-y-1">
-                        <h4 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
-                          <Trash2 className="h-4 w-4 text-destructive" /> Limpeza Seletiva
-                          (Soft-Delete)
-                        </h4>
-                        <p className="text-xs text-slate-500 max-w-[600px]">
-                          Remove registros duplicados de baixas (Settlements) mantendo as suas
-                          reversões e históricos intactos. O processo verifica a combinação de UC,
-                          Pessoa, Data e Valor.
-                        </p>
-                      </div>
-                      <Button
-                        variant="destructive"
-                        onClick={handleCleanupDuplicates}
-                        disabled={isCleaning}
-                        className="shrink-0"
-                      >
-                        {isCleaning ? 'Limpando...' : 'Executar Limpeza'}
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
             </TabsContent>
 
             <TabsContent value="operators" className="mt-6">
