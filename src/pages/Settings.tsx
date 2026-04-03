@@ -110,6 +110,8 @@ export default function Settings() {
   const [text, setText] = useState('')
   const [theory, setTheory] = useState('')
   const [link, setLink] = useState('')
+  const [analyzedBy, setAnalyzedBy] = useState('')
+  const [analyzedAt, setAnalyzedAt] = useState('')
 
   // Operators state
   const [isOperatorModalOpen, setIsOperatorModalOpen] = useState(false)
@@ -274,15 +276,23 @@ export default function Settings() {
     if (!text.trim())
       return toast({ title: 'Erro', description: 'A frase é obrigatória.', variant: 'destructive' })
 
+    const payload = {
+      text,
+      theory,
+      link,
+      analyzed_by: analyzedBy === 'none' || !analyzedBy ? null : analyzedBy,
+      analyzed_at: analyzedAt || null,
+    }
+
     if (editingQuote) {
       const { error } = await (supabase as any)
         .from('quotes')
-        .update({ text, theory, link })
+        .update(payload)
         .eq('id', editingQuote.id)
       if (error) toast({ title: 'Erro', description: error.message, variant: 'destructive' })
       else toast({ title: 'Sucesso', description: 'Frase atualizada.' })
     } else {
-      const { error } = await (supabase as any).from('quotes').insert({ text, theory, link })
+      const { error } = await (supabase as any).from('quotes').insert(payload)
       if (error) toast({ title: 'Erro', description: error.message, variant: 'destructive' })
       else toast({ title: 'Sucesso', description: 'Frase criada.' })
     }
@@ -319,6 +329,8 @@ export default function Settings() {
     setText('')
     setTheory('')
     setLink('')
+    setAnalyzedBy('')
+    setAnalyzedAt('')
     setIsModalOpen(true)
   }
 
@@ -327,6 +339,8 @@ export default function Settings() {
     setText(q.text)
     setTheory(q.theory || '')
     setLink(q.link || '')
+    setAnalyzedBy(q.analyzed_by || '')
+    setAnalyzedAt(q.analyzed_at || '')
     setIsModalOpen(true)
   }
 
@@ -1104,6 +1118,36 @@ export default function Settings() {
                     Se vazio, o botão "Saiba mais" fará uma busca inteligente no Google usando a
                     Teoria.
                   </p>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="analyzedBy">Analisado por (opcional)</Label>
+                    <Select
+                      value={analyzedBy || 'none'}
+                      onValueChange={(val) => setAnalyzedBy(val === 'none' ? '' : val)}
+                    >
+                      <SelectTrigger id="analyzedBy" className="bg-white">
+                        <SelectValue placeholder="Selecione um usuário" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Nenhum</SelectItem>
+                        {operators.map((op) => (
+                          <SelectItem key={op.id} value={op.id}>
+                            {op.first_name} {op.last_name || ''}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="analyzedAt">Data da Análise (opcional)</Label>
+                    <Input
+                      id="analyzedAt"
+                      type="date"
+                      value={analyzedAt}
+                      onChange={(e) => setAnalyzedAt(e.target.value)}
+                    />
+                  </div>
                 </div>
               </div>
               <DialogFooter>

@@ -519,6 +519,8 @@ export type Database = {
       }
       quotes: {
         Row: {
+          analyzed_at: string | null
+          analyzed_by: string | null
           created_at: string
           id: string
           link: string | null
@@ -527,6 +529,8 @@ export type Database = {
           theory: string | null
         }
         Insert: {
+          analyzed_at?: string | null
+          analyzed_by?: string | null
           created_at?: string
           id?: string
           link?: string | null
@@ -535,6 +539,8 @@ export type Database = {
           theory?: string | null
         }
         Update: {
+          analyzed_at?: string | null
+          analyzed_by?: string | null
           created_at?: string
           id?: string
           link?: string | null
@@ -542,7 +548,15 @@ export type Database = {
           text?: string
           theory?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: 'quotes_analyzed_by_fkey'
+            columns: ['analyzed_by']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+        ]
       }
       settlements: {
         Row: {
@@ -926,6 +940,8 @@ export const Constants = {
 //   link: text (nullable)
 //   order_index: integer (not null)
 //   created_at: timestamp with time zone (not null, default: now())
+//   analyzed_by: uuid (nullable)
+//   analyzed_at: date (nullable)
 // Table: settlements
 //   id: uuid (not null, default: gen_random_uuid())
 //   uc: text (nullable)
@@ -985,6 +1001,7 @@ export const Constants = {
 //   FOREIGN KEY quote_clicks_quote_id_fkey: FOREIGN KEY (quote_id) REFERENCES quotes(id) ON DELETE CASCADE
 //   FOREIGN KEY quote_clicks_user_id_fkey: FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE CASCADE
 // Table: quotes
+//   FOREIGN KEY quotes_analyzed_by_fkey: FOREIGN KEY (analyzed_by) REFERENCES profiles(id) ON DELETE SET NULL
 //   PRIMARY KEY quotes_pkey: PRIMARY KEY (id)
 // Table: settlements
 //   PRIMARY KEY settlements_pkey: PRIMARY KEY (id)
