@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowLeft, AlertCircle, MapPin, Info, AlertTriangle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -6,6 +7,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { formatPersonCode, cn } from '@/lib/utils'
 import type { ParsedDebt } from '@/services/debts'
+import { supabase } from '@/lib/supabase/client'
 
 export function CustomerHeader({
   customer,
@@ -18,6 +20,26 @@ export function CustomerHeader({
   onClose?: () => void
   parentCustomer?: ParsedDebt
 }) {
+  const [valorRetido, setValorRetido] = useState<number>(0)
+
+  useEffect(() => {
+    if (customer?.uc) {
+      supabase
+        .from('pending_debts')
+        .select('valor_retidas_em_aberto')
+        .eq('uc', customer.uc)
+        .then(({ data }) => {
+          if (data && data.length > 0) {
+            const sum = data.reduce(
+              (acc, curr) => acc + Number(curr.valor_retidas_em_aberto || 0),
+              0,
+            )
+            setValorRetido(sum)
+          }
+        })
+    }
+  }, [customer?.uc])
+
   return (
     <div className="space-y-4">
       {!isSheet ? (
@@ -59,13 +81,17 @@ export function CustomerHeader({
       <div
         className={cn(
           'flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 p-6 rounded-2xl border shadow-sm relative overflow-hidden',
-          customer.isLoteVago ? 'bg-amber-50 border-amber-200' : 'bg-white border-slate-200',
+          valorRetido > 0
+            ? 'bg-orange-50/40 border-orange-200'
+            : customer.isLoteVago
+              ? 'bg-amber-50 border-amber-200'
+              : 'bg-white border-slate-200',
         )}
       >
         <div
           className={cn(
             'absolute left-0 top-0 bottom-0 w-2',
-            customer.isLoteVago ? 'bg-amber-500' : 'bg-primary',
+            valorRetido > 0 ? 'bg-orange-500' : customer.isLoteVago ? 'bg-amber-500' : 'bg-primary',
           )}
         ></div>
 
@@ -121,34 +147,66 @@ export function CustomerHeader({
               Dívida Total
             </span>
             <div className="flex items-center gap-2">
-              <span className="text-3xl font-black text-slate-900 leading-none">
+              <span
+                className={cn(
+                  'text-3xl font-black leading-none',
+                  valorRetido > 0 ? 'text-orange-600' : 'text-slate-900',
+                )}
+              >
                 R$ {customer.totalDebt.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
               </span>
-              {(customer.valorVencido > 0 || customer.valorAVencer > 0) && (
+              {valorRetido > 0 && (
+                <Badge className="bg-orange-100 text-orange-800 hover:bg-orange-200 border-none text-[10px] px-2 py-0.5 uppercase tracking-wider ml-1 shadow-sm">
+                  Retido
+                </Badge>
+              )}
+              {(customer.valorVencido > 0 || customer.valorAVencer > 0 || valorRetido > 0) && (
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Info className="h-5 w-5 text-slate-400 hover:text-primary transition-colors cursor-help" />
+                    <Info
+                      className={cn(
+                        'h-5 w-5 transition-colors cursor-help',
+                        valorRetido > 0
+                          ? 'text-orange-400 hover:text-orange-600'
+                          : 'text-slate-400 hover:text-primary',
+                      )}
+                    />
                   </TooltipTrigger>
                   <TooltipContent className="p-3 bg-white border border-slate-200 shadow-xl rounded-xl">
                     <div className="space-y-2 text-sm">
-                      <div className="flex justify-between gap-4">
-                        <span className="text-slate-500 font-medium">Vencido:</span>
-                        <span className="font-bold text-rose-600">
-                          R${' '}
-                          {customer.valorVencido.toLocaleString('pt-BR', {
-                            minimumFractionDigits: 2,
-                          })}
-                        </span>
-                      </div>
-                      <div className="flex justify-between gap-4">
-                        <span className="text-slate-500 font-medium">A Vencer:</span>
-                        <span className="font-bold text-emerald-600">
-                          R${' '}
-                          {customer.valorAVencer.toLocaleString('pt-BR', {
-                            minimumFractionDigits: 2,
-                          })}
-                        </span>
-                      </div>
+                      {customer.valorVencido > 0 && (
+                        <div className="flex justify-between gap-4">
+                          <span className="text-slate-500 font-medium">Vencido:</span>
+                          <span className="font-bold text-rose-600">
+                            R${' '}
+                            {customer.valorVencido.toLocaleString('pt-BR', {
+                              minimumFractionDigits: 2,
+                            })}
+                          </span>
+                        </div>
+                      )}
+                      {customer.valorAVencer > 0 && (
+                        <div className="flex justify-between gap-4">
+                          <span className="text-slate-500 font-medium">A Vencer:</span>
+                          <span className="font-bold text-emerald-600">
+                            R${' '}
+                            {customer.valorAVencer.toLocaleString('pt-BR', {
+                              minimumFractionDigits: 2,
+                            })}
+                          </span>
+                        </div>
+                      )}
+                      {valorRetido > 0 && (
+                        <div className="flex justify-between gap-4">
+                          <span className="text-slate-500 font-medium">Retido:</span>
+                          <span className="font-bold text-orange-600">
+                            R${' '}
+                            {valorRetido.toLocaleString('pt-BR', {
+                              minimumFractionDigits: 2,
+                            })}
+                          </span>
+                        </div>
+                      )}
                     </div>
                   </TooltipContent>
                 </Tooltip>

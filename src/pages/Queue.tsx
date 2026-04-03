@@ -29,6 +29,9 @@ import { ptBR } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
+import { supabase } from '@/lib/supabase/client'
+
+type EnrichedDebt = ParsedDebt & { valorRetido: number }
 
 const safeText = (text: any): string => (typeof text === 'string' ? text : '')
 const safeSlice = (text: any, start: number, end?: number): string =>
@@ -40,11 +43,12 @@ export default function Queue() {
   const [searchAddress, setSearchAddress] = useState('')
   const [debtStatus, setDebtStatus] = useState<'vencido' | 'a_vencer' | 'ambos'>('vencido')
   const [hideLotes, setHideLotes] = useState(true)
+  const [hideRetained, setHideRetained] = useState(true)
   const debouncedSearch = useDebounce(search, 500)
   const debouncedSearchAddress = useDebounce(searchAddress, 500)
 
-  const [unattended, setUnattended] = useState<ParsedDebt[]>([])
-  const [attended, setAttended] = useState<ParsedDebt[]>([])
+  const [unattended, setUnattended] = useState<EnrichedDebt[]>([])
+  const [attended, setAttended] = useState<EnrichedDebt[]>([])
   const [loading, setLoading] = useState(true)
 
   const fetchQueue = useCallback(() => {
@@ -52,17 +56,54 @@ export default function Queue() {
     setLoading(true)
     setUnattended([])
     setAttended([])
+
     getDebts(debouncedSearch, user.id, debouncedSearchAddress, debtStatus, hideLotes)
-      .then((data) => {
-        setUnattended(data.unattended)
-        setAttended(data.attended)
+      .then(async (data) => {
+        const allUcs = [...data.unattended, ...data.attended].map((d) => d.uc)
+        const uniqueUcs = Array.from(new Set(allUcs))
+        const retidasMap: Record<string, number> = {}
+
+        if (uniqueUcs.length > 0) {
+          const chunkSize = 100
+          for (let i = 0; i < uniqueUcs.length; i += chunkSize) {
+            const chunk = uniqueUcs.slice(i, i + chunkSize)
+            const { data: retidasData } = await supabase
+              .from('pending_debts')
+              .select('uc, valor_retidas_em_aberto')
+              .in('uc', chunk)
+
+            if (retidasData) {
+              retidasData.forEach((r) => {
+                if (r.valor_retidas_em_aberto) {
+                  retidasMap[r.uc] = (retidasMap[r.uc] || 0) + Number(r.valor_retidas_em_aberto)
+                }
+              })
+            }
+          }
+        }
+
+        const enrichDebt = (d: ParsedDebt): EnrichedDebt => ({
+          ...d,
+          valorRetido: retidasMap[d.uc] || 0,
+        })
+
+        let unattendedRes = data.unattended.map(enrichDebt)
+        let attendedRes = data.attended.map(enrichDebt)
+
+        if (hideRetained) {
+          unattendedRes = unattendedRes.filter((d) => d.valorRetido === 0)
+          attendedRes = attendedRes.filter((d) => d.valorRetido === 0)
+        }
+
+        setUnattended(unattendedRes)
+        setAttended(attendedRes)
         setLoading(false)
       })
       .catch((err) => {
         console.error(err)
         setLoading(false)
       })
-  }, [debouncedSearch, debouncedSearchAddress, debtStatus, hideLotes, user?.id])
+  }, [debouncedSearch, debouncedSearchAddress, debtStatus, hideLotes, hideRetained, user?.id])
 
   useEffect(() => {
     fetchQueue()
@@ -73,7 +114,7 @@ export default function Queue() {
     return () => window.removeEventListener('contact-added', fetchQueue)
   }, [fetchQueue])
 
-  const getDisplayedValue = (customer: ParsedDebt) => {
+  const getDisplayedValue = (customer: EnrichedDebt) => {
     if (debtStatus === 'vencido') return customer.valorVencido
     if (debtStatus === 'a_vencer') return customer.valorAVencer
     return customer.totalDebt
@@ -89,14 +130,23 @@ export default function Queue() {
           </p>
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-3 w-full xl:w-auto">
-          <div className="flex items-center gap-2 mr-2 bg-white px-3 py-2 rounded-full border border-slate-200 shadow-sm">
+        <div className="flex flex-col sm:flex-row gap-3 w-full xl:w-auto flex-wrap">
+          <div className="flex items-center gap-2 bg-white px-3 py-2 rounded-full border border-slate-200 shadow-sm shrink-0">
             <Switch id="hide-lotes" checked={hideLotes} onCheckedChange={setHideLotes} />
             <Label
               htmlFor="hide-lotes"
               className="text-xs font-semibold text-slate-600 whitespace-nowrap cursor-pointer"
             >
               Ocultar Lotes Vagos
+            </Label>
+          </div>
+          <div className="flex items-center gap-2 bg-white px-3 py-2 rounded-full border border-slate-200 shadow-sm shrink-0 mr-2">
+            <Switch id="hide-retained" checked={hideRetained} onCheckedChange={setHideRetained} />
+            <Label
+              htmlFor="hide-retained"
+              className="text-xs font-semibold text-slate-600 whitespace-nowrap cursor-pointer"
+            >
+              Ocultar Retidos
             </Label>
           </div>
           <Select value={debtStatus} onValueChange={(v: any) => setDebtStatus(v)}>
@@ -190,9 +240,11 @@ export default function Queue() {
                         key={`${customer.uc}_${customer.personCode}`}
                         className={cn(
                           'border-slate-100 group transition-colors',
-                          customer.isLoteVago
-                            ? 'bg-amber-50/40 hover:bg-amber-100/50'
-                            : 'hover:bg-primary/5',
+                          customer.valorRetido > 0
+                            ? 'bg-orange-50/40 hover:bg-orange-100/50'
+                            : customer.isLoteVago
+                              ? 'bg-amber-50/40 hover:bg-amber-100/50'
+                              : 'hover:bg-primary/5',
                         )}
                       >
                         <TableCell>
@@ -245,37 +297,71 @@ export default function Queue() {
                         <TableCell>
                           <div className="flex flex-col items-start">
                             <div className="flex items-center gap-1.5">
-                              <span className="font-bold text-slate-900 whitespace-nowrap">
+                              <span
+                                className={cn(
+                                  'font-bold whitespace-nowrap',
+                                  customer.valorRetido > 0 ? 'text-orange-600' : 'text-slate-900',
+                                )}
+                              >
                                 R${' '}
                                 {getDisplayedValue(customer).toLocaleString('pt-BR', {
                                   minimumFractionDigits: 2,
                                 })}
                               </span>
-                              {(customer.valorVencido > 0 || customer.valorAVencer > 0) && (
+                              {customer.valorRetido > 0 && (
+                                <Badge className="bg-orange-100 text-orange-800 hover:bg-orange-200 border-none text-[9px] px-1.5 py-0 uppercase tracking-wider shrink-0">
+                                  Retido
+                                </Badge>
+                              )}
+                              {(customer.valorVencido > 0 ||
+                                customer.valorAVencer > 0 ||
+                                customer.valorRetido > 0) && (
                                 <Tooltip>
                                   <TooltipTrigger asChild>
-                                    <Info className="h-3.5 w-3.5 text-slate-400 hover:text-primary cursor-help" />
+                                    <Info
+                                      className={cn(
+                                        'h-3.5 w-3.5 cursor-help shrink-0',
+                                        customer.valorRetido > 0
+                                          ? 'text-orange-400 hover:text-orange-600'
+                                          : 'text-slate-400 hover:text-primary',
+                                      )}
+                                    />
                                   </TooltipTrigger>
                                   <TooltipContent className="p-2 bg-white border border-slate-200 shadow-lg rounded-lg text-xs">
                                     <div className="space-y-1">
-                                      <div className="flex justify-between gap-3">
-                                        <span className="text-slate-500">Vencido:</span>
-                                        <span className="font-bold text-rose-600">
-                                          R${' '}
-                                          {(customer.valorVencido || 0).toLocaleString('pt-BR', {
-                                            minimumFractionDigits: 2,
-                                          })}
-                                        </span>
-                                      </div>
-                                      <div className="flex justify-between gap-3">
-                                        <span className="text-slate-500">A Vencer:</span>
-                                        <span className="font-bold text-emerald-600">
-                                          R${' '}
-                                          {(customer.valorAVencer || 0).toLocaleString('pt-BR', {
-                                            minimumFractionDigits: 2,
-                                          })}
-                                        </span>
-                                      </div>
+                                      {customer.valorVencido > 0 && (
+                                        <div className="flex justify-between gap-3">
+                                          <span className="text-slate-500">Vencido:</span>
+                                          <span className="font-bold text-rose-600">
+                                            R${' '}
+                                            {(customer.valorVencido || 0).toLocaleString('pt-BR', {
+                                              minimumFractionDigits: 2,
+                                            })}
+                                          </span>
+                                        </div>
+                                      )}
+                                      {customer.valorAVencer > 0 && (
+                                        <div className="flex justify-between gap-3">
+                                          <span className="text-slate-500">A Vencer:</span>
+                                          <span className="font-bold text-emerald-600">
+                                            R${' '}
+                                            {(customer.valorAVencer || 0).toLocaleString('pt-BR', {
+                                              minimumFractionDigits: 2,
+                                            })}
+                                          </span>
+                                        </div>
+                                      )}
+                                      {customer.valorRetido > 0 && (
+                                        <div className="flex justify-between gap-3">
+                                          <span className="text-slate-500">Retido:</span>
+                                          <span className="font-bold text-orange-600">
+                                            R${' '}
+                                            {(customer.valorRetido || 0).toLocaleString('pt-BR', {
+                                              minimumFractionDigits: 2,
+                                            })}
+                                          </span>
+                                        </div>
+                                      )}
                                     </div>
                                   </TooltipContent>
                                 </Tooltip>
@@ -381,9 +467,11 @@ export default function Queue() {
                         key={`${customer.uc}_${customer.personCode}`}
                         className={cn(
                           'border-slate-100 group transition-colors',
-                          customer.isLoteVago
-                            ? 'bg-amber-50/40 hover:bg-amber-100/50'
-                            : 'hover:bg-primary/5',
+                          customer.valorRetido > 0
+                            ? 'bg-orange-50/40 hover:bg-orange-100/50'
+                            : customer.isLoteVago
+                              ? 'bg-amber-50/40 hover:bg-amber-100/50'
+                              : 'hover:bg-primary/5',
                         )}
                       >
                         <TableCell>
@@ -412,37 +500,71 @@ export default function Queue() {
                               )}
                             </span>
                             <div className="flex items-center gap-1 mt-0.5">
-                              <span className="text-xs font-semibold text-slate-700">
+                              <span
+                                className={cn(
+                                  'text-xs font-semibold',
+                                  customer.valorRetido > 0 ? 'text-orange-600' : 'text-slate-700',
+                                )}
+                              >
                                 R${' '}
                                 {getDisplayedValue(customer).toLocaleString('pt-BR', {
                                   minimumFractionDigits: 2,
                                 })}
                               </span>
-                              {(customer.valorVencido > 0 || customer.valorAVencer > 0) && (
+                              {customer.valorRetido > 0 && (
+                                <Badge className="bg-orange-100 text-orange-800 hover:bg-orange-200 border-none text-[9px] px-1.5 py-0 uppercase tracking-wider shrink-0">
+                                  Retido
+                                </Badge>
+                              )}
+                              {(customer.valorVencido > 0 ||
+                                customer.valorAVencer > 0 ||
+                                customer.valorRetido > 0) && (
                                 <Tooltip>
                                   <TooltipTrigger asChild>
-                                    <Info className="h-3 w-3 text-slate-400 hover:text-primary cursor-help shrink-0" />
+                                    <Info
+                                      className={cn(
+                                        'h-3 w-3 cursor-help shrink-0',
+                                        customer.valorRetido > 0
+                                          ? 'text-orange-400 hover:text-orange-600'
+                                          : 'text-slate-400 hover:text-primary',
+                                      )}
+                                    />
                                   </TooltipTrigger>
                                   <TooltipContent className="p-2 bg-white border border-slate-200 shadow-lg rounded-lg text-xs">
                                     <div className="space-y-1">
-                                      <div className="flex justify-between gap-3">
-                                        <span className="text-slate-500">Vencido:</span>
-                                        <span className="font-bold text-rose-600">
-                                          R${' '}
-                                          {(customer.valorVencido || 0).toLocaleString('pt-BR', {
-                                            minimumFractionDigits: 2,
-                                          })}
-                                        </span>
-                                      </div>
-                                      <div className="flex justify-between gap-3">
-                                        <span className="text-slate-500">A Vencer:</span>
-                                        <span className="font-bold text-emerald-600">
-                                          R${' '}
-                                          {(customer.valorAVencer || 0).toLocaleString('pt-BR', {
-                                            minimumFractionDigits: 2,
-                                          })}
-                                        </span>
-                                      </div>
+                                      {customer.valorVencido > 0 && (
+                                        <div className="flex justify-between gap-3">
+                                          <span className="text-slate-500">Vencido:</span>
+                                          <span className="font-bold text-rose-600">
+                                            R${' '}
+                                            {(customer.valorVencido || 0).toLocaleString('pt-BR', {
+                                              minimumFractionDigits: 2,
+                                            })}
+                                          </span>
+                                        </div>
+                                      )}
+                                      {customer.valorAVencer > 0 && (
+                                        <div className="flex justify-between gap-3">
+                                          <span className="text-slate-500">A Vencer:</span>
+                                          <span className="font-bold text-emerald-600">
+                                            R${' '}
+                                            {(customer.valorAVencer || 0).toLocaleString('pt-BR', {
+                                              minimumFractionDigits: 2,
+                                            })}
+                                          </span>
+                                        </div>
+                                      )}
+                                      {customer.valorRetido > 0 && (
+                                        <div className="flex justify-between gap-3">
+                                          <span className="text-slate-500">Retido:</span>
+                                          <span className="font-bold text-orange-600">
+                                            R${' '}
+                                            {(customer.valorRetido || 0).toLocaleString('pt-BR', {
+                                              minimumFractionDigits: 2,
+                                            })}
+                                          </span>
+                                        </div>
+                                      )}
                                     </div>
                                   </TooltipContent>
                                 </Tooltip>
