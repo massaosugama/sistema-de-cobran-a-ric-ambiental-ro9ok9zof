@@ -1127,6 +1127,7 @@ export const Constants = {
 //       COALESCE(sum(valor_vencido) FILTER (WHERE COALESCE(setor, '') != '4036'), 0) as total_vencido,
 //       COALESCE(sum(valor_a_vencer) FILTER (WHERE COALESCE(setor, '') != '4036'), 0) as total_a_vencer,
 //       COALESCE(sum(valor_retidas_em_aberto) FILTER (WHERE COALESCE(setor, '') != '4036'), 0) as total_retidas,
+//       count(*) FILTER (WHERE COALESCE(setor, '') != '4036' AND valor_retidas_em_aberto > 0) as total_retidas_cases,
 //       count(*) FILTER (WHERE COALESCE(setor, '') = '4036') as total_lotes_cases,
 //       COALESCE(sum(valor_total) FILTER (WHERE COALESCE(setor, '') = '4036'), 0) as total_lotes_value
 //     INTO curr_portfolio
@@ -1157,6 +1158,7 @@ export const Constants = {
 //            'total_vencido', curr_portfolio.total_vencido,
 //            'total_a_vencer', curr_portfolio.total_a_vencer,
 //            'total_retidas', curr_portfolio.total_retidas,
+//            'total_retidas_cases', curr_portfolio.total_retidas_cases,
 //            'total_lotes_cases', curr_portfolio.total_lotes_cases,
 //            'total_lotes_value', curr_portfolio.total_lotes_value
 //          ),
@@ -1166,6 +1168,7 @@ export const Constants = {
 //            'total_vencido', COALESCE(prev_portfolio.total_vencido, curr_portfolio.total_vencido),
 //            'total_a_vencer', COALESCE(prev_portfolio.total_a_vencer, curr_portfolio.total_a_vencer),
 //            'total_retidas', COALESCE(prev_portfolio.total_retidas, curr_portfolio.total_retidas),
+//            'total_retidas_cases', 0,
 //            'total_lotes_cases', COALESCE(prev_portfolio.total_lotes_cases, curr_portfolio.total_lotes_cases),
 //            'total_lotes_value', COALESCE(prev_portfolio.total_lotes_value, curr_portfolio.total_lotes_value)
 //          )

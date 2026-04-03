@@ -192,10 +192,13 @@ export default function Index() {
     }
   }, [])
 
-  const adminProfiles = profiles.filter((p) => p.role === 'admin' || p.is_admin)
-  const consultaProfiles = profiles.filter((p) => p.role === 'consultas' && !p.is_admin)
+  const adminProfiles = profiles.filter((p) => p.role?.toLowerCase() === 'admin' || p.is_admin)
+  const consultaProfiles = profiles.filter(
+    (p) => p.role?.toLowerCase() === 'consultas' && !p.is_admin,
+  )
   const operadorProfiles = profiles.filter(
-    (p) => p.role !== 'admin' && p.role !== 'consultas' && !p.is_admin,
+    (p) =>
+      p.role?.toLowerCase() !== 'admin' && p.role?.toLowerCase() !== 'consultas' && !p.is_admin,
   )
 
   const renderProfileRow = (p: any) => {
@@ -256,36 +259,36 @@ export default function Index() {
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <Card>
-          <CardHeader className="flex flex-row items-start justify-between pb-2 space-y-0">
-            <div>
-              <CardTitle className="text-sm font-medium">Total da Carteira (UC + Pessoa)</CardTitle>
-              <div className="text-3xl font-bold mt-2">
-                {evolution.portfolio.current.total_cases || 0}
+          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+            <CardTitle className="text-sm font-medium">
+              Composição da Carteira (UC + Pessoa)
+            </CardTitle>
+            <Briefcase className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="flex justify-between items-start mt-1">
+              <div>
+                <p className="text-xs text-muted-foreground mb-0.5">Faturas Emitidas</p>
+                <div className="text-lg font-bold text-primary">
+                  {evolution.portfolio.current.total_cases || 0}
+                </div>
+                <EvolutionIndicator
+                  current={evolution.portfolio.current.total_cases}
+                  previous={evolution.portfolio.previous.total_cases}
+                  inverse
+                />
               </div>
-              <EvolutionIndicator
-                current={evolution.portfolio.current.total_cases}
-                previous={evolution.portfolio.previous.total_cases}
-                inverse
-              />
-            </div>
-            <div className="flex flex-col items-end">
-              <Briefcase className="h-4 w-4 text-muted-foreground mb-3" />
               <div className="text-right">
-                <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider mb-0.5">
-                  Faturas Retidas
-                </p>
-                <div className="text-xl font-bold text-slate-700">
+                <p className="text-xs text-muted-foreground mb-0.5">Faturas Retidas</p>
+                <div className="text-lg font-bold text-slate-700">
                   {evolution.portfolio.current.total_retidas_cases || 0}
                 </div>
               </div>
             </div>
-          </CardHeader>
-          <CardContent className="pt-4 border-t border-slate-100 mt-2">
-            <div>
-              <p className="text-[11px] text-amber-700/70 font-bold uppercase tracking-wider mb-0.5">
-                Lotes Vagos
-              </p>
-              <div className="text-lg font-bold text-amber-600">
+
+            <div className="mt-4 pt-3 border-t border-slate-100">
+              <p className="text-xs text-amber-700/70 font-medium mb-0.5">Lotes Vagos</p>
+              <div className="text-sm font-bold text-amber-600">
                 {evolution.portfolio.current.total_lotes_cases || 0}
               </div>
             </div>
@@ -332,9 +335,7 @@ export default function Index() {
             </div>
 
             <div className="mt-4 pt-3 border-t border-slate-100">
-              <p className="text-[11px] text-amber-700/70 font-bold uppercase tracking-wider mb-0.5">
-                Lotes Vagos
-              </p>
+              <p className="text-xs text-amber-700/70 font-medium mb-0.5">Lotes Vagos</p>
               <div className="text-sm font-bold text-amber-600">
                 R${' '}
                 {(evolution.portfolio.current.total_lotes_value || 0).toLocaleString('pt-BR', {
