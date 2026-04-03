@@ -1,10 +1,10 @@
 import { Link } from 'react-router-dom'
-import { ArrowLeft, AlertCircle, MapPin, Info } from 'lucide-react'
+import { ArrowLeft, AlertCircle, MapPin, Info, AlertTriangle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-import { formatPersonCode } from '@/lib/utils'
+import { formatPersonCode, cn } from '@/lib/utils'
 import type { ParsedDebt } from '@/services/debts'
 
 export function CustomerHeader({
@@ -56,8 +56,18 @@ export function CustomerHeader({
         </div>
       )}
 
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden">
-        <div className="absolute left-0 top-0 bottom-0 w-2 bg-primary"></div>
+      <div
+        className={cn(
+          'flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 p-6 rounded-2xl border shadow-sm relative overflow-hidden',
+          customer.isLoteVago ? 'bg-amber-50 border-amber-200' : 'bg-white border-slate-200',
+        )}
+      >
+        <div
+          className={cn(
+            'absolute left-0 top-0 bottom-0 w-2',
+            customer.isLoteVago ? 'bg-amber-500' : 'bg-primary',
+          )}
+        ></div>
 
         <div className="pl-2">
           <div className="flex flex-wrap items-center gap-3 mb-1.5">
@@ -67,13 +77,18 @@ export function CustomerHeader({
             {customer.personCode && (
               <Badge
                 variant="outline"
-                className="bg-slate-50 border-slate-200 text-slate-600 font-bold uppercase tracking-wider text-[11px] py-0.5"
+                className="bg-slate-50/80 border-slate-200 text-slate-600 font-bold uppercase tracking-wider text-[11px] py-0.5"
               >
                 CÓD: {formatPersonCode(customer.personCode)}
               </Badge>
             )}
-            <span className="text-2xl font-black tracking-tight text-slate-900 border-l-2 border-slate-300 pl-3">
+            <span className="text-2xl font-black tracking-tight text-slate-900 border-l-2 border-slate-300 pl-3 flex items-center">
               UC {customer.uc}
+              {customer.isLoteVago && (
+                <Badge className="bg-amber-500 hover:bg-amber-600 text-white font-bold uppercase tracking-wider text-[10px] py-0.5 ml-3 flex items-center shadow-sm">
+                  <AlertTriangle className="w-3 h-3 mr-1" /> Lote Vago
+                </Badge>
+              )}
             </span>
           </div>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm font-medium text-slate-500 mt-2">

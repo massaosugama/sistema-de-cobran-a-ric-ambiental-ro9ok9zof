@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { CalendarIcon, Send, Sparkles, CheckSquare, Phone, Eye } from 'lucide-react'
+import { CalendarIcon, Send, Sparkles, CheckSquare, Phone, Eye, AlertTriangle } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import {
@@ -195,13 +195,35 @@ export function CustomerActionForm({
 
   return (
     <Card className="border-slate-200 shadow-md sticky top-24 rounded-2xl overflow-hidden">
-      <CardHeader className="bg-white border-b border-slate-100 pb-4">
+      <CardHeader
+        className={cn(
+          'border-b pb-4',
+          customer.isLoteVago ? 'bg-amber-50/60 border-amber-100' : 'bg-white border-slate-100',
+        )}
+      >
         <CardTitle className="text-lg font-black text-slate-900 flex items-center gap-2">
-          <div className="bg-primary/10 p-2 rounded-xl">
-            <CheckSquare className="w-5 h-5 text-primary" />
+          <div
+            className={cn(
+              'p-2 rounded-xl',
+              customer.isLoteVago ? 'bg-amber-100/80' : 'bg-primary/10',
+            )}
+          >
+            <CheckSquare
+              className={cn('w-5 h-5', customer.isLoteVago ? 'text-amber-600' : 'text-primary')}
+            />
           </div>
           Registrar Atendimento
         </CardTitle>
+        {customer.isLoteVago && (
+          <div className="mt-4 bg-amber-100 text-amber-800 p-3 rounded-xl flex items-start gap-2.5 text-sm font-medium border border-amber-200 shadow-sm">
+            <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5 text-amber-600" />
+            <p className="leading-relaxed">
+              <strong>Atenção:</strong> Esta UC pertence a um{' '}
+              <strong>Lote Vago (Setor 4036)</strong>. A cobrança está suspensa devido a litígio.
+              Registre o atendimento apenas se estritamente necessário.
+            </p>
+          </div>
+        )}
       </CardHeader>
       <CardContent className="space-y-6 pt-6 bg-white">
         {isConsultas && (
@@ -272,8 +294,8 @@ export function CustomerActionForm({
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-          <div className="space-y-2.5">
+        <div className="flex flex-col gap-5">
+          <div className="space-y-2.5 w-full sm:w-1/2">
             <Label className="font-bold text-slate-700">Agendar Próxima Ação</Label>
             <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
               <PopoverTrigger asChild>
@@ -306,7 +328,7 @@ export function CustomerActionForm({
 
           <div
             className={cn(
-              'space-y-2.5 rounded-xl transition-all flex flex-col',
+              'space-y-2.5 rounded-xl transition-all w-full flex flex-col',
               showErrors &&
                 status === 'Outro' &&
                 !notes.trim() &&

@@ -255,6 +255,29 @@ export default function Index() {
                 />
               </div>
             </div>
+
+            <div className="mt-4 pt-3 border-t border-slate-100 flex justify-between items-start">
+              <div>
+                <p className="text-[11px] text-amber-700/70 font-bold uppercase tracking-wider mb-0.5">
+                  Lotes Vagos (Suspensos)
+                </p>
+                <div className="text-sm font-bold text-amber-600">
+                  R${' '}
+                  {(evolution.portfolio.current.total_lotes_value || 0).toLocaleString('pt-BR', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
+                </div>
+              </div>
+              <div className="text-right">
+                <p className="text-[11px] text-amber-700/70 font-bold uppercase tracking-wider mb-0.5">
+                  Volume
+                </p>
+                <div className="text-sm font-bold text-amber-600">
+                  {evolution.portfolio.current.total_lotes_cases || 0} UCs
+                </div>
+              </div>
+            </div>
           </CardContent>
         </Card>
 

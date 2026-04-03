@@ -27,6 +27,8 @@ import { useAuth } from '@/hooks/use-auth'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
+import { Switch } from '@/components/ui/switch'
+import { Label } from '@/components/ui/label'
 
 const safeText = (text: any): string => (typeof text === 'string' ? text : '')
 const safeSlice = (text: any, start: number, end?: number): string =>
@@ -37,6 +39,7 @@ export default function Queue() {
   const [search, setSearch] = useState('')
   const [searchAddress, setSearchAddress] = useState('')
   const [debtStatus, setDebtStatus] = useState<'vencido' | 'a_vencer' | 'ambos'>('vencido')
+  const [hideLotes, setHideLotes] = useState(true)
   const debouncedSearch = useDebounce(search, 500)
   const debouncedSearchAddress = useDebounce(searchAddress, 500)
 
@@ -49,7 +52,7 @@ export default function Queue() {
     setLoading(true)
     setUnattended([])
     setAttended([])
-    getDebts(debouncedSearch, user.id, debouncedSearchAddress, debtStatus)
+    getDebts(debouncedSearch, user.id, debouncedSearchAddress, debtStatus, hideLotes)
       .then((data) => {
         setUnattended(data.unattended)
         setAttended(data.attended)
@@ -59,7 +62,7 @@ export default function Queue() {
         console.error(err)
         setLoading(false)
       })
-  }, [debouncedSearch, debouncedSearchAddress, debtStatus, user?.id])
+  }, [debouncedSearch, debouncedSearchAddress, debtStatus, hideLotes, user?.id])
 
   useEffect(() => {
     fetchQueue()
@@ -98,6 +101,15 @@ export default function Queue() {
         </div>
 
         <div className="flex flex-col sm:flex-row gap-3 w-full xl:w-auto">
+          <div className="flex items-center gap-2 mr-2 bg-white px-3 py-2 rounded-full border border-slate-200 shadow-sm">
+            <Switch id="hide-lotes" checked={hideLotes} onCheckedChange={setHideLotes} />
+            <Label
+              htmlFor="hide-lotes"
+              className="text-xs font-semibold text-slate-600 whitespace-nowrap cursor-pointer"
+            >
+              Ocultar Lotes Vagos
+            </Label>
+          </div>
           <Select value={debtStatus} onValueChange={(v: any) => setDebtStatus(v)}>
             <SelectTrigger className="w-full sm:w-[130px] h-10 rounded-full bg-white border-slate-200 shadow-sm focus-visible:ring-primary/20 shrink-0">
               <SelectValue placeholder="Status" />
@@ -187,21 +199,37 @@ export default function Queue() {
                     unattended.map((customer) => (
                       <TableRow
                         key={`${customer.uc}_${customer.personCode}`}
-                        className="hover:bg-primary/5 border-slate-100 group transition-colors"
+                        className={cn(
+                          'border-slate-100 group transition-colors',
+                          customer.isLoteVago
+                            ? 'bg-amber-50/40 hover:bg-amber-100/50'
+                            : 'hover:bg-primary/5',
+                        )}
                       >
                         <TableCell>
                           <div className="flex flex-col max-w-[180px] sm:max-w-[250px]">
                             <span
-                              className="font-bold text-slate-900 truncate"
+                              className={cn(
+                                'font-bold truncate',
+                                customer.isLoteVago ? 'text-amber-950' : 'text-slate-900',
+                              )}
                               title={safeText(customer.name)}
                             >
                               {safeText(customer.name)}
                             </span>
                             <span
-                              className="text-xs font-medium text-slate-500 truncate flex items-center gap-1"
+                              className="text-xs font-medium text-slate-500 truncate flex items-center gap-1 flex-wrap"
                               title={`${customer.uc} • ${safeText(customer.document)}`}
                             >
                               UC: {customer.uc} • {safeText(customer.document)}
+                              {customer.isLoteVago && (
+                                <Badge
+                                  variant="outline"
+                                  className="bg-amber-100 text-amber-800 border-amber-200 text-[9px] px-1.5 py-0 leading-none uppercase shrink-0"
+                                >
+                                  Lote Vago
+                                </Badge>
+                              )}
                             </span>
                             {customer.address && (
                               <div className="flex items-center flex-wrap gap-1.5 mt-0.5">
@@ -370,21 +398,37 @@ export default function Queue() {
                     attended.map((customer) => (
                       <TableRow
                         key={`${customer.uc}_${customer.personCode}`}
-                        className="hover:bg-primary/5 border-slate-100 group transition-colors"
+                        className={cn(
+                          'border-slate-100 group transition-colors',
+                          customer.isLoteVago
+                            ? 'bg-amber-50/40 hover:bg-amber-100/50'
+                            : 'hover:bg-primary/5',
+                        )}
                       >
                         <TableCell>
                           <div className="flex flex-col max-w-[180px] sm:max-w-[250px]">
                             <span
-                              className="font-bold text-slate-900 truncate"
+                              className={cn(
+                                'font-bold truncate',
+                                customer.isLoteVago ? 'text-amber-950' : 'text-slate-900',
+                              )}
                               title={safeText(customer.name)}
                             >
                               {safeText(customer.name)}
                             </span>
                             <span
-                              className="text-xs font-medium text-slate-500 truncate flex items-center gap-1"
+                              className="text-xs font-medium text-slate-500 truncate flex items-center gap-1 flex-wrap"
                               title={`UC: ${customer.uc}`}
                             >
                               UC: {customer.uc}
+                              {customer.isLoteVago && (
+                                <Badge
+                                  variant="outline"
+                                  className="bg-amber-100 text-amber-800 border-amber-200 text-[9px] px-1.5 py-0 leading-none uppercase shrink-0"
+                                >
+                                  Lote Vago
+                                </Badge>
+                              )}
                             </span>
                             <div className="flex items-center gap-1 mt-0.5">
                               <span className="text-xs font-semibold text-slate-700">

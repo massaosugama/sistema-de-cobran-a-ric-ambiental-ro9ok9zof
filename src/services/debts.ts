@@ -22,6 +22,8 @@ export interface ParsedDebt {
   recentOperators?: string[]
   rawPessoaFaturaNome?: string | null
   rawPessoaFaturaCpfCnpj?: string | null
+  setor?: string | null
+  isLoteVago: boolean
 }
 
 function parseSafeNumber(val: any): number {
@@ -124,6 +126,8 @@ export function parseDebtRow(
     invoices,
     rawPessoaFaturaNome: row.pessoa_fatura_nome || null,
     rawPessoaFaturaCpfCnpj: row.pessoa_fatura_cpf_cnpj || null,
+    setor: row.setor || null,
+    isLoteVago: row.setor === '4036',
   }
 }
 
@@ -132,6 +136,7 @@ export async function getDebts(
   operatorId?: string,
   searchAddress?: string,
   debtStatus?: 'vencido' | 'a_vencer' | 'ambos',
+  hideLotes: boolean = true,
   limit: number = 3000,
 ) {
   // 1. Construct the base query for pending debts
@@ -148,6 +153,9 @@ export async function getDebts(
   }
   if (searchAddress) {
     query = query.ilike('endereco', `%${searchAddress}%`)
+  }
+  if (hideLotes) {
+    query = query.or('setor.neq.4036,setor.is.null')
   }
 
   const { data: debts, error } = await query
@@ -202,6 +210,9 @@ export async function getDebts(
     }
     if (searchAddress) {
       walletQuery = walletQuery.ilike('endereco', `%${searchAddress}%`)
+    }
+    if (hideLotes) {
+      walletQuery = walletQuery.or('setor.neq.4036,setor.is.null')
     }
 
     const { data: missingWalletDebts } = await walletQuery
