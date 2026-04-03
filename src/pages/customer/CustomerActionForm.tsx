@@ -40,7 +40,10 @@ import { useDebounce } from '@/hooks/use-debounce'
 import { addContact } from '@/services/data'
 import { supabase } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
-import type { ParsedDebt } from '@/services/debts'
+import { getDebtByUc, type ParsedDebt } from '@/services/debts'
+import { CustomerHeader } from './CustomerHeader'
+import { CustomerInfo } from './CustomerInfo'
+import { CustomerTimeline } from './CustomerTimeline'
 
 export function CustomerActionForm({
   customer,
@@ -78,6 +81,7 @@ export function CustomerActionForm({
   )
   const [searchedCustomer, setSearchedCustomer] = useState<ParsedDebt | null>(null)
   const [isSearchingUc, setIsSearchingUc] = useState(false)
+  const [isLoadingFullCustomer, setIsLoadingFullCustomer] = useState(false)
 
   const debouncedSearchTerm = useDebounce(searchTerm, 500)
   const debouncedSearchAddress = useDebounce(searchAddress, 500)
@@ -234,6 +238,21 @@ export function CustomerActionForm({
 
   const isPhoneChannel = channel.includes('TEL') || channel.includes('WTK')
   const hasPhones = customer.phones && customer.phones.length > 0
+
+  const handleSelectSearchedCustomer = async (res: any) => {
+    setIsLoadingFullCustomer(true)
+    setSearchedCustomer(res)
+    try {
+      const fullCustomer = await getDebtByUc(res.uc, res.personCode)
+      if (fullCustomer) {
+        setSearchedCustomer({ ...fullCustomer, address: res.address || fullCustomer.address })
+      }
+    } catch (error) {
+      console.error('Error fetching full customer details:', error)
+    } finally {
+      setIsLoadingFullCustomer(false)
+    }
+  }
 
   const handleSave = async () => {
     if (isConsultas) return
@@ -902,9 +921,19 @@ export function CustomerActionForm({
         <Sheet open={isSearchUcSheetOpen} onOpenChange={setIsSearchUcSheetOpen}>
           <SheetContent
             side="right"
-            className="w-full sm:max-w-2xl overflow-y-auto p-0 flex flex-col bg-slate-50 border-l-0 shadow-2xl"
+            className={cn(
+              'w-full overflow-y-auto p-0 flex flex-col bg-slate-50 border-l-0 shadow-2xl transition-all duration-300',
+              searchedCustomer
+                ? 'sm:max-w-none md:max-w-none lg:max-w-[85vw] xl:max-w-[1200px] sm:p-6'
+                : 'sm:max-w-2xl',
+            )}
           >
-            <SheetHeader className="p-6 border-b border-slate-100 bg-white sticky top-0 z-10 shadow-sm">
+            <SheetHeader
+              className={cn(
+                'p-6 border-b border-slate-100 bg-white sticky top-0 z-10 shadow-sm',
+                searchedCustomer && 'sr-only',
+              )}
+            >
               <SheetTitle className="text-xl font-black text-slate-800 flex items-center gap-2">
                 <Search className="w-5 h-5 text-indigo-600" />
                 Buscar Nova UC
@@ -913,74 +942,82 @@ export function CustomerActionForm({
                 Localize a UC correta para transferir o atendimento e solicitar a atualização
                 cadastral.
               </SheetDescription>
-              {!searchedCustomer ? (
-                <div className="flex flex-col gap-3 mt-5">
-                  <div className="flex flex-col sm:flex-row items-center gap-2">
-                    <Input
-                      placeholder="UC, Nome ou CPF/C..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      onKeyDown={(e) => e.key === 'Enter' && handleAdvancedSearch()}
-                      className="h-11 rounded-xl bg-slate-50 focus:bg-white border-slate-200 text-base transition-colors"
-                    />
-                    <Input
-                      placeholder="Filtre por Endereço..."
-                      value={searchAddress}
-                      onChange={(e) => setSearchAddress(e.target.value)}
-                      onKeyDown={(e) => e.key === 'Enter' && handleAdvancedSearch()}
-                      className="h-11 rounded-xl bg-slate-50 focus:bg-white border-slate-200 text-base transition-colors"
-                    />
-                    <Button
-                      onClick={() => handleAdvancedSearch()}
-                      disabled={
-                        isSearchingUc || (searchTerm.length < 3 && searchAddress.length < 3)
-                      }
-                      className="h-11 px-6 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm font-bold w-full sm:w-auto"
-                    >
-                      {isSearchingUc ? 'Buscando...' : 'Buscar'}
-                    </Button>
-                  </div>
-                  {searchTerm.length > 0 &&
-                    searchTerm.length < 3 &&
-                    (searchAddress.length === 0 || searchAddress.length < 3) && (
-                      <span className="text-xs text-slate-500 font-medium">
-                        Digite pelo menos 3 caracteres em algum campo para buscar.
-                      </span>
-                    )}
-                </div>
-              ) : (
-                <div className="mt-4">
+
+              <div className="flex flex-col gap-3 mt-5">
+                <div className="flex flex-col sm:flex-row items-center gap-2">
+                  <Input
+                    placeholder="UC, Nome ou CPF/C..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleAdvancedSearch()}
+                    className="h-11 rounded-xl bg-slate-50 focus:bg-white border-slate-200 text-base transition-colors"
+                  />
+                  <Input
+                    placeholder="Filtre por Endereço..."
+                    value={searchAddress}
+                    onChange={(e) => setSearchAddress(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleAdvancedSearch()}
+                    className="h-11 rounded-xl bg-slate-50 focus:bg-white border-slate-200 text-base transition-colors"
+                  />
                   <Button
-                    variant="outline"
-                    onClick={() => setSearchedCustomer(null)}
-                    className="h-9 rounded-lg text-slate-600 border-slate-200 hover:bg-slate-50"
+                    onClick={() => handleAdvancedSearch()}
+                    disabled={isSearchingUc || (searchTerm.length < 3 && searchAddress.length < 3)}
+                    className="h-11 px-6 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm font-bold w-full sm:w-auto"
                   >
-                    &larr; Voltar aos resultados
+                    {isSearchingUc ? 'Buscando...' : 'Buscar'}
                   </Button>
                 </div>
-              )}
+                {searchTerm.length > 0 &&
+                  searchTerm.length < 3 &&
+                  (searchAddress.length === 0 || searchAddress.length < 3) && (
+                    <span className="text-xs text-slate-500 font-medium">
+                      Digite pelo menos 3 caracteres em algum campo para buscar.
+                    </span>
+                  )}
+              </div>
             </SheetHeader>
-            <div className="p-6 flex-1 bg-slate-50/50">
+            <div className={cn('flex-1', searchedCustomer ? 'p-0 sm:p-0' : 'p-6 bg-slate-50/50')}>
               {searchedCustomer ? (
-                <div className="space-y-6 animate-fade-in-up">
-                  <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col gap-1">
-                    <h3 className="font-black text-slate-800 text-lg flex items-center gap-2">
-                      <MapPin className="w-5 h-5 text-emerald-600" />
-                      UC {searchedCustomer.uc}
-                    </h3>
-                    <p className="text-slate-600 font-semibold text-sm">{searchedCustomer.name}</p>
-                    {(searchedCustomer as any).address && (
-                      <p className="text-slate-500 text-xs mt-1">
-                        {(searchedCustomer as any).address}
-                      </p>
-                    )}
+                <div className="space-y-6 pb-20 md:pb-0 px-4 sm:px-0 animate-in fade-in duration-300 py-6 sm:py-0">
+                  <div className="flex items-center gap-4 mb-4">
+                    <Button
+                      variant="outline"
+                      onClick={() => setSearchedCustomer(null)}
+                      className="h-9 rounded-lg text-slate-600 border-slate-200 hover:bg-slate-50 bg-white"
+                    >
+                      &larr; Voltar aos resultados
+                    </Button>
                   </div>
 
-                  <CustomerActionForm
-                    customer={searchedCustomer}
-                    isSheet={true}
-                    onClose={() => setIsSearchUcSheetOpen(false)}
-                  />
+                  {isLoadingFullCustomer ? (
+                    <div className="p-10 text-center text-slate-500 font-medium animate-pulse mt-10">
+                      Carregando dados da UC...
+                    </div>
+                  ) : (
+                    <>
+                      <CustomerHeader
+                        customer={searchedCustomer}
+                        isSheet={true}
+                        onClose={() => setIsSearchUcSheetOpen(false)}
+                        parentCustomer={customer}
+                      />
+                      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                        <div className="lg:col-span-3 space-y-6">
+                          <CustomerInfo customer={searchedCustomer} />
+                        </div>
+                        <div className="lg:col-span-5 h-[calc(100vh-220px)] lg:sticky lg:top-0 overflow-y-auto pr-2 rounded-lg border bg-white shadow-sm">
+                          <CustomerTimeline customer={searchedCustomer} />
+                        </div>
+                        <div className="lg:col-span-4 space-y-6 h-auto">
+                          <CustomerActionForm
+                            customer={searchedCustomer}
+                            isSheet={true}
+                            onClose={() => setIsSearchUcSheetOpen(false)}
+                          />
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </div>
               ) : searchResults && searchResults.length > 0 ? (
                 <div className="space-y-3 animate-fade-in-up pb-10">
@@ -991,7 +1028,7 @@ export function CustomerActionForm({
                     <div
                       key={res.uc}
                       className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:border-indigo-300 transition-colors group cursor-pointer"
-                      onClick={() => setSearchedCustomer(res)}
+                      onClick={() => handleSelectSearchedCustomer(res)}
                     >
                       <div className="flex flex-col gap-1.5 flex-1 min-w-0">
                         <div className="flex items-center gap-2">
@@ -1037,7 +1074,7 @@ export function CustomerActionForm({
                         variant="secondary"
                         onClick={(e) => {
                           e.stopPropagation()
-                          setSearchedCustomer(res)
+                          handleSelectSearchedCustomer(res)
                         }}
                         className="shrink-0 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 font-bold sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
                       >
