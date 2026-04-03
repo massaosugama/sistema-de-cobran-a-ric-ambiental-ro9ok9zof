@@ -63,7 +63,7 @@ export function CustomerActionForm({
   const [notes, setNotes] = useState('')
 
   const [phoneStatuses, setPhoneStatuses] = useState<
-    Record<string, 'a_verificar' | 'validado' | 'invalido'>
+    Record<string, 'a_verificar' | 'validado' | 'invalido' | undefined>
   >({})
   const [talkedToOwner, setTalkedToOwner] = useState<boolean | null>(null)
   const [unknownProperty, setUnknownProperty] = useState<boolean | null>(null)
@@ -73,7 +73,13 @@ export function CustomerActionForm({
 
   const [showErrors, setShowErrors] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [requireCadastral, setRequireCadastral] = useState(false)
+  const [cadastralRules, setCadastralRules] = useState({
+    phones: false,
+    talkedToOwner: false,
+    unknownProperty: false,
+    responsibleForOtherUc: false,
+    generateUpdate: false,
+  })
   const [isSearchUcSheetOpen, setIsSearchUcSheetOpen] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const [searchAddress, setSearchAddress] = useState('')
@@ -221,7 +227,23 @@ export function CustomerActionForm({
         .eq('key', 'cadastral_quality_params')
         .single()
       if (data?.value) {
-        setRequireCadastral(data.value.required === true)
+        if (data.value.required !== undefined && data.value.phones === undefined) {
+          setCadastralRules({
+            phones: !!data.value.required,
+            talkedToOwner: !!data.value.required,
+            unknownProperty: !!data.value.required,
+            responsibleForOtherUc: !!data.value.required,
+            generateUpdate: !!data.value.required,
+          })
+        } else {
+          setCadastralRules({
+            phones: !!data.value.phones,
+            talkedToOwner: !!data.value.talkedToOwner,
+            unknownProperty: !!data.value.unknownProperty,
+            responsibleForOtherUc: !!data.value.responsibleForOtherUc,
+            generateUpdate: !!data.value.generateUpdate,
+          })
+        }
       }
     }
     fetchRules()
@@ -263,19 +285,19 @@ export function CustomerActionForm({
     if (!status) hasError = true
     if (status === 'Outro' && !notes.trim()) hasError = true
 
-    if (requireCadastral) {
+    if (cadastralRules.phones) {
       if (isPhoneChannel && hasPhones) {
         const hasValidOrInvalid = Object.values(phoneStatuses).some(
           (s) => s === 'validado' || s === 'invalido',
         )
         if (!hasValidOrInvalid) hasError = true
       }
-
-      if (talkedToOwner === null) hasError = true
-      if (unknownProperty === null) hasError = true
-      if (responsibleForOtherUc === null) hasError = true
-      if (generateUpdate === null) hasError = true
     }
+
+    if (cadastralRules.talkedToOwner && talkedToOwner === null) hasError = true
+    if (cadastralRules.unknownProperty && unknownProperty === null) hasError = true
+    if (cadastralRules.responsibleForOtherUc && responsibleForOtherUc === null) hasError = true
+    if (cadastralRules.generateUpdate && generateUpdate === null) hasError = true
 
     if (generateUpdate === true && !updateNotes.trim()) hasError = true
 
@@ -580,7 +602,7 @@ export function CustomerActionForm({
             className={cn(
               'space-y-3 rounded-xl transition-all',
               showErrors &&
-                requireCadastral &&
+                cadastralRules.phones &&
                 isPhoneChannel &&
                 hasPhones &&
                 !Object.values(phoneStatuses).some((s) => s === 'validado' || s === 'invalido') &&
@@ -591,7 +613,7 @@ export function CustomerActionForm({
               className={cn(
                 'font-semibold text-sm flex items-center gap-1',
                 showErrors &&
-                  requireCadastral &&
+                  cadastralRules.phones &&
                   isPhoneChannel &&
                   hasPhones &&
                   !Object.values(phoneStatuses).some((s) => s === 'validado' || s === 'invalido')
@@ -600,7 +622,7 @@ export function CustomerActionForm({
               )}
             >
               Status dos Telefones{' '}
-              {requireCadastral && isPhoneChannel && hasPhones && (
+              {cadastralRules.phones && isPhoneChannel && hasPhones && (
                 <span className="text-red-500">*</span>
               )}
             </Label>
@@ -620,7 +642,13 @@ export function CustomerActionForm({
                         type="button"
                         disabled={isConsultas}
                         onClick={() => {
-                          setPhoneStatuses({ ...phoneStatuses, [phone.number]: 'a_verificar' })
+                          setPhoneStatuses({
+                            ...phoneStatuses,
+                            [phone.number]:
+                              phoneStatuses[phone.number] === 'a_verificar'
+                                ? undefined
+                                : 'a_verificar',
+                          })
                           setShowErrors(false)
                         }}
                         className={cn(
@@ -639,7 +667,11 @@ export function CustomerActionForm({
                         type="button"
                         disabled={isConsultas}
                         onClick={() => {
-                          setPhoneStatuses({ ...phoneStatuses, [phone.number]: 'validado' })
+                          setPhoneStatuses({
+                            ...phoneStatuses,
+                            [phone.number]:
+                              phoneStatuses[phone.number] === 'validado' ? undefined : 'validado',
+                          })
                           setShowErrors(false)
                         }}
                         className={cn(
@@ -658,7 +690,11 @@ export function CustomerActionForm({
                         type="button"
                         disabled={isConsultas}
                         onClick={() => {
-                          setPhoneStatuses({ ...phoneStatuses, [phone.number]: 'invalido' })
+                          setPhoneStatuses({
+                            ...phoneStatuses,
+                            [phone.number]:
+                              phoneStatuses[phone.number] === 'invalido' ? undefined : 'invalido',
+                          })
                           setShowErrors(false)
                         }}
                         className={cn(
@@ -686,7 +722,7 @@ export function CustomerActionForm({
             className={cn(
               'flex flex-col gap-3 pt-4 border-t border-slate-200 rounded-xl transition-all',
               showErrors &&
-                requireCadastral &&
+                cadastralRules.talkedToOwner &&
                 talkedToOwner === null &&
                 'p-3 -mx-3 border-t-0 border border-red-500 bg-red-50/50',
             )}
@@ -695,12 +731,13 @@ export function CustomerActionForm({
               <Label
                 className={cn(
                   'font-semibold text-sm flex items-center gap-1',
-                  showErrors && requireCadastral && talkedToOwner === null
+                  showErrors && cadastralRules.talkedToOwner && talkedToOwner === null
                     ? 'text-red-500'
                     : 'text-slate-700',
                 )}
               >
-                Falei com o Titular? {requireCadastral && <span className="text-red-500">*</span>}
+                Falei com o Titular?{' '}
+                {cadastralRules.talkedToOwner && <span className="text-red-500">*</span>}
               </Label>
               <div className="flex items-center gap-2">
                 <Button
@@ -712,12 +749,12 @@ export function CustomerActionForm({
                     talkedToOwner === true &&
                       'bg-primary text-primary-foreground shadow-sm border-transparent',
                     showErrors &&
-                      requireCadastral &&
+                      cadastralRules.talkedToOwner &&
                       talkedToOwner === null &&
                       'border-red-500 bg-white',
                   )}
                   onClick={() => {
-                    setTalkedToOwner(true)
+                    setTalkedToOwner(talkedToOwner === true ? null : true)
                     setShowErrors(false)
                   }}
                   disabled={isSubmitting || isConsultas}
@@ -733,12 +770,12 @@ export function CustomerActionForm({
                     talkedToOwner === false &&
                       'bg-rose-500 hover:bg-rose-600 text-white shadow-sm border-transparent',
                     showErrors &&
-                      requireCadastral &&
+                      cadastralRules.talkedToOwner &&
                       talkedToOwner === null &&
                       'border-red-500 bg-white',
                   )}
                   onClick={() => {
-                    setTalkedToOwner(false)
+                    setTalkedToOwner(talkedToOwner === false ? null : false)
                     setShowErrors(false)
                   }}
                   disabled={isSubmitting || isConsultas}
@@ -753,7 +790,7 @@ export function CustomerActionForm({
             className={cn(
               'flex flex-col gap-3 pt-4 border-t border-slate-200 rounded-xl transition-all',
               showErrors &&
-                requireCadastral &&
+                cadastralRules.unknownProperty &&
                 unknownProperty === null &&
                 'p-3 -mx-3 border-t-0 border border-red-500 bg-red-50/50',
             )}
@@ -762,13 +799,13 @@ export function CustomerActionForm({
               <Label
                 className={cn(
                   'font-semibold text-sm flex items-center gap-1',
-                  showErrors && requireCadastral && unknownProperty === null
+                  showErrors && cadastralRules.unknownProperty && unknownProperty === null
                     ? 'text-red-500'
                     : 'text-slate-700',
                 )}
               >
                 A pessoa desconhece o imóvel?{' '}
-                {requireCadastral && <span className="text-red-500">*</span>}
+                {cadastralRules.unknownProperty && <span className="text-red-500">*</span>}
               </Label>
               <div className="flex items-center gap-2">
                 <Button
@@ -780,12 +817,12 @@ export function CustomerActionForm({
                     unknownProperty === true &&
                       'bg-rose-500 hover:bg-rose-600 text-white shadow-sm border-transparent',
                     showErrors &&
-                      requireCadastral &&
+                      cadastralRules.unknownProperty &&
                       unknownProperty === null &&
                       'border-red-500 bg-white',
                   )}
                   onClick={() => {
-                    setUnknownProperty(true)
+                    setUnknownProperty(unknownProperty === true ? null : true)
                     setShowErrors(false)
                   }}
                   disabled={isSubmitting || isConsultas}
@@ -801,12 +838,12 @@ export function CustomerActionForm({
                     unknownProperty === false &&
                       'bg-primary text-primary-foreground shadow-sm border-transparent',
                     showErrors &&
-                      requireCadastral &&
+                      cadastralRules.unknownProperty &&
                       unknownProperty === null &&
                       'border-red-500 bg-white',
                   )}
                   onClick={() => {
-                    setUnknownProperty(false)
+                    setUnknownProperty(unknownProperty === false ? null : false)
                     setShowErrors(false)
                   }}
                   disabled={isSubmitting || isConsultas}
@@ -821,7 +858,7 @@ export function CustomerActionForm({
             className={cn(
               'flex flex-col gap-3 pt-4 border-t border-slate-200 rounded-xl transition-all',
               showErrors &&
-                requireCadastral &&
+                cadastralRules.responsibleForOtherUc &&
                 responsibleForOtherUc === null &&
                 'p-3 -mx-3 border-t-0 border border-red-500 bg-red-50/50',
             )}
@@ -830,13 +867,15 @@ export function CustomerActionForm({
               <Label
                 className={cn(
                   'font-semibold text-sm flex items-center gap-1',
-                  showErrors && requireCadastral && responsibleForOtherUc === null
+                  showErrors &&
+                    cadastralRules.responsibleForOtherUc &&
+                    responsibleForOtherUc === null
                     ? 'text-red-500'
                     : 'text-slate-700',
                 )}
               >
                 É responsável por outra UC?{' '}
-                {requireCadastral && <span className="text-red-500">*</span>}
+                {cadastralRules.responsibleForOtherUc && <span className="text-red-500">*</span>}
               </Label>
               <div className="flex items-center gap-2">
                 <Button
@@ -848,12 +887,12 @@ export function CustomerActionForm({
                     responsibleForOtherUc === true &&
                       'bg-indigo-500 hover:bg-indigo-600 text-white shadow-sm border-transparent',
                     showErrors &&
-                      requireCadastral &&
+                      cadastralRules.responsibleForOtherUc &&
                       responsibleForOtherUc === null &&
                       'border-red-500 bg-white',
                   )}
                   onClick={() => {
-                    setResponsibleForOtherUc(true)
+                    setResponsibleForOtherUc(responsibleForOtherUc === true ? null : true)
                     setShowErrors(false)
                   }}
                   disabled={isSubmitting || isConsultas}
@@ -869,12 +908,12 @@ export function CustomerActionForm({
                     responsibleForOtherUc === false &&
                       'bg-primary text-primary-foreground shadow-sm border-transparent',
                     showErrors &&
-                      requireCadastral &&
+                      cadastralRules.responsibleForOtherUc &&
                       responsibleForOtherUc === null &&
                       'border-red-500 bg-white',
                   )}
                   onClick={() => {
-                    setResponsibleForOtherUc(false)
+                    setResponsibleForOtherUc(responsibleForOtherUc === false ? null : false)
                     setShowErrors(false)
                   }}
                   disabled={isSubmitting || isConsultas}
@@ -906,7 +945,7 @@ export function CustomerActionForm({
             className={cn(
               'flex flex-col gap-3 pt-4 border-t border-slate-200 rounded-xl transition-all',
               showErrors &&
-                requireCadastral &&
+                cadastralRules.generateUpdate &&
                 generateUpdate === null &&
                 'p-3 -mx-3 border-t-0 border border-red-500 bg-red-50/50',
             )}
@@ -915,13 +954,13 @@ export function CustomerActionForm({
               <Label
                 className={cn(
                   'font-semibold text-sm flex items-center gap-1',
-                  showErrors && requireCadastral && generateUpdate === null
+                  showErrors && cadastralRules.generateUpdate && generateUpdate === null
                     ? 'text-red-500'
                     : 'text-slate-700',
                 )}
               >
                 Gerar registro para Atualizações Cadastrais?{' '}
-                {requireCadastral && <span className="text-red-500">*</span>}
+                {cadastralRules.generateUpdate && <span className="text-red-500">*</span>}
               </Label>
               <div className="flex items-center gap-2">
                 <Button
@@ -933,12 +972,12 @@ export function CustomerActionForm({
                     generateUpdate === true &&
                       'bg-primary text-primary-foreground shadow-sm border-transparent',
                     showErrors &&
-                      requireCadastral &&
+                      cadastralRules.generateUpdate &&
                       generateUpdate === null &&
                       'border-red-500 bg-white',
                   )}
                   onClick={() => {
-                    setGenerateUpdate(true)
+                    setGenerateUpdate(generateUpdate === true ? null : true)
                     setShowErrors(false)
                   }}
                   disabled={isSubmitting || isConsultas}
@@ -954,12 +993,12 @@ export function CustomerActionForm({
                     generateUpdate === false &&
                       'bg-slate-500 hover:bg-slate-600 text-white shadow-sm border-transparent',
                     showErrors &&
-                      requireCadastral &&
+                      cadastralRules.generateUpdate &&
                       generateUpdate === null &&
                       'border-red-500 bg-white',
                   )}
                   onClick={() => {
-                    setGenerateUpdate(false)
+                    setGenerateUpdate(generateUpdate === false ? null : false)
                     setShowErrors(false)
                   }}
                   disabled={isSubmitting || isConsultas}

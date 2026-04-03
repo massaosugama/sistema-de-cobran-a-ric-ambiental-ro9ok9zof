@@ -130,7 +130,11 @@ export default function Settings() {
     retention_days: 90,
   })
   const [cadastralRules, setCadastralRules] = useState({
-    required: false,
+    phones: false,
+    talkedToOwner: false,
+    unknownProperty: false,
+    responsibleForOtherUc: false,
+    generateUpdate: false,
   })
   const [isSavingRules, setIsSavingRules] = useState(false)
 
@@ -217,7 +221,23 @@ export default function Settings() {
       .eq('key', 'cadastral_quality_params')
       .single()
     if (cadData?.value) {
-      setCadastralRules(cadData.value)
+      if (cadData.value.required !== undefined && cadData.value.phones === undefined) {
+        setCadastralRules({
+          phones: !!cadData.value.required,
+          talkedToOwner: !!cadData.value.required,
+          unknownProperty: !!cadData.value.required,
+          responsibleForOtherUc: !!cadData.value.required,
+          generateUpdate: !!cadData.value.required,
+        })
+      } else {
+        setCadastralRules({
+          phones: !!cadData.value.phones,
+          talkedToOwner: !!cadData.value.talkedToOwner,
+          unknownProperty: !!cadData.value.unknownProperty,
+          responsibleForOtherUc: !!cadData.value.responsibleForOtherUc,
+          generateUpdate: !!cadData.value.generateUpdate,
+        })
+      }
     }
   }
 
@@ -697,25 +717,41 @@ export default function Settings() {
                       </div>
 
                       <div className="space-y-4 pt-6 border-t border-slate-200 md:col-span-2">
-                        <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wide">
-                          Qualidade Cadastral
-                        </h3>
-                        <div className="flex items-center justify-between rounded-lg border border-slate-200 p-4 bg-slate-50/50">
-                          <div className="space-y-0.5">
-                            <Label className="text-sm font-semibold text-slate-900">
-                              Obrigatoriedade de Preenchimento
-                            </Label>
-                            <p className="text-xs text-slate-500">
-                              Exigir que os operadores preencham os campos de Qualidade Cadastral
-                              (telefones, titularidade, etc) ao registrar um atendimento.
-                            </p>
-                          </div>
-                          <Switch
-                            checked={cadastralRules.required}
-                            onCheckedChange={(v) =>
-                              setCadastralRules({ ...cadastralRules, required: v })
-                            }
-                          />
+                        <div className="space-y-1">
+                          <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wide">
+                            Qualidade Cadastral (Obrigatoriedade)
+                          </h3>
+                          <p className="text-xs text-slate-500">
+                            Defina individualmente quais campos serão de preenchimento obrigatório
+                            durante o registro do atendimento.
+                          </p>
+                        </div>
+                        <div className="grid gap-3">
+                          {[
+                            { key: 'phones', label: 'Status dos Telefones' },
+                            { key: 'talkedToOwner', label: 'Falei com o Titular?' },
+                            { key: 'unknownProperty', label: 'A pessoa desconhece o imóvel?' },
+                            { key: 'responsibleForOtherUc', label: 'É responsável por outra UC?' },
+                            {
+                              key: 'generateUpdate',
+                              label: 'Gerar registro para Atualizações Cadastrais?',
+                            },
+                          ].map((field) => (
+                            <div
+                              key={field.key}
+                              className="flex items-center justify-between rounded-lg border border-slate-200 p-4 bg-slate-50/50 hover:bg-slate-50 transition-colors"
+                            >
+                              <Label className="text-sm font-semibold text-slate-900 cursor-pointer">
+                                {field.label}
+                              </Label>
+                              <Switch
+                                checked={(cadastralRules as any)[field.key]}
+                                onCheckedChange={(v) =>
+                                  setCadastralRules({ ...cadastralRules, [field.key]: v })
+                                }
+                              />
+                            </div>
+                          ))}
                         </div>
                       </div>
                     </div>
