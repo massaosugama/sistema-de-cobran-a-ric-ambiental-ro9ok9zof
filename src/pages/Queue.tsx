@@ -27,8 +27,6 @@ import { useAuth } from '@/hooks/use-auth'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
-import { Switch } from '@/components/ui/switch'
-import { Label } from '@/components/ui/label'
 import { supabase } from '@/lib/supabase/client'
 
 type EnrichedDebt = ParsedDebt & { valorRetido: number }
@@ -42,8 +40,10 @@ export default function Queue() {
   const [search, setSearch] = useState('')
   const [searchAddress, setSearchAddress] = useState('')
   const [debtStatus, setDebtStatus] = useState<'vencido' | 'a_vencer' | 'ambos'>('vencido')
-  const [hideLotes, setHideLotes] = useState(true)
-  const [hideRetained, setHideRetained] = useState(true)
+  const [lotesFilter, setLotesFilter] = useState<'nao_vagos' | 'so_vagos' | 'ambos'>('nao_vagos')
+  const [retainedFilter, setRetainedFilter] = useState<'nao_retidos' | 'so_retidos' | 'ambos'>(
+    'nao_retidos',
+  )
   const debouncedSearch = useDebounce(search, 500)
   const debouncedSearchAddress = useDebounce(searchAddress, 500)
 
@@ -57,7 +57,9 @@ export default function Queue() {
     setUnattended([])
     setAttended([])
 
-    getDebts(debouncedSearch, user.id, debouncedSearchAddress, debtStatus, hideLotes)
+    const fetchHideLotes = lotesFilter === 'nao_vagos'
+
+    getDebts(debouncedSearch, user.id, debouncedSearchAddress, debtStatus, fetchHideLotes)
       .then(async (data) => {
         const allUcs = [...data.unattended, ...data.attended].map((d) => d.uc)
         const uniqueUcs = Array.from(new Set(allUcs))
@@ -90,9 +92,17 @@ export default function Queue() {
         let unattendedRes = data.unattended.map(enrichDebt)
         let attendedRes = data.attended.map(enrichDebt)
 
-        if (hideRetained) {
+        if (lotesFilter === 'so_vagos') {
+          unattendedRes = unattendedRes.filter((d) => d.isLoteVago)
+          attendedRes = attendedRes.filter((d) => d.isLoteVago)
+        }
+
+        if (retainedFilter === 'nao_retidos') {
           unattendedRes = unattendedRes.filter((d) => d.valorRetido === 0)
           attendedRes = attendedRes.filter((d) => d.valorRetido === 0)
+        } else if (retainedFilter === 'so_retidos') {
+          unattendedRes = unattendedRes.filter((d) => d.valorRetido > 0)
+          attendedRes = attendedRes.filter((d) => d.valorRetido > 0)
         }
 
         setUnattended(unattendedRes)
@@ -103,7 +113,7 @@ export default function Queue() {
         console.error(err)
         setLoading(false)
       })
-  }, [debouncedSearch, debouncedSearchAddress, debtStatus, hideLotes, hideRetained, user?.id])
+  }, [debouncedSearch, debouncedSearchAddress, debtStatus, lotesFilter, retainedFilter, user?.id])
 
   useEffect(() => {
     fetchQueue()
@@ -131,24 +141,26 @@ export default function Queue() {
         </div>
 
         <div className="flex flex-col sm:flex-row gap-3 w-full xl:w-auto flex-wrap">
-          <div className="flex items-center gap-2 bg-white px-3 py-2 rounded-full border border-slate-200 shadow-sm shrink-0">
-            <Switch id="hide-lotes" checked={hideLotes} onCheckedChange={setHideLotes} />
-            <Label
-              htmlFor="hide-lotes"
-              className="text-xs font-semibold text-slate-600 whitespace-nowrap cursor-pointer"
-            >
-              Ocultar Lotes Vagos
-            </Label>
-          </div>
-          <div className="flex items-center gap-2 bg-white px-3 py-2 rounded-full border border-slate-200 shadow-sm shrink-0 mr-2">
-            <Switch id="hide-retained" checked={hideRetained} onCheckedChange={setHideRetained} />
-            <Label
-              htmlFor="hide-retained"
-              className="text-xs font-semibold text-slate-600 whitespace-nowrap cursor-pointer"
-            >
-              Ocultar Retidos
-            </Label>
-          </div>
+          <Select value={lotesFilter} onValueChange={(v: any) => setLotesFilter(v)}>
+            <SelectTrigger className="w-full sm:w-[140px] h-10 rounded-full bg-white border-slate-200 shadow-sm focus-visible:ring-primary/20 shrink-0">
+              <SelectValue placeholder="Lotes Vagos" />
+            </SelectTrigger>
+            <SelectContent className="rounded-xl">
+              <SelectItem value="nao_vagos">Só Ocupados</SelectItem>
+              <SelectItem value="so_vagos">Só Lotes Vagos</SelectItem>
+              <SelectItem value="ambos">Ambos</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={retainedFilter} onValueChange={(v: any) => setRetainedFilter(v)}>
+            <SelectTrigger className="w-full sm:w-[140px] h-10 rounded-full bg-white border-slate-200 shadow-sm focus-visible:ring-primary/20 shrink-0 mr-2">
+              <SelectValue placeholder="Retidos" />
+            </SelectTrigger>
+            <SelectContent className="rounded-xl">
+              <SelectItem value="nao_retidos">Só Ñ Retidos</SelectItem>
+              <SelectItem value="so_retidos">Só Retidos</SelectItem>
+              <SelectItem value="ambos">Ambos</SelectItem>
+            </SelectContent>
+          </Select>
           <Select value={debtStatus} onValueChange={(v: any) => setDebtStatus(v)}>
             <SelectTrigger className="w-full sm:w-[130px] h-10 rounded-full bg-white border-slate-200 shadow-sm focus-visible:ring-primary/20 shrink-0">
               <SelectValue placeholder="Status" />
