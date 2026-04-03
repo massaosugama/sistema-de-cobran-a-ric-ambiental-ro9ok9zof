@@ -389,6 +389,7 @@ export type Database = {
           total_lotes_cases: number
           total_lotes_value: number
           total_retidas: number | null
+          total_retidas_cases: number
           total_value: number
           total_vencido: number
         }
@@ -401,6 +402,7 @@ export type Database = {
           total_lotes_cases?: number
           total_lotes_value?: number
           total_retidas?: number | null
+          total_retidas_cases?: number
           total_value?: number
           total_vencido?: number
         }
@@ -413,6 +415,7 @@ export type Database = {
           total_lotes_cases?: number
           total_lotes_value?: number
           total_retidas?: number | null
+          total_retidas_cases?: number
           total_value?: number
           total_vencido?: number
         }
@@ -892,6 +895,7 @@ export const Constants = {
 //   total_retidas: numeric (nullable, default: 0)
 //   total_lotes_cases: integer (not null, default: 0)
 //   total_lotes_value: numeric (not null, default: 0)
+//   total_retidas_cases: integer (not null, default: 0)
 // Table: profiles
 //   id: uuid (not null)
 //   email: text (not null)
@@ -1168,7 +1172,7 @@ export const Constants = {
 //            'total_vencido', COALESCE(prev_portfolio.total_vencido, curr_portfolio.total_vencido),
 //            'total_a_vencer', COALESCE(prev_portfolio.total_a_vencer, curr_portfolio.total_a_vencer),
 //            'total_retidas', COALESCE(prev_portfolio.total_retidas, curr_portfolio.total_retidas),
-//            'total_retidas_cases', 0,
+//            'total_retidas_cases', COALESCE(prev_portfolio.total_retidas_cases, curr_portfolio.total_retidas_cases),
 //            'total_lotes_cases', COALESCE(prev_portfolio.total_lotes_cases, curr_portfolio.total_lotes_cases),
 //            'total_lotes_value', COALESCE(prev_portfolio.total_lotes_value, curr_portfolio.total_lotes_value)
 //          )
@@ -1372,7 +1376,7 @@ export const Constants = {
 //   AS $function$
 //   BEGIN
 //       INSERT INTO public.portfolio_history (
-//           snapshot_date, total_cases, total_value, total_vencido, total_a_vencer, total_retidas,
+//           snapshot_date, total_cases, total_value, total_vencido, total_a_vencer, total_retidas, total_retidas_cases,
 //           total_lotes_cases, total_lotes_value
 //       )
 //       SELECT
@@ -1382,6 +1386,7 @@ export const Constants = {
 //           COALESCE(SUM(valor_vencido) FILTER (WHERE COALESCE(setor, '') != '4036'), 0),
 //           COALESCE(SUM(valor_a_vencer) FILTER (WHERE COALESCE(setor, '') != '4036'), 0),
 //           COALESCE(SUM(valor_retidas_em_aberto) FILTER (WHERE COALESCE(setor, '') != '4036'), 0),
+//           COUNT(*) FILTER (WHERE COALESCE(setor, '') != '4036' AND valor_retidas_em_aberto > 0),
 //           COUNT(*) FILTER (WHERE COALESCE(setor, '') = '4036'),
 //           COALESCE(SUM(valor_total) FILTER (WHERE COALESCE(setor, '') = '4036'), 0)
 //       FROM public.pending_debts
@@ -1391,6 +1396,7 @@ export const Constants = {
 //           total_vencido = EXCLUDED.total_vencido,
 //           total_a_vencer = EXCLUDED.total_a_vencer,
 //           total_retidas = EXCLUDED.total_retidas,
+//           total_retidas_cases = EXCLUDED.total_retidas_cases,
 //           total_lotes_cases = EXCLUDED.total_lotes_cases,
 //           total_lotes_value = EXCLUDED.total_lotes_value;
 //   END;

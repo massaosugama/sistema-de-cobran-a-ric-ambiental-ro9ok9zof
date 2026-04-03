@@ -102,9 +102,7 @@ export default function Index() {
         (payload) => {
           if (payload.new && payload.new.id) {
             setProfiles((current) =>
-              current.map((p) =>
-                p.id === payload.new.id ? { ...p, last_login: payload.new.last_login } : p,
-              ),
+              current.map((p) => (p.id === payload.new.id ? { ...p, ...payload.new } : p)),
             )
           }
         },
@@ -223,7 +221,10 @@ export default function Index() {
         <TableCell>
           <div className="flex items-center gap-3">
             <Avatar className="h-8 w-8">
-              <AvatarFallback className="bg-primary/10 text-primary text-xs">
+              <AvatarFallback
+                className={p.color ? 'text-xs' : 'bg-primary/10 text-primary text-xs'}
+                style={p.color ? { backgroundColor: p.color, color: '#fff' } : undefined}
+              >
                 {displayName.substring(0, 2).toUpperCase()}
               </AvatarFallback>
             </Avatar>
