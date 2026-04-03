@@ -192,6 +192,59 @@ export default function Index() {
     }
   }, [])
 
+  const adminProfiles = profiles.filter((p) => p.role === 'admin' || p.is_admin)
+  const consultaProfiles = profiles.filter((p) => p.role === 'consultas' && !p.is_admin)
+  const operadorProfiles = profiles.filter(
+    (p) => p.role !== 'admin' && p.role !== 'consultas' && !p.is_admin,
+  )
+
+  const renderProfileRow = (p: any) => {
+    const isCurrentUser = p.id === user?.id
+    const isOnline =
+      isCurrentUser || (p.last_login && nowTime - new Date(p.last_login).getTime() < 3 * 60 * 1000)
+
+    const displayName = p.name || p.email.split('@')[0]
+    const stats = operatorStats[p.id] || {
+      today_contacts: 0,
+      total_contacts: 0,
+      today_followups: 0,
+      total_followups: 0,
+    }
+
+    return (
+      <TableRow key={p.id}>
+        <TableCell>
+          <div className="flex items-center gap-3">
+            <Avatar className="h-8 w-8">
+              <AvatarFallback className="bg-primary/10 text-primary text-xs">
+                {displayName.substring(0, 2).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+            <span className="font-medium text-sm">
+              {displayName} {isCurrentUser && '(Você)'}
+            </span>
+          </div>
+        </TableCell>
+        <TableCell className="text-center">{stats.today_contacts}</TableCell>
+        <TableCell className="text-center">{stats.total_contacts}</TableCell>
+        <TableCell className="text-center">{stats.today_followups}</TableCell>
+        <TableCell className="text-center">{stats.total_followups}</TableCell>
+        <TableCell className="text-right">
+          <span
+            className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium ${
+              isOnline ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-700'
+            }`}
+          >
+            <span
+              className={`h-1.5 w-1.5 rounded-full ${isOnline ? 'bg-emerald-500' : 'bg-slate-400'}`}
+            />
+            {isOnline ? 'Online' : 'Offline'}
+          </span>
+        </TableCell>
+      </TableRow>
+    )
+  }
+
   return (
     <div className="space-y-6">
       <div>
@@ -203,17 +256,39 @@ export default function Index() {
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-sm font-medium">Total da Carteira (UC + Pessoa)</CardTitle>
-            <Briefcase className="h-4 w-4 text-muted-foreground" />
+          <CardHeader className="flex flex-row items-start justify-between pb-2 space-y-0">
+            <div>
+              <CardTitle className="text-sm font-medium">Total da Carteira (UC + Pessoa)</CardTitle>
+              <div className="text-3xl font-bold mt-2">
+                {evolution.portfolio.current.total_cases || 0}
+              </div>
+              <EvolutionIndicator
+                current={evolution.portfolio.current.total_cases}
+                previous={evolution.portfolio.previous.total_cases}
+                inverse
+              />
+            </div>
+            <div className="flex flex-col items-end">
+              <Briefcase className="h-4 w-4 text-muted-foreground mb-3" />
+              <div className="text-right">
+                <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider mb-0.5">
+                  Faturas Retidas
+                </p>
+                <div className="text-xl font-bold text-slate-700">
+                  {evolution.portfolio.current.total_retidas_cases || 0}
+                </div>
+              </div>
+            </div>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{evolution.portfolio.current.total_cases || 0}</div>
-            <EvolutionIndicator
-              current={evolution.portfolio.current.total_cases}
-              previous={evolution.portfolio.previous.total_cases}
-              inverse
-            />
+          <CardContent className="pt-4 border-t border-slate-100 mt-2">
+            <div>
+              <p className="text-[11px] text-amber-700/70 font-bold uppercase tracking-wider mb-0.5">
+                Lotes Vagos
+              </p>
+              <div className="text-lg font-bold text-amber-600">
+                {evolution.portfolio.current.total_lotes_cases || 0}
+              </div>
+            </div>
           </CardContent>
         </Card>
 
@@ -256,26 +331,16 @@ export default function Index() {
               </div>
             </div>
 
-            <div className="mt-4 pt-3 border-t border-slate-100 flex justify-between items-start">
-              <div>
-                <p className="text-[11px] text-amber-700/70 font-bold uppercase tracking-wider mb-0.5">
-                  Lotes Vagos (Suspensos)
-                </p>
-                <div className="text-sm font-bold text-amber-600">
-                  R${' '}
-                  {(evolution.portfolio.current.total_lotes_value || 0).toLocaleString('pt-BR', {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                  })}
-                </div>
-              </div>
-              <div className="text-right">
-                <p className="text-[11px] text-amber-700/70 font-bold uppercase tracking-wider mb-0.5">
-                  Volume
-                </p>
-                <div className="text-sm font-bold text-amber-600">
-                  {evolution.portfolio.current.total_lotes_cases || 0} UCs
-                </div>
+            <div className="mt-4 pt-3 border-t border-slate-100">
+              <p className="text-[11px] text-amber-700/70 font-bold uppercase tracking-wider mb-0.5">
+                Lotes Vagos
+              </p>
+              <div className="text-sm font-bold text-amber-600">
+                R${' '}
+                {(evolution.portfolio.current.total_lotes_value || 0).toLocaleString('pt-BR', {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}
               </div>
             </div>
           </CardContent>
@@ -376,7 +441,7 @@ export default function Index() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Colaborador</TableHead>
+                  <TableHead>Operadores de Cobrança</TableHead>
                   <TableHead className="text-center">Atend. (Hoje)</TableHead>
                   <TableHead className="text-center">Atend. (Total)</TableHead>
                   <TableHead className="text-center">Follow-ups (Hoje)</TableHead>
@@ -392,55 +457,37 @@ export default function Index() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  profiles.map((p) => {
-                    const isCurrentUser = p.id === user?.id
-                    const isOnline =
-                      isCurrentUser ||
-                      (p.last_login && nowTime - new Date(p.last_login).getTime() < 3 * 60 * 1000)
+                  <>
+                    {operadorProfiles.map(renderProfileRow)}
 
-                    const displayName = p.name || p.email.split('@')[0]
-                    const stats = operatorStats[p.id] || {
-                      today_contacts: 0,
-                      total_contacts: 0,
-                      today_followups: 0,
-                      total_followups: 0,
-                    }
-
-                    return (
-                      <TableRow key={p.id}>
-                        <TableCell>
-                          <div className="flex items-center gap-3">
-                            <Avatar className="h-8 w-8">
-                              <AvatarFallback className="bg-primary/10 text-primary text-xs">
-                                {displayName.substring(0, 2).toUpperCase()}
-                              </AvatarFallback>
-                            </Avatar>
-                            <span className="font-medium text-sm">
-                              {displayName} {isCurrentUser && '(Você)'}
-                            </span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-center">{stats.today_contacts}</TableCell>
-                        <TableCell className="text-center">{stats.total_contacts}</TableCell>
-                        <TableCell className="text-center">{stats.today_followups}</TableCell>
-                        <TableCell className="text-center">{stats.total_followups}</TableCell>
-                        <TableCell className="text-right">
-                          <span
-                            className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium ${
-                              isOnline
-                                ? 'bg-emerald-100 text-emerald-700'
-                                : 'bg-slate-100 text-slate-700'
-                            }`}
+                    {consultaProfiles.length > 0 && (
+                      <>
+                        <TableRow className="bg-muted/30 hover:bg-muted/30">
+                          <TableCell
+                            colSpan={6}
+                            className="font-semibold text-sm text-slate-800 py-2 bg-slate-50"
                           >
-                            <span
-                              className={`h-1.5 w-1.5 rounded-full ${isOnline ? 'bg-emerald-500' : 'bg-slate-400'}`}
-                            />
-                            {isOnline ? 'Online' : 'Offline'}
-                          </span>
-                        </TableCell>
-                      </TableRow>
-                    )
-                  })
+                            Usuários de Consultas
+                          </TableCell>
+                        </TableRow>
+                        {consultaProfiles.map(renderProfileRow)}
+                      </>
+                    )}
+
+                    {adminProfiles.length > 0 && (
+                      <>
+                        <TableRow className="bg-muted/30 hover:bg-muted/30">
+                          <TableCell
+                            colSpan={6}
+                            className="font-semibold text-sm text-slate-800 py-2 bg-slate-50"
+                          >
+                            Usuários Admin
+                          </TableCell>
+                        </TableRow>
+                        {adminProfiles.map(renderProfileRow)}
+                      </>
+                    )}
+                  </>
                 )}
               </TableBody>
             </Table>
