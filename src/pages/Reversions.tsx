@@ -378,7 +378,32 @@ export default function Reversions() {
                 <TableRow>
                   <TableHead className="w-[180px]">Operador</TableHead>
                   <TableHead>Devedor / UC</TableHead>
-                  <TableHead>Atendimento / Snapshot</TableHead>
+                  <TableHead>
+                    <div className="flex items-center gap-1.5">
+                      Atendimento / Snapshot
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <button className="flex items-center justify-center w-4 h-4 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-200 transition-colors focus:outline-none">
+                            <AlertCircle className="w-3.5 h-3.5" />
+                          </button>
+                        </PopoverTrigger>
+                        <PopoverContent
+                          className="w-80 p-4 bg-amber-50 border-amber-200 shadow-md rounded-xl"
+                          align="center"
+                        >
+                          <h3 className="font-bold text-amber-900 mb-2 flex items-center gap-2 normal-case">
+                            <AlertCircle className="w-4 h-4" /> Aviso de Dados Históricos
+                          </h3>
+                          <p className="text-sm font-normal text-amber-800 leading-relaxed normal-case">
+                            Os valores, faturas e indicadores apresentados nesta tela são dados
+                            estáticos (<strong>snapshots</strong>) registrados no exato momento da
+                            abertura do atendimento. Eles servem exclusivamente para o monitoramento
+                            de resultados históricos e mensuração de reversão de dívidas.
+                          </p>
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                  </TableHead>
                   <TableHead>Baixa Detectada</TableHead>
                   <TableHead className="text-center">Tempo</TableHead>
                   <TableHead className="text-right">Pontos</TableHead>
