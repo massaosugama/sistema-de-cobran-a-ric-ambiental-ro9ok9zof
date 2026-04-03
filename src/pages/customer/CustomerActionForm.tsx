@@ -9,6 +9,7 @@ import {
   AlertTriangle,
   Search,
   MapPin,
+  AlertCircle,
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
@@ -72,6 +73,7 @@ export function CustomerActionForm({
   const [updateNotes, setUpdateNotes] = useState('')
 
   const [showErrors, setShowErrors] = useState(false)
+  const [touched, setTouched] = useState<Record<string, boolean>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [cadastralRules, setCadastralRules] = useState({
     phones: false,
@@ -277,29 +279,35 @@ export function CustomerActionForm({
     }
   }
 
+  const fieldErrors = {
+    status: !status,
+    notes: status === 'Outro' && !notes.trim(),
+    phones:
+      cadastralRules.phones &&
+      isPhoneChannel &&
+      hasPhones &&
+      !Object.values(phoneStatuses).some((s) => s === 'validado' || s === 'invalido'),
+    talkedToOwner: cadastralRules.talkedToOwner && talkedToOwner === null,
+    unknownProperty: cadastralRules.unknownProperty && unknownProperty === null,
+    responsibleForOtherUc: cadastralRules.responsibleForOtherUc && responsibleForOtherUc === null,
+    generateUpdate: cadastralRules.generateUpdate && generateUpdate === null,
+    updateNotes: generateUpdate === true && !updateNotes.trim(),
+  }
+
+  const isError = (field: keyof typeof fieldErrors) => {
+    return (showErrors || touched[field]) && fieldErrors[field]
+  }
+
+  const handleTouch = (field: string) => {
+    if (!touched[field]) {
+      setTouched((prev) => ({ ...prev, [field]: true }))
+    }
+  }
+
   const handleSave = async () => {
     if (isConsultas) return
 
-    let hasError = false
-
-    if (!status) hasError = true
-    if (status === 'Outro' && !notes.trim()) hasError = true
-
-    if (cadastralRules.phones) {
-      if (isPhoneChannel && hasPhones) {
-        const hasValidOrInvalid = Object.values(phoneStatuses).some(
-          (s) => s === 'validado' || s === 'invalido',
-        )
-        if (!hasValidOrInvalid) hasError = true
-      }
-    }
-
-    if (cadastralRules.talkedToOwner && talkedToOwner === null) hasError = true
-    if (cadastralRules.unknownProperty && unknownProperty === null) hasError = true
-    if (cadastralRules.responsibleForOtherUc && responsibleForOtherUc === null) hasError = true
-    if (cadastralRules.generateUpdate && generateUpdate === null) hasError = true
-
-    if (generateUpdate === true && !updateNotes.trim()) hasError = true
+    const hasError = Object.values(fieldErrors).some((err) => err)
 
     if (hasError) {
       setShowErrors(true)
@@ -379,6 +387,7 @@ export function CustomerActionForm({
       setGenerateUpdate(null)
       setUpdateNotes('')
       setShowErrors(false)
+      setTouched({})
 
       setTimeout(() => {
         if (isSheet) {
@@ -463,28 +472,33 @@ export function CustomerActionForm({
           <div
             className={cn(
               'space-y-2.5 rounded-xl transition-all',
-              showErrors && !status && 'p-2 -m-2 border border-red-500 bg-red-50/50',
+              isError('status') && 'p-2 -m-2 border border-red-500 bg-red-50/50',
             )}
           >
             <Label
-              className={cn('font-bold', showErrors && !status ? 'text-red-500' : 'text-slate-700')}
+              className={cn(
+                'font-bold flex items-center gap-1.5',
+                isError('status') ? 'text-red-500' : 'text-slate-700',
+              )}
             >
               Resultado <span className="text-red-500">*</span>
+              {isError('status') && <AlertCircle className="w-3.5 h-3.5 text-red-500" />}
             </Label>
             <Select
               value={status}
               onValueChange={(v) => {
                 setStatus(v)
-                setShowErrors(false)
+                handleTouch('status')
+              }}
+              onOpenChange={(open) => {
+                if (!open) handleTouch('status')
               }}
               disabled={isSubmitting || isConsultas}
             >
               <SelectTrigger
                 className={cn(
                   'rounded-xl border-slate-200 h-11 font-medium',
-                  showErrors && !status
-                    ? 'bg-white border-red-500 ring-1 ring-red-500'
-                    : 'bg-slate-50',
+                  isError('status') ? 'bg-white border-red-500 ring-1 ring-red-500' : 'bg-slate-50',
                 )}
               >
                 <SelectValue placeholder="Selecione o status" />
@@ -557,36 +571,32 @@ export function CustomerActionForm({
           <div
             className={cn(
               'space-y-2.5 rounded-xl transition-all w-full flex flex-col',
-              showErrors &&
-                status === 'Outro' &&
-                !notes.trim() &&
-                'p-2 -m-2 border border-red-500 bg-red-50/50',
+              isError('notes') && 'p-2 -m-2 border border-red-500 bg-red-50/50',
             )}
           >
             <Label
               className={cn(
-                'font-bold flex-shrink-0',
-                showErrors && status === 'Outro' && !notes.trim()
-                  ? 'text-red-500'
-                  : 'text-slate-700',
+                'font-bold flex-shrink-0 flex items-center gap-1.5',
+                isError('notes') ? 'text-red-500' : 'text-slate-700',
               )}
             >
               Observações {status === 'Outro' && <span className="text-red-500">*</span>}
+              {isError('notes') && <AlertCircle className="w-3.5 h-3.5 text-red-500" />}
             </Label>
             <Textarea
               value={notes}
               onChange={(e) => {
                 setNotes(e.target.value)
-                setShowErrors(false)
               }}
+              onBlur={() => handleTouch('notes')}
               disabled={isSubmitting || isConsultas}
               placeholder="Detalhe o acordo, objeções ou motivo de insucesso..."
               className={cn(
                 'resize-none rounded-xl border-slate-200 font-medium placeholder:text-slate-400 flex-1',
-                showErrors && status === 'Outro' && !notes.trim()
+                isError('notes')
                   ? 'bg-white border-red-500 focus-visible:ring-red-500 ring-1 ring-red-500'
                   : 'bg-slate-50',
-                !showErrors ? 'min-h-[44px]' : '',
+                !showErrors && !touched.notes ? 'min-h-[44px]' : '',
               )}
             />
           </div>
@@ -601,30 +611,20 @@ export function CustomerActionForm({
           <div
             className={cn(
               'space-y-3 rounded-xl transition-all',
-              showErrors &&
-                cadastralRules.phones &&
-                isPhoneChannel &&
-                hasPhones &&
-                !Object.values(phoneStatuses).some((s) => s === 'validado' || s === 'invalido') &&
-                'p-3 -m-3 border border-red-500 bg-red-50/50',
+              isError('phones') && 'p-3 -m-3 border border-red-500 bg-red-50/50',
             )}
           >
             <Label
               className={cn(
-                'font-semibold text-sm flex items-center gap-1',
-                showErrors &&
-                  cadastralRules.phones &&
-                  isPhoneChannel &&
-                  hasPhones &&
-                  !Object.values(phoneStatuses).some((s) => s === 'validado' || s === 'invalido')
-                  ? 'text-red-500'
-                  : 'text-slate-700',
+                'font-semibold text-sm flex items-center gap-1.5',
+                isError('phones') ? 'text-red-500' : 'text-slate-700',
               )}
             >
               Status dos Telefones{' '}
               {cadastralRules.phones && isPhoneChannel && hasPhones && (
                 <span className="text-red-500">*</span>
               )}
+              {isError('phones') && <AlertCircle className="w-3.5 h-3.5 text-red-500" />}
             </Label>
 
             {hasPhones ? (
@@ -649,7 +649,7 @@ export function CustomerActionForm({
                                 ? undefined
                                 : 'a_verificar',
                           })
-                          setShowErrors(false)
+                          handleTouch('phones')
                         }}
                         className={cn(
                           'flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg border bg-white text-slate-600 transition-all flex-1',
@@ -672,7 +672,7 @@ export function CustomerActionForm({
                             [phone.number]:
                               phoneStatuses[phone.number] === 'validado' ? undefined : 'validado',
                           })
-                          setShowErrors(false)
+                          handleTouch('phones')
                         }}
                         className={cn(
                           'flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg border bg-white text-slate-600 transition-all flex-1',
@@ -695,7 +695,7 @@ export function CustomerActionForm({
                             [phone.number]:
                               phoneStatuses[phone.number] === 'invalido' ? undefined : 'invalido',
                           })
-                          setShowErrors(false)
+                          handleTouch('phones')
                         }}
                         className={cn(
                           'flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg border bg-white text-slate-600 transition-all flex-1',
@@ -721,23 +721,19 @@ export function CustomerActionForm({
           <div
             className={cn(
               'flex flex-col gap-3 pt-4 border-t border-slate-200 rounded-xl transition-all',
-              showErrors &&
-                cadastralRules.talkedToOwner &&
-                talkedToOwner === null &&
-                'p-3 -mx-3 border-t-0 border border-red-500 bg-red-50/50',
+              isError('talkedToOwner') && 'p-3 -mx-3 border-t-0 border border-red-500 bg-red-50/50',
             )}
           >
             <div className="flex items-center justify-between">
               <Label
                 className={cn(
-                  'font-semibold text-sm flex items-center gap-1',
-                  showErrors && cadastralRules.talkedToOwner && talkedToOwner === null
-                    ? 'text-red-500'
-                    : 'text-slate-700',
+                  'font-semibold text-sm flex items-center gap-1.5',
+                  isError('talkedToOwner') ? 'text-red-500' : 'text-slate-700',
                 )}
               >
                 Falei com o Titular?{' '}
                 {cadastralRules.talkedToOwner && <span className="text-red-500">*</span>}
+                {isError('talkedToOwner') && <AlertCircle className="w-3.5 h-3.5 text-red-500" />}
               </Label>
               <div className="flex items-center gap-2">
                 <Button
@@ -748,14 +744,11 @@ export function CustomerActionForm({
                     'h-8 px-4 rounded-lg transition-all',
                     talkedToOwner === true &&
                       'bg-primary text-primary-foreground shadow-sm border-transparent',
-                    showErrors &&
-                      cadastralRules.talkedToOwner &&
-                      talkedToOwner === null &&
-                      'border-red-500 bg-white',
+                    isError('talkedToOwner') && 'border-red-500 bg-white',
                   )}
                   onClick={() => {
                     setTalkedToOwner(talkedToOwner === true ? null : true)
-                    setShowErrors(false)
+                    handleTouch('talkedToOwner')
                   }}
                   disabled={isSubmitting || isConsultas}
                 >
@@ -769,14 +762,11 @@ export function CustomerActionForm({
                     'h-8 px-4 rounded-lg transition-all',
                     talkedToOwner === false &&
                       'bg-rose-500 hover:bg-rose-600 text-white shadow-sm border-transparent',
-                    showErrors &&
-                      cadastralRules.talkedToOwner &&
-                      talkedToOwner === null &&
-                      'border-red-500 bg-white',
+                    isError('talkedToOwner') && 'border-red-500 bg-white',
                   )}
                   onClick={() => {
                     setTalkedToOwner(talkedToOwner === false ? null : false)
-                    setShowErrors(false)
+                    handleTouch('talkedToOwner')
                   }}
                   disabled={isSubmitting || isConsultas}
                 >
@@ -789,23 +779,20 @@ export function CustomerActionForm({
           <div
             className={cn(
               'flex flex-col gap-3 pt-4 border-t border-slate-200 rounded-xl transition-all',
-              showErrors &&
-                cadastralRules.unknownProperty &&
-                unknownProperty === null &&
+              isError('unknownProperty') &&
                 'p-3 -mx-3 border-t-0 border border-red-500 bg-red-50/50',
             )}
           >
             <div className="flex items-center justify-between">
               <Label
                 className={cn(
-                  'font-semibold text-sm flex items-center gap-1',
-                  showErrors && cadastralRules.unknownProperty && unknownProperty === null
-                    ? 'text-red-500'
-                    : 'text-slate-700',
+                  'font-semibold text-sm flex items-center gap-1.5',
+                  isError('unknownProperty') ? 'text-red-500' : 'text-slate-700',
                 )}
               >
                 A pessoa desconhece o imóvel?{' '}
                 {cadastralRules.unknownProperty && <span className="text-red-500">*</span>}
+                {isError('unknownProperty') && <AlertCircle className="w-3.5 h-3.5 text-red-500" />}
               </Label>
               <div className="flex items-center gap-2">
                 <Button
@@ -816,14 +803,11 @@ export function CustomerActionForm({
                     'h-8 px-4 rounded-lg transition-all',
                     unknownProperty === true &&
                       'bg-rose-500 hover:bg-rose-600 text-white shadow-sm border-transparent',
-                    showErrors &&
-                      cadastralRules.unknownProperty &&
-                      unknownProperty === null &&
-                      'border-red-500 bg-white',
+                    isError('unknownProperty') && 'border-red-500 bg-white',
                   )}
                   onClick={() => {
                     setUnknownProperty(unknownProperty === true ? null : true)
-                    setShowErrors(false)
+                    handleTouch('unknownProperty')
                   }}
                   disabled={isSubmitting || isConsultas}
                 >
@@ -837,14 +821,11 @@ export function CustomerActionForm({
                     'h-8 px-4 rounded-lg transition-all',
                     unknownProperty === false &&
                       'bg-primary text-primary-foreground shadow-sm border-transparent',
-                    showErrors &&
-                      cadastralRules.unknownProperty &&
-                      unknownProperty === null &&
-                      'border-red-500 bg-white',
+                    isError('unknownProperty') && 'border-red-500 bg-white',
                   )}
                   onClick={() => {
                     setUnknownProperty(unknownProperty === false ? null : false)
-                    setShowErrors(false)
+                    handleTouch('unknownProperty')
                   }}
                   disabled={isSubmitting || isConsultas}
                 >
@@ -857,25 +838,22 @@ export function CustomerActionForm({
           <div
             className={cn(
               'flex flex-col gap-3 pt-4 border-t border-slate-200 rounded-xl transition-all',
-              showErrors &&
-                cadastralRules.responsibleForOtherUc &&
-                responsibleForOtherUc === null &&
+              isError('responsibleForOtherUc') &&
                 'p-3 -mx-3 border-t-0 border border-red-500 bg-red-50/50',
             )}
           >
             <div className="flex items-center justify-between">
               <Label
                 className={cn(
-                  'font-semibold text-sm flex items-center gap-1',
-                  showErrors &&
-                    cadastralRules.responsibleForOtherUc &&
-                    responsibleForOtherUc === null
-                    ? 'text-red-500'
-                    : 'text-slate-700',
+                  'font-semibold text-sm flex items-center gap-1.5',
+                  isError('responsibleForOtherUc') ? 'text-red-500' : 'text-slate-700',
                 )}
               >
                 É responsável por outra UC?{' '}
                 {cadastralRules.responsibleForOtherUc && <span className="text-red-500">*</span>}
+                {isError('responsibleForOtherUc') && (
+                  <AlertCircle className="w-3.5 h-3.5 text-red-500" />
+                )}
               </Label>
               <div className="flex items-center gap-2">
                 <Button
@@ -886,14 +864,11 @@ export function CustomerActionForm({
                     'h-8 px-4 rounded-lg transition-all',
                     responsibleForOtherUc === true &&
                       'bg-indigo-500 hover:bg-indigo-600 text-white shadow-sm border-transparent',
-                    showErrors &&
-                      cadastralRules.responsibleForOtherUc &&
-                      responsibleForOtherUc === null &&
-                      'border-red-500 bg-white',
+                    isError('responsibleForOtherUc') && 'border-red-500 bg-white',
                   )}
                   onClick={() => {
                     setResponsibleForOtherUc(responsibleForOtherUc === true ? null : true)
-                    setShowErrors(false)
+                    handleTouch('responsibleForOtherUc')
                   }}
                   disabled={isSubmitting || isConsultas}
                 >
@@ -907,14 +882,11 @@ export function CustomerActionForm({
                     'h-8 px-4 rounded-lg transition-all',
                     responsibleForOtherUc === false &&
                       'bg-primary text-primary-foreground shadow-sm border-transparent',
-                    showErrors &&
-                      cadastralRules.responsibleForOtherUc &&
-                      responsibleForOtherUc === null &&
-                      'border-red-500 bg-white',
+                    isError('responsibleForOtherUc') && 'border-red-500 bg-white',
                   )}
                   onClick={() => {
                     setResponsibleForOtherUc(responsibleForOtherUc === false ? null : false)
-                    setShowErrors(false)
+                    handleTouch('responsibleForOtherUc')
                   }}
                   disabled={isSubmitting || isConsultas}
                 >
@@ -944,23 +916,20 @@ export function CustomerActionForm({
           <div
             className={cn(
               'flex flex-col gap-3 pt-4 border-t border-slate-200 rounded-xl transition-all',
-              showErrors &&
-                cadastralRules.generateUpdate &&
-                generateUpdate === null &&
+              isError('generateUpdate') &&
                 'p-3 -mx-3 border-t-0 border border-red-500 bg-red-50/50',
             )}
           >
             <div className="flex items-center justify-between">
               <Label
                 className={cn(
-                  'font-semibold text-sm flex items-center gap-1',
-                  showErrors && cadastralRules.generateUpdate && generateUpdate === null
-                    ? 'text-red-500'
-                    : 'text-slate-700',
+                  'font-semibold text-sm flex items-center gap-1.5',
+                  isError('generateUpdate') ? 'text-red-500' : 'text-slate-700',
                 )}
               >
                 Gerar registro para Atualizações Cadastrais?{' '}
                 {cadastralRules.generateUpdate && <span className="text-red-500">*</span>}
+                {isError('generateUpdate') && <AlertCircle className="w-3.5 h-3.5 text-red-500" />}
               </Label>
               <div className="flex items-center gap-2">
                 <Button
@@ -971,14 +940,11 @@ export function CustomerActionForm({
                     'h-8 px-4 rounded-lg transition-all',
                     generateUpdate === true &&
                       'bg-primary text-primary-foreground shadow-sm border-transparent',
-                    showErrors &&
-                      cadastralRules.generateUpdate &&
-                      generateUpdate === null &&
-                      'border-red-500 bg-white',
+                    isError('generateUpdate') && 'border-red-500 bg-white',
                   )}
                   onClick={() => {
                     setGenerateUpdate(generateUpdate === true ? null : true)
-                    setShowErrors(false)
+                    handleTouch('generateUpdate')
                   }}
                   disabled={isSubmitting || isConsultas}
                 >
@@ -992,14 +958,11 @@ export function CustomerActionForm({
                     'h-8 px-4 rounded-lg transition-all',
                     generateUpdate === false &&
                       'bg-slate-500 hover:bg-slate-600 text-white shadow-sm border-transparent',
-                    showErrors &&
-                      cadastralRules.generateUpdate &&
-                      generateUpdate === null &&
-                      'border-red-500 bg-white',
+                    isError('generateUpdate') && 'border-red-500 bg-white',
                   )}
                   onClick={() => {
                     setGenerateUpdate(generateUpdate === false ? null : false)
-                    setShowErrors(false)
+                    handleTouch('generateUpdate')
                   }}
                   disabled={isSubmitting || isConsultas}
                 >
@@ -1013,35 +976,29 @@ export function CustomerActionForm({
             <div
               className={cn(
                 'pt-4 border-t border-slate-200 space-y-2.5 animate-fade-in-up rounded-xl transition-all',
-                showErrors &&
-                  generateUpdate &&
-                  !updateNotes.trim() &&
-                  'p-3 -mx-3 border-t-0 border border-red-500 bg-red-50/50',
+                isError('updateNotes') && 'p-3 -mx-3 border-t-0 border border-red-500 bg-red-50/50',
               )}
             >
               <Label
                 className={cn(
-                  'font-bold',
-                  showErrors && generateUpdate && !updateNotes.trim()
-                    ? 'text-red-500'
-                    : 'text-slate-700',
+                  'font-bold flex items-center gap-1.5',
+                  isError('updateNotes') ? 'text-red-500' : 'text-slate-700',
                 )}
               >
                 Observações para Cadastro <span className="text-red-500">*</span>
+                {isError('updateNotes') && <AlertCircle className="w-3.5 h-3.5 text-red-500" />}
               </Label>
               <Textarea
                 value={updateNotes}
                 onChange={(e) => {
                   setUpdateNotes(e.target.value)
-                  setShowErrors(false)
                 }}
+                onBlur={() => handleTouch('updateNotes')}
                 disabled={isSubmitting || isConsultas}
                 placeholder="Dicas do que exatamente a equipe precisa fazer..."
                 className={cn(
                   'resize-none min-h-[80px] rounded-xl border-slate-200 bg-white font-medium placeholder:text-slate-400',
-                  showErrors &&
-                    generateUpdate &&
-                    !updateNotes.trim() &&
+                  isError('updateNotes') &&
                     'border-red-500 focus-visible:ring-red-500 ring-1 ring-red-500',
                 )}
               />
