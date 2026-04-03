@@ -140,54 +140,58 @@ export default function Queue() {
           </p>
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-3 w-full xl:w-auto flex-wrap">
-          <Select value={lotesFilter} onValueChange={(v: any) => setLotesFilter(v)}>
-            <SelectTrigger className="w-full sm:w-[140px] h-10 rounded-full bg-white border-slate-200 shadow-sm focus-visible:ring-primary/20 shrink-0">
-              <SelectValue placeholder="Lotes Vagos" />
-            </SelectTrigger>
-            <SelectContent className="rounded-xl">
-              <SelectItem value="nao_vagos">Só Ocupados</SelectItem>
-              <SelectItem value="so_vagos">Só Lotes Vagos</SelectItem>
-              <SelectItem value="ambos">Ambos</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={retainedFilter} onValueChange={(v: any) => setRetainedFilter(v)}>
-            <SelectTrigger className="w-full sm:w-[140px] h-10 rounded-full bg-white border-slate-200 shadow-sm focus-visible:ring-primary/20 shrink-0 mr-2">
-              <SelectValue placeholder="Retidos" />
-            </SelectTrigger>
-            <SelectContent className="rounded-xl">
-              <SelectItem value="nao_retidos">Só Ñ Retidos</SelectItem>
-              <SelectItem value="so_retidos">Só Retidos</SelectItem>
-              <SelectItem value="ambos">Ambos</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={debtStatus} onValueChange={(v: any) => setDebtStatus(v)}>
-            <SelectTrigger className="w-full sm:w-[130px] h-10 rounded-full bg-white border-slate-200 shadow-sm focus-visible:ring-primary/20 shrink-0">
-              <SelectValue placeholder="Status" />
-            </SelectTrigger>
-            <SelectContent className="rounded-xl">
-              <SelectItem value="vencido">Vencidos</SelectItem>
-              <SelectItem value="a_vencer">A Vencer</SelectItem>
-              <SelectItem value="ambos">Ambos</SelectItem>
-            </SelectContent>
-          </Select>
-          <div className="relative w-full sm:w-[260px]">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-            <Input
-              placeholder="Filtre UC, Nome ou Cpf/Cnpj"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-9 rounded-full bg-white border-slate-200 shadow-sm h-10 w-full focus-visible:ring-primary/20"
-            />
+        <div className="flex flex-col gap-3 w-full xl:w-auto">
+          <div className="flex flex-col sm:flex-row gap-3 w-full xl:justify-end">
+            <Select value={lotesFilter} onValueChange={(v: any) => setLotesFilter(v)}>
+              <SelectTrigger className="w-full sm:w-[160px] h-10 rounded-full bg-white border-slate-200 shadow-sm focus-visible:ring-primary/20 shrink-0">
+                <SelectValue placeholder="Lotes Vagos" />
+              </SelectTrigger>
+              <SelectContent className="rounded-xl">
+                <SelectItem value="nao_vagos">Só com Ligação</SelectItem>
+                <SelectItem value="so_vagos">Só Lotes Vagos</SelectItem>
+                <SelectItem value="ambos">Ambos</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={retainedFilter} onValueChange={(v: any) => setRetainedFilter(v)}>
+              <SelectTrigger className="w-full sm:w-[160px] h-10 rounded-full bg-white border-slate-200 shadow-sm focus-visible:ring-primary/20 shrink-0">
+                <SelectValue placeholder="Retidos" />
+              </SelectTrigger>
+              <SelectContent className="rounded-xl">
+                <SelectItem value="nao_retidos">Só Emitidas</SelectItem>
+                <SelectItem value="so_retidos">Só Retidas</SelectItem>
+                <SelectItem value="ambos">Ambos</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={debtStatus} onValueChange={(v: any) => setDebtStatus(v)}>
+              <SelectTrigger className="w-full sm:w-[140px] h-10 rounded-full bg-white border-slate-200 shadow-sm focus-visible:ring-primary/20 shrink-0">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent className="rounded-xl">
+                <SelectItem value="vencido">Vencidos</SelectItem>
+                <SelectItem value="a_vencer">A Vencer</SelectItem>
+                <SelectItem value="ambos">Ambos</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
-          <div className="relative w-full sm:w-[220px]">
-            <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-            <Input
-              placeholder="Filtre Endereço"
-              value={searchAddress}
-              onChange={(e) => setSearchAddress(e.target.value)}
-              className="pl-9 rounded-full bg-white border-slate-200 shadow-sm h-10 w-full focus-visible:ring-primary/20"
-            />
+          <div className="flex flex-col sm:flex-row gap-3 w-full xl:justify-end">
+            <div className="relative w-full sm:w-[350px]">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <Input
+                placeholder="Filtre UC, qualquer parte do nome ou Cpf/Cnpj"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-9 rounded-full bg-white border-slate-200 shadow-sm h-10 w-full focus-visible:ring-primary/20"
+              />
+            </div>
+            <div className="relative w-full sm:w-[300px]">
+              <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <Input
+                placeholder="Digite qualquer parte do Endereço"
+                value={searchAddress}
+                onChange={(e) => setSearchAddress(e.target.value)}
+                className="pl-9 rounded-full bg-white border-slate-200 shadow-sm h-10 w-full focus-visible:ring-primary/20"
+              />
+            </div>
           </div>
         </div>
       </div>
