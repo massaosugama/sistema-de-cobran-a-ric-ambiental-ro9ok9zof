@@ -1060,54 +1060,58 @@ export function CustomerActionForm({
                 : 'sm:max-w-2xl',
             )}
           >
-            <SheetHeader
-              className={cn(
-                'p-6 border-b border-slate-100 bg-white sticky top-0 z-10 shadow-sm',
-                searchedCustomer && 'sr-only',
-              )}
-            >
-              <SheetTitle className="text-xl font-black text-slate-800 flex items-center gap-2">
-                <Search className="w-5 h-5 text-indigo-600" />
-                Buscar Nova UC
-              </SheetTitle>
-              <SheetDescription className="text-slate-500 font-medium mt-1">
-                Localize a UC correta para transferir o atendimento e solicitar a atualização
-                cadastral.
-              </SheetDescription>
+            {!searchedCustomer ? (
+              <SheetHeader className="p-6 border-b border-slate-100 bg-white sticky top-0 z-10 shadow-sm">
+                <SheetTitle className="text-xl font-black text-slate-800 flex items-center gap-2">
+                  <Search className="w-5 h-5 text-indigo-600" />
+                  Buscar Nova UC
+                </SheetTitle>
+                <SheetDescription className="text-slate-500 font-medium mt-1">
+                  Localize a UC correta para transferir o atendimento e solicitar a atualização
+                  cadastral.
+                </SheetDescription>
 
-              <div className="flex flex-col gap-3 mt-5">
-                <div className="flex flex-col sm:flex-row items-center gap-2">
-                  <Input
-                    placeholder="UC, Nome ou CPF/C..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleAdvancedSearch()}
-                    className="h-11 rounded-xl bg-slate-50 focus:bg-white border-slate-200 text-base transition-colors"
-                  />
-                  <Input
-                    placeholder="Filtre por Endereço..."
-                    value={searchAddress}
-                    onChange={(e) => setSearchAddress(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleAdvancedSearch()}
-                    className="h-11 rounded-xl bg-slate-50 focus:bg-white border-slate-200 text-base transition-colors"
-                  />
-                  <Button
-                    onClick={() => handleAdvancedSearch()}
-                    disabled={isSearchingUc || (searchTerm.length < 3 && searchAddress.length < 3)}
-                    className="h-11 px-6 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm font-bold w-full sm:w-auto"
-                  >
-                    {isSearchingUc ? 'Buscando...' : 'Buscar'}
-                  </Button>
+                <div className="flex flex-col gap-3 mt-5">
+                  <div className="flex flex-col sm:flex-row items-center gap-2">
+                    <Input
+                      placeholder="UC, Nome ou CPF/C..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && handleAdvancedSearch()}
+                      className="h-11 rounded-xl bg-slate-50 focus:bg-white border-slate-200 text-base transition-colors"
+                    />
+                    <Input
+                      placeholder="Filtre por Endereço..."
+                      value={searchAddress}
+                      onChange={(e) => setSearchAddress(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && handleAdvancedSearch()}
+                      className="h-11 rounded-xl bg-slate-50 focus:bg-white border-slate-200 text-base transition-colors"
+                    />
+                    <Button
+                      onClick={() => handleAdvancedSearch()}
+                      disabled={
+                        isSearchingUc || (searchTerm.length < 3 && searchAddress.length < 3)
+                      }
+                      className="h-11 px-6 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm font-bold w-full sm:w-auto"
+                    >
+                      {isSearchingUc ? 'Buscando...' : 'Buscar'}
+                    </Button>
+                  </div>
+                  {searchTerm.length > 0 &&
+                    searchTerm.length < 3 &&
+                    (searchAddress.length === 0 || searchAddress.length < 3) && (
+                      <span className="text-xs text-slate-500 font-medium">
+                        Digite pelo menos 3 caracteres em algum campo para buscar.
+                      </span>
+                    )}
                 </div>
-                {searchTerm.length > 0 &&
-                  searchTerm.length < 3 &&
-                  (searchAddress.length === 0 || searchAddress.length < 3) && (
-                    <span className="text-xs text-slate-500 font-medium">
-                      Digite pelo menos 3 caracteres em algum campo para buscar.
-                    </span>
-                  )}
+              </SheetHeader>
+            ) : (
+              <div className="sr-only">
+                <SheetTitle>Buscar Nova UC</SheetTitle>
+                <SheetDescription>Detalhes da UC selecionada</SheetDescription>
               </div>
-            </SheetHeader>
+            )}
             <div className={cn('flex-1', searchedCustomer ? 'p-0 sm:p-0' : 'p-6 bg-slate-50/50')}>
               {searchedCustomer ? (
                 <div className="space-y-6 pb-20 md:pb-0 px-4 sm:px-0 animate-in fade-in duration-300 py-6 sm:py-0">
