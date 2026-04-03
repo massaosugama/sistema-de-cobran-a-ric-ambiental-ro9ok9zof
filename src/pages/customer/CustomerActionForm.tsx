@@ -67,6 +67,7 @@ export function CustomerActionForm({
   >({})
   const [talkedToOwner, setTalkedToOwner] = useState<boolean | null>(null)
   const [unknownProperty, setUnknownProperty] = useState<boolean | null>(null)
+  const [responsibleForOtherUc, setResponsibleForOtherUc] = useState<boolean | null>(null)
   const [generateUpdate, setGenerateUpdate] = useState<boolean | null>(null)
   const [updateNotes, setUpdateNotes] = useState('')
 
@@ -272,6 +273,7 @@ export function CustomerActionForm({
 
       if (talkedToOwner === null) hasError = true
       if (unknownProperty === null) hasError = true
+      if (responsibleForOtherUc === null) hasError = true
       if (generateUpdate === null) hasError = true
     }
 
@@ -295,7 +297,12 @@ export function CustomerActionForm({
         operator_id: user?.id,
         contact_type: channel,
         status,
-        quality_result: JSON.stringify({ phoneStatuses, talkedToOwner, unknownProperty }),
+        quality_result: JSON.stringify({
+          phoneStatuses,
+          talkedToOwner,
+          unknownProperty,
+          responsibleForOtherUc,
+        }),
         notes,
         snapshot_valor_total: customer.totalDebt,
         snapshot_valor_vencido: customer.valorVencido,
@@ -346,6 +353,7 @@ export function CustomerActionForm({
       setDate(undefined)
       setTalkedToOwner(null)
       setUnknownProperty(null)
+      setResponsibleForOtherUc(null)
       setGenerateUpdate(null)
       setUpdateNotes('')
       setShowErrors(false)
@@ -807,6 +815,91 @@ export function CustomerActionForm({
                 </Button>
               </div>
             </div>
+          </div>
+
+          <div
+            className={cn(
+              'flex flex-col gap-3 pt-4 border-t border-slate-200 rounded-xl transition-all',
+              showErrors &&
+                requireCadastral &&
+                responsibleForOtherUc === null &&
+                'p-3 -mx-3 border-t-0 border border-red-500 bg-red-50/50',
+            )}
+          >
+            <div className="flex items-center justify-between">
+              <Label
+                className={cn(
+                  'font-semibold text-sm flex items-center gap-1',
+                  showErrors && requireCadastral && responsibleForOtherUc === null
+                    ? 'text-red-500'
+                    : 'text-slate-700',
+                )}
+              >
+                É responsável por outra UC?{' '}
+                {requireCadastral && <span className="text-red-500">*</span>}
+              </Label>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant={responsibleForOtherUc === true ? 'default' : 'outline'}
+                  size="sm"
+                  className={cn(
+                    'h-8 px-4 rounded-lg transition-all',
+                    responsibleForOtherUc === true &&
+                      'bg-indigo-500 hover:bg-indigo-600 text-white shadow-sm border-transparent',
+                    showErrors &&
+                      requireCadastral &&
+                      responsibleForOtherUc === null &&
+                      'border-red-500 bg-white',
+                  )}
+                  onClick={() => {
+                    setResponsibleForOtherUc(true)
+                    setShowErrors(false)
+                  }}
+                  disabled={isSubmitting || isConsultas}
+                >
+                  Sim
+                </Button>
+                <Button
+                  type="button"
+                  variant={responsibleForOtherUc === false ? 'default' : 'outline'}
+                  size="sm"
+                  className={cn(
+                    'h-8 px-4 rounded-lg transition-all',
+                    responsibleForOtherUc === false &&
+                      'bg-primary text-primary-foreground shadow-sm border-transparent',
+                    showErrors &&
+                      requireCadastral &&
+                      responsibleForOtherUc === null &&
+                      'border-red-500 bg-white',
+                  )}
+                  onClick={() => {
+                    setResponsibleForOtherUc(false)
+                    setShowErrors(false)
+                  }}
+                  disabled={isSubmitting || isConsultas}
+                >
+                  Não
+                </Button>
+              </div>
+            </div>
+            {responsibleForOtherUc === true && (
+              <div className="pt-2 animate-fade-in-up transition-all w-full">
+                <div className="bg-indigo-50/80 border border-indigo-100 p-4 rounded-2xl flex flex-col gap-3 shadow-sm">
+                  <p className="text-sm text-indigo-700/80 font-medium leading-relaxed">
+                    Busque a nova UC para registrar a atualização cadastral e o histórico de
+                    atendimento.
+                  </p>
+                  <Button
+                    type="button"
+                    onClick={() => setIsSearchUcSheetOpen(true)}
+                    className="w-full sm:w-auto self-start bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm mt-1 rounded-xl h-11"
+                  >
+                    <Search className="w-4 h-4 mr-2" /> Buscar Nova UC
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
 
           <div
