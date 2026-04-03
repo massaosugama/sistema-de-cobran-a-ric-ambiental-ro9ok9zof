@@ -192,13 +192,17 @@ export default function Index() {
     }
   }, [])
 
-  const adminProfiles = profiles.filter((p) => p.role?.toLowerCase() === 'admin' || p.is_admin)
+  const adminProfiles = profiles.filter(
+    (p) => p.is_admin || p.role?.toLowerCase().includes('admin'),
+  )
   const consultaProfiles = profiles.filter(
-    (p) => p.role?.toLowerCase() === 'consultas' && !p.is_admin,
+    (p) => !p.is_admin && p.role?.toLowerCase().includes('consulta'),
   )
   const operadorProfiles = profiles.filter(
     (p) =>
-      p.role?.toLowerCase() !== 'admin' && p.role?.toLowerCase() !== 'consultas' && !p.is_admin,
+      !p.is_admin &&
+      !p.role?.toLowerCase().includes('admin') &&
+      !p.role?.toLowerCase().includes('consulta'),
   )
 
   const renderProfileRow = (p: any) => {
@@ -278,11 +282,16 @@ export default function Index() {
                   inverse
                 />
               </div>
-              <div className="text-right">
+              <div className="flex flex-col items-end text-right">
                 <p className="text-xs text-muted-foreground mb-0.5">Faturas Retidas</p>
                 <div className="text-lg font-bold text-slate-700">
                   {evolution.portfolio.current.total_retidas_cases || 0}
                 </div>
+                <EvolutionIndicator
+                  current={evolution.portfolio.current.total_retidas_cases}
+                  previous={evolution.portfolio.previous.total_retidas_cases}
+                  inverse
+                />
               </div>
             </div>
 
@@ -291,6 +300,11 @@ export default function Index() {
               <div className="text-sm font-bold text-amber-600">
                 {evolution.portfolio.current.total_lotes_cases || 0}
               </div>
+              <EvolutionIndicator
+                current={evolution.portfolio.current.total_lotes_cases}
+                previous={evolution.portfolio.previous.total_lotes_cases}
+                inverse
+              />
             </div>
           </CardContent>
         </Card>
@@ -317,7 +331,7 @@ export default function Index() {
                   inverse
                 />
               </div>
-              <div className="text-right">
+              <div className="flex flex-col items-end text-right">
                 <p className="text-xs text-muted-foreground mb-0.5">Faturas Retidas</p>
                 <div className="text-lg font-bold text-slate-700">
                   R${' '}
@@ -343,6 +357,11 @@ export default function Index() {
                   maximumFractionDigits: 2,
                 })}
               </div>
+              <EvolutionIndicator
+                current={evolution.portfolio.current.total_lotes_value}
+                previous={evolution.portfolio.previous.total_lotes_value}
+                inverse
+              />
             </div>
           </CardContent>
         </Card>
@@ -369,7 +388,7 @@ export default function Index() {
                   inverse
                 />
               </div>
-              <div className="text-right">
+              <div className="flex flex-col items-end text-right">
                 <p className="text-xs text-muted-foreground mb-0.5">A Vencer</p>
                 <div className="text-lg font-bold text-emerald-600">
                   R${' '}
