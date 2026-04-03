@@ -225,9 +225,10 @@ export default function FollowUp() {
   const isAdmin = profile?.role === 'admin' || !!profile?.is_admin
   const isConsultas = profile?.role === 'consultas'
 
-  const [view, setView] = useState<'meus' | 'todos'>('meus')
+  const [operatorFilter, setOperatorFilter] = useState<string>('meus')
   const [tasks, setTasks] = useState<EnrichedTask[]>([])
   const [loading, setLoading] = useState(true)
+  const [operators, setOperators] = useState<any[]>([])
 
   // Filters State
   const [search, setSearch] = useState('')
@@ -327,6 +328,16 @@ export default function FollowUp() {
   }, [])
 
   useEffect(() => {
+    supabase
+      .from('profiles')
+      .select('id, name, first_name, last_name, color')
+      .order('first_name', { ascending: true })
+      .then(({ data }) => {
+        if (data) setOperators(data)
+      })
+  }, [])
+
+  useEffect(() => {
     const handleContactAdded = () => {
       fetchTasks()
       setIsNewActivitySheetOpen(false)
@@ -345,7 +356,11 @@ export default function FollowUp() {
   }, [currentMonth])
 
   const filteredTasks = useMemo(() => {
-    let result = tasks.filter((t) => view === 'todos' || t.operator_id === user?.id)
+    let result = tasks.filter((t) => {
+      if (operatorFilter === 'todos') return true
+      if (operatorFilter === 'meus') return t.operator_id === user?.id
+      return t.operator_id === operatorFilter
+    })
 
     if (debtStatus === 'vencido') {
       result = result.filter((t) => (t.debt?.valor_vencido || 0) > 0)
@@ -371,7 +386,7 @@ export default function FollowUp() {
     }
 
     return result
-  }, [tasks, view, user?.id, debtStatus, debouncedSearch, debouncedSearchAddress])
+  }, [tasks, operatorFilter, user?.id, debtStatus, debouncedSearch, debouncedSearchAddress])
 
   const tasksByDate = useMemo(() => {
     return filteredTasks.reduce(
@@ -1058,10 +1073,10 @@ export default function FollowUp() {
             Painel de gestão atividades de follow-up.
           </p>
         </div>
-        <div className="flex flex-col xl:flex-row items-start xl:items-center gap-3 w-full xl:w-auto">
-          <div className="flex flex-wrap sm:flex-nowrap gap-2 w-full xl:w-auto">
+        <div className="flex flex-col gap-2 w-full xl:w-auto mt-4 xl:mt-0">
+          <div className="flex flex-col sm:flex-row gap-2 w-full xl:justify-end">
             <Select value={debtStatus} onValueChange={(v: any) => setDebtStatus(v)}>
-              <SelectTrigger className="w-full sm:w-[130px] h-10 rounded-xl bg-white border-slate-200 shadow-sm focus-visible:ring-primary/20 shrink-0">
+              <SelectTrigger className="w-full sm:w-[140px] h-10 rounded-xl bg-white border-slate-200 shadow-sm focus-visible:ring-primary/20 shrink-0">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent className="rounded-xl">
@@ -1070,50 +1085,24 @@ export default function FollowUp() {
                 <SelectItem value="ambos">Ambos</SelectItem>
               </SelectContent>
             </Select>
-            <div className="relative w-full sm:w-[220px]">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-              <Input
-                placeholder="Filtre UC, Nome..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pl-9 rounded-xl bg-white border-slate-200 shadow-sm h-10 w-full focus-visible:ring-primary/20"
-              />
-            </div>
-            <div className="relative w-full sm:w-[220px]">
-              <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-              <Input
-                placeholder="Filtre Endereço"
-                value={searchAddress}
-                onChange={(e) => setSearchAddress(e.target.value)}
-                className="pl-9 rounded-xl bg-white border-slate-200 shadow-sm h-10 w-full focus-visible:ring-primary/20"
-              />
-            </div>
-          </div>
-          <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto mt-2 xl:mt-0">
-            <div className="bg-slate-200/50 p-1 rounded-lg inline-flex flex-1 sm:flex-none h-10 items-center">
-              <button
-                onClick={() => setView('meus')}
-                className={cn(
-                  'px-3 py-1.5 rounded-md text-xs font-semibold transition-all flex-1 sm:flex-none whitespace-nowrap',
-                  view === 'meus'
-                    ? 'bg-white shadow text-primary'
-                    : 'text-slate-500 hover:text-slate-700',
-                )}
-              >
-                Meus Atend.
-              </button>
-              <button
-                onClick={() => setView('todos')}
-                className={cn(
-                  'px-3 py-1.5 rounded-md text-xs font-semibold transition-all flex-1 sm:flex-none whitespace-nowrap',
-                  view === 'todos'
-                    ? 'bg-white shadow text-primary'
-                    : 'text-slate-500 hover:text-slate-700',
-                )}
-              >
-                Todos
-              </button>
-            </div>
+
+            <Select value={operatorFilter} onValueChange={setOperatorFilter}>
+              <SelectTrigger className="w-full sm:w-[180px] h-10 rounded-xl bg-white border-slate-200 shadow-sm focus-visible:ring-primary/20 shrink-0">
+                <SelectValue placeholder="Operador" />
+              </SelectTrigger>
+              <SelectContent className="rounded-xl">
+                <SelectItem value="todos">Todos Operadores</SelectItem>
+                <SelectItem value="meus">Meus Atendimentos</SelectItem>
+                {operators.map((op) => (
+                  <SelectItem key={op.id} value={op.id}>
+                    {op.first_name
+                      ? `${op.first_name} ${op.last_name || ''}`.trim()
+                      : op.name || 'Sem nome'}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
             {!isConsultas && (
               <Button
                 onClick={() => {
@@ -1121,12 +1110,33 @@ export default function FollowUp() {
                   setSelectedNewDebt(null)
                   setIsNewActivitySheetOpen(true)
                 }}
-                className="w-full sm:w-auto px-4 h-10 rounded-xl"
+                className="w-full sm:w-auto px-4 h-10 rounded-xl shrink-0"
               >
                 <Plus className="w-4 h-4 sm:mr-2" />
                 <span className="hidden sm:inline">Nova Atividade</span>
               </Button>
             )}
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-2 w-full xl:justify-end">
+            <div className="relative w-full sm:w-[350px]">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <Input
+                placeholder="Filtre UC, qualquer parte do nome ou Cpf/Cnpj"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-9 rounded-xl bg-white border-slate-200 shadow-sm h-10 w-full focus-visible:ring-primary/20"
+              />
+            </div>
+            <div className="relative w-full sm:w-[300px]">
+              <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <Input
+                placeholder="Digite qualquer parte do Endereço"
+                value={searchAddress}
+                onChange={(e) => setSearchAddress(e.target.value)}
+                className="pl-9 rounded-xl bg-white border-slate-200 shadow-sm h-10 w-full focus-visible:ring-primary/20"
+              />
+            </div>
           </div>
         </div>
       </div>

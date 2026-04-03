@@ -247,9 +247,9 @@ export default function Reversions() {
           </p>
         </div>
 
-        <div className="flex flex-col xl:flex-row items-start xl:items-center gap-3 w-full xl:w-auto">
-          <div className="flex flex-wrap items-end gap-2 w-full xl:w-auto">
-            <div className="flex flex-col w-[48%] sm:w-auto">
+        <div className="flex flex-col gap-2 w-full xl:w-auto mt-4 xl:mt-0">
+          <div className="flex flex-col sm:flex-row items-end gap-2 w-full xl:justify-end">
+            <div className="flex flex-col w-[48%] sm:w-[130px]">
               <span className="text-[10px] text-slate-500 uppercase font-bold ml-1 mb-0.5">
                 Data De
               </span>
@@ -259,10 +259,10 @@ export default function Reversions() {
                 onChange={(e) =>
                   setStartDate(e.target.value ? parseISO(e.target.value) : new Date())
                 }
-                className="h-10 bg-white rounded-xl border-slate-200 text-sm px-3 shadow-sm focus-visible:ring-primary/20 w-full sm:w-[130px]"
+                className="h-10 bg-white rounded-xl border-slate-200 text-sm px-3 shadow-sm focus-visible:ring-primary/20 w-full"
               />
             </div>
-            <div className="flex flex-col w-[48%] sm:w-auto">
+            <div className="flex flex-col w-[48%] sm:w-[130px]">
               <span className="text-[10px] text-slate-500 uppercase font-bold ml-1 mb-0.5">
                 Data Até
               </span>
@@ -270,19 +270,19 @@ export default function Reversions() {
                 type="date"
                 value={endDate ? format(endDate, 'yyyy-MM-dd') : ''}
                 onChange={(e) => setEndDate(e.target.value ? parseISO(e.target.value) : new Date())}
-                className="h-10 bg-white rounded-xl border-slate-200 text-sm px-3 shadow-sm focus-visible:ring-primary/20 w-full sm:w-[130px]"
+                className="h-10 bg-white rounded-xl border-slate-200 text-sm px-3 shadow-sm focus-visible:ring-primary/20 w-full"
               />
             </div>
 
-            <div className="flex flex-col w-full sm:w-auto mt-1 sm:mt-0">
+            <div className="flex flex-col w-full sm:w-[180px] mt-1 sm:mt-0">
               <span className="text-[10px] text-transparent uppercase font-bold ml-1 mb-0.5 hidden sm:block">
                 .
               </span>
               <Select value={operatorFilter} onValueChange={setOperatorFilter}>
-                <SelectTrigger className="w-full sm:w-[160px] h-10 bg-white rounded-xl border-slate-200 shadow-sm focus-visible:ring-primary/20">
+                <SelectTrigger className="w-full h-10 bg-white rounded-xl border-slate-200 shadow-sm focus-visible:ring-primary/20">
                   <SelectValue placeholder="Operador" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="rounded-xl">
                   <SelectItem value="todos">Todos Operadores</SelectItem>
                   <SelectItem value="meus">Meus Atendimentos</SelectItem>
                   {operators.map((op) => (
@@ -296,59 +296,40 @@ export default function Reversions() {
               </Select>
             </div>
 
-            <div className="relative w-full sm:w-[150px] mt-1 sm:mt-0">
+            <div className="flex flex-col w-full sm:w-[180px] mt-1 sm:mt-0">
               <span className="text-[10px] text-transparent uppercase font-bold ml-1 mb-0.5 hidden sm:block">
                 .
               </span>
-              <Search className="absolute left-3 top-[calc(50%+8px)] sm:top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <Select value={filterStatus} onValueChange={(v: any) => setFilterStatus(v)}>
+                <SelectTrigger className="w-full h-10 bg-white rounded-xl border-slate-200 shadow-sm focus-visible:ring-primary/20">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl">
+                  <SelectItem value="todos">Todos Atend.</SelectItem>
+                  <SelectItem value="revertidos">Revertidos</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-2 w-full xl:justify-end">
+            <div className="relative w-full sm:w-[350px]">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
               <Input
-                placeholder="UC, Nome..."
+                placeholder="Filtre UC, qualquer parte do nome ou Cpf/Cnpj"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="pl-9 rounded-xl bg-white border-slate-200 shadow-sm h-10 w-full focus-visible:ring-primary/20"
               />
             </div>
-            <div className="relative w-full sm:w-[150px] mt-1 sm:mt-0">
-              <span className="text-[10px] text-transparent uppercase font-bold ml-1 mb-0.5 hidden sm:block">
-                .
-              </span>
-              <MapPin className="absolute left-3 top-[calc(50%+8px)] sm:top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+            <div className="relative w-full sm:w-[300px]">
+              <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
               <Input
-                placeholder="Endereço"
+                placeholder="Digite qualquer parte do Endereço"
                 value={searchAddress}
                 onChange={(e) => setSearchAddress(e.target.value)}
                 className="pl-9 rounded-xl bg-white border-slate-200 shadow-sm h-10 w-full focus-visible:ring-primary/20"
               />
-            </div>
-          </div>
-
-          <div className="flex flex-col w-full sm:w-auto mt-2 xl:mt-0">
-            <span className="text-[10px] text-transparent uppercase font-bold ml-1 mb-0.5 hidden xl:block">
-              .
-            </span>
-            <div className="bg-slate-200/50 p-1 rounded-lg inline-flex flex-1 sm:flex-none h-10 items-center">
-              <button
-                onClick={() => setFilterStatus('todos')}
-                className={cn(
-                  'px-3 py-1.5 rounded-md text-xs font-semibold transition-all flex-1 sm:flex-none whitespace-nowrap',
-                  filterStatus === 'todos'
-                    ? 'bg-white shadow text-primary'
-                    : 'text-slate-500 hover:text-slate-700',
-                )}
-              >
-                Todos Atend.
-              </button>
-              <button
-                onClick={() => setFilterStatus('revertidos')}
-                className={cn(
-                  'px-3 py-1.5 rounded-md text-xs font-semibold transition-all flex-1 sm:flex-none whitespace-nowrap',
-                  filterStatus === 'revertidos'
-                    ? 'bg-white shadow text-primary'
-                    : 'text-slate-500 hover:text-slate-700',
-                )}
-              >
-                Revertidos
-              </button>
             </div>
           </div>
         </div>
