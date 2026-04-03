@@ -465,7 +465,7 @@ export default function Reversions() {
                           </div>
                         </div>
                       ) : (
-                        <div className="text-sm text-slate-400 italic">Aguardando...</div>
+                        <div className="text-sm text-slate-400 italic">Sem baixas.</div>
                       )}
                     </TableCell>
                     <TableCell className="text-center">
