@@ -62,7 +62,7 @@ export async function deleteFollowUpTask(id: string) {
 export async function getProfiles() {
   const { data, error } = await supabase
     .from('profiles')
-    .select('id, name, email, last_login, role, is_admin, color')
+    .select('id, name, first_name, email, last_login, role, is_admin, color')
     .order('name', { ascending: true })
   if (error) throw error
   return data || []
