@@ -1,7 +1,25 @@
 import { useState, useEffect } from 'react'
-import { CalendarIcon, Send, Sparkles, CheckSquare, Phone, Eye, AlertTriangle } from 'lucide-react'
+import {
+  CalendarIcon,
+  Send,
+  Sparkles,
+  CheckSquare,
+  Phone,
+  Eye,
+  AlertTriangle,
+  Search,
+  MapPin,
+} from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from '@/components/ui/sheet'
+import { Input } from '@/components/ui/input'
 import {
   Select,
   SelectContent,
@@ -50,10 +68,63 @@ export function CustomerActionForm({
   const [showErrors, setShowErrors] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [requireCadastral, setRequireCadastral] = useState(false)
+  const [isSearchUcSheetOpen, setIsSearchUcSheetOpen] = useState(false)
+  const [searchUcNumber, setSearchUcNumber] = useState('')
+  const [searchedCustomer, setSearchedCustomer] = useState<ParsedDebt | null>(null)
+  const [isSearchingUc, setIsSearchingUc] = useState(false)
+
   const { toast } = useToast()
   const { user, profile } = useAuth()
 
   const isConsultas = profile?.role === 'consultas'
+
+  const handleSearchUc = async () => {
+    if (!searchUcNumber.trim()) return
+    setIsSearchingUc(true)
+    try {
+      const { data, error } = await supabase
+        .from('pending_debts')
+        .select('*')
+        .eq('uc', searchUcNumber.trim())
+
+      if (error) throw error
+      if (data && data.length > 0) {
+        const first = data[0]
+        const parsedCustomer: ParsedDebt = {
+          uc: first.uc,
+          personCode: first.cod_pess_fat,
+          name:
+            first.pessoa_fatura_nome ||
+            first.proprietario_nome ||
+            first.responsavel_nome ||
+            'Cliente não identificado',
+          phones: [],
+          totalDebt: data.reduce((acc, curr) => acc + (Number(curr.valor_total) || 0), 0),
+          valorVencido: data.reduce((acc, curr) => acc + (Number(curr.valor_vencido) || 0), 0),
+          valorAVencer: data.reduce((acc, curr) => acc + (Number(curr.valor_a_vencer) || 0), 0),
+          invoices: data.map((d) => ({
+            ref: d.refs || '',
+            value: Number(d.valor_total) || 0,
+            dueDate: '',
+            status: d.situ_docto || '',
+          })),
+          isLoteVago: first.setor === '4036',
+        }
+        setSearchedCustomer(parsedCustomer)
+      } else {
+        toast({
+          title: 'UC não encontrada',
+          description: 'Verifique o número e tente novamente.',
+          variant: 'destructive',
+        })
+        setSearchedCustomer(null)
+      }
+    } catch (error: any) {
+      toast({ title: 'Erro', description: error.message, variant: 'destructive' })
+    } finally {
+      setIsSearchingUc(false)
+    }
+  }
 
   useEffect(() => {
     const fetchRules = async () => {
@@ -194,7 +265,12 @@ export function CustomerActionForm({
   }
 
   return (
-    <Card className="border-slate-200 shadow-md sticky top-24 rounded-2xl overflow-hidden">
+    <Card
+      className={cn(
+        'border-slate-200 shadow-md rounded-2xl overflow-hidden',
+        !isSheet && 'sticky top-24',
+      )}
+    >
       <CardHeader
         className={cn(
           'border-b pb-4',
@@ -292,6 +368,27 @@ export function CustomerActionForm({
               </SelectContent>
             </Select>
           </div>
+
+          {status === 'Desconhece Dívida' && (
+            <div className="pt-2 animate-fade-in-up transition-all w-full col-span-1 sm:col-span-2">
+              <div className="bg-indigo-50/80 border border-indigo-100 p-4 rounded-2xl flex flex-col gap-3 shadow-sm">
+                <Label className="font-bold text-indigo-900 flex items-center gap-2 text-base">
+                  <MapPin className="w-5 h-5 text-indigo-600" /> É responsável por outra UC?
+                </Label>
+                <p className="text-sm text-indigo-700/80 font-medium leading-relaxed">
+                  Se o contato informou que reside em outro endereço, busque a nova UC para
+                  registrar a atualização cadastral e o histórico de atendimento.
+                </p>
+                <Button
+                  type="button"
+                  onClick={() => setIsSearchUcSheetOpen(true)}
+                  className="w-full sm:w-auto self-start bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm mt-1 rounded-xl h-11"
+                >
+                  <Search className="w-4 h-4 mr-2" /> Buscar Nova UC
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="flex flex-col gap-5">
@@ -719,6 +816,70 @@ export function CustomerActionForm({
           )}
         </div>
       </CardContent>
+      {isSearchUcSheetOpen && (
+        <Sheet open={isSearchUcSheetOpen} onOpenChange={setIsSearchUcSheetOpen}>
+          <SheetContent
+            side="right"
+            className="w-full sm:max-w-2xl overflow-y-auto p-0 flex flex-col bg-slate-50 border-l-0 shadow-2xl"
+          >
+            <SheetHeader className="p-6 border-b border-slate-100 bg-white sticky top-0 z-10 shadow-sm">
+              <SheetTitle className="text-xl font-black text-slate-800 flex items-center gap-2">
+                <Search className="w-5 h-5 text-indigo-600" />
+                Buscar Nova UC
+              </SheetTitle>
+              <SheetDescription className="text-slate-500 font-medium mt-1">
+                Localize a UC correta para transferir o atendimento e solicitar a atualização
+                cadastral.
+              </SheetDescription>
+              <div className="flex items-center gap-2 mt-5">
+                <Input
+                  placeholder="Digite o número da UC..."
+                  value={searchUcNumber}
+                  onChange={(e) => setSearchUcNumber(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSearchUc()}
+                  className="h-12 rounded-xl bg-slate-50 border-slate-200 text-base"
+                />
+                <Button
+                  onClick={handleSearchUc}
+                  disabled={isSearchingUc}
+                  className="h-12 px-6 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm font-bold"
+                >
+                  {isSearchingUc ? 'Buscando...' : 'Buscar'}
+                </Button>
+              </div>
+            </SheetHeader>
+            <div className="p-6 flex-1 bg-slate-50/50">
+              {searchedCustomer ? (
+                <div className="space-y-6 animate-fade-in-up">
+                  <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col gap-1">
+                    <h3 className="font-black text-slate-800 text-lg flex items-center gap-2">
+                      <MapPin className="w-5 h-5 text-emerald-600" />
+                      UC {searchedCustomer.uc}
+                    </h3>
+                    <p className="text-slate-600 font-semibold text-sm">{searchedCustomer.name}</p>
+                  </div>
+
+                  <CustomerActionForm
+                    customer={searchedCustomer}
+                    isSheet={true}
+                    onClose={() => setIsSearchUcSheetOpen(false)}
+                  />
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center h-full text-slate-400 gap-4 py-16">
+                  <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-sm border border-slate-100">
+                    <Search className="w-10 h-10 text-slate-300" />
+                  </div>
+                  <p className="font-semibold text-slate-500 text-center max-w-xs">
+                    Busque por uma UC para visualizar e registrar o atendimento.
+                  </p>
+                </div>
+              )}
+            </div>
+          </SheetContent>
+        </Sheet>
+      )}
+
       <CardFooter className="bg-slate-50/80 border-t border-slate-100 p-6 flex flex-col gap-3">
         <Button
           onClick={handleSave}
