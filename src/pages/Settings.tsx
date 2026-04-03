@@ -425,9 +425,11 @@ export default function Settings() {
 
   return (
     <div className="space-y-6 animate-fade-in-up pb-10">
-      <div>
-        <h1 className="text-3xl font-black tracking-tight text-slate-900">Configurações</h1>
-        <p className="text-slate-500 mt-1 font-medium">Parâmetros e preferências do sistema.</p>
+      <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 shrink-0">
+        <div>
+          <h1 className="text-3xl font-black tracking-tight text-slate-900">Configurações</h1>
+          <p className="text-slate-500 mt-1 font-medium">Parâmetros e preferências do sistema.</p>
+        </div>
       </div>
 
       <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
@@ -464,12 +466,12 @@ export default function Settings() {
         </TabsList>
 
         <TabsContent value="profile" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+          <Card className="border-slate-200 shadow-sm overflow-hidden flex flex-col">
+            <CardHeader className="px-5 py-4 border-b bg-white shrink-0">
+              <CardTitle className="text-base text-slate-800 flex items-center gap-2">
                 <UserCircle className="h-5 w-5 text-primary" /> Meu Perfil
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="text-xs mt-0.5">
                 Gerencie suas informações pessoais e credenciais de acesso.
               </CardDescription>
             </CardHeader>
@@ -525,12 +527,12 @@ export default function Settings() {
 
         <TabsContent value="general" className="mt-6">
           <div className="grid gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
+            <Card className="border-slate-200 shadow-sm overflow-hidden flex flex-col">
+              <CardHeader className="px-5 py-4 border-b bg-white shrink-0">
+                <CardTitle className="text-base text-slate-800 flex items-center gap-2">
                   <SettingsIcon className="h-5 w-5 text-slate-700" /> Preferências do Sistema
                 </CardTitle>
-                <CardDescription>
+                <CardDescription className="text-xs mt-0.5">
                   Configure os alertas e notificações do sistema para o seu usuário.
                 </CardDescription>
               </CardHeader>
@@ -616,12 +618,12 @@ export default function Settings() {
             </Card>
 
             {isAdmin && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
+              <Card className="border-slate-200 shadow-sm overflow-hidden flex flex-col">
+                <CardHeader className="px-5 py-4 border-b bg-white shrink-0">
+                  <CardTitle className="text-base text-slate-800 flex items-center gap-2">
                     <Trash2 className="h-5 w-5 text-slate-700" /> Manutenção de Dados
                   </CardTitle>
-                  <CardDescription>
+                  <CardDescription className="text-xs mt-0.5">
                     Ferramentas para limpeza e correção de inconsistências no banco de dados.
                   </CardDescription>
                 </CardHeader>
@@ -656,12 +658,12 @@ export default function Settings() {
         {isAdmin && (
           <>
             <TabsContent value="rules" className="mt-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
+              <Card className="border-slate-200 shadow-sm overflow-hidden flex flex-col">
+                <CardHeader className="px-5 py-4 border-b bg-white shrink-0">
+                  <CardTitle className="text-base text-slate-800 flex items-center gap-2">
                     <Briefcase className="h-5 w-5 text-primary" /> Regras de Negócio
                   </CardTitle>
-                  <CardDescription>
+                  <CardDescription className="text-xs mt-0.5">
                     Parâmetros de cálculo de conversões e pontuação da operação.
                   </CardDescription>
                 </CardHeader>
@@ -778,26 +780,26 @@ export default function Settings() {
             </TabsContent>
 
             <TabsContent value="operators" className="mt-6">
-              <Card>
-                <CardHeader className="flex flex-row items-start justify-between">
+              <Card className="border-slate-200 shadow-sm overflow-hidden flex flex-col">
+                <CardHeader className="px-5 py-4 border-b bg-white flex flex-row items-center justify-between shrink-0">
                   <div>
-                    <CardTitle className="flex items-center gap-2">
+                    <CardTitle className="text-base text-slate-800 flex items-center gap-2">
                       <Users className="h-5 w-5 text-primary" /> Gestão de Usuários
                     </CardTitle>
-                    <CardDescription className="mt-1">
+                    <CardDescription className="text-xs mt-0.5">
                       Gerencie os acessos, edite perfis e convide novos membros para a equipe.
                     </CardDescription>
                   </div>
                   <Button
                     onClick={() => setIsInviteModalOpen(true)}
                     size="sm"
-                    className="flex items-center gap-1.5"
+                    className="flex items-center gap-1.5 rounded-xl"
                   >
                     <UserPlus className="h-4 w-4" /> Convidar
                   </Button>
                 </CardHeader>
-                <CardContent>
-                  <div className="border rounded-lg overflow-hidden">
+                <CardContent className="p-0 overflow-x-auto">
+                  <div className="overflow-hidden">
                     <Table>
                       <TableHeader className="bg-slate-50">
                         <TableRow>
@@ -907,22 +909,26 @@ export default function Settings() {
             </TabsContent>
 
             <TabsContent value="quotes" className="mt-6">
-              <Card>
-                <CardHeader className="flex flex-row items-start justify-between">
+              <Card className="border-slate-200 shadow-sm overflow-hidden flex flex-col">
+                <CardHeader className="px-5 py-4 border-b bg-white flex flex-row items-center justify-between shrink-0">
                   <div>
-                    <CardTitle className="flex items-center gap-2">
+                    <CardTitle className="text-base text-slate-800 flex items-center gap-2">
                       <BookOpen className="h-5 w-5 text-primary" /> Base de Conhecimento
                     </CardTitle>
-                    <CardDescription className="mt-1">
+                    <CardDescription className="text-xs mt-0.5">
                       Gerencie as frases que aparecem para os operadores.
                     </CardDescription>
                   </div>
-                  <Button onClick={openNewQuote} size="sm" className="flex items-center gap-1.5">
+                  <Button
+                    onClick={openNewQuote}
+                    size="sm"
+                    className="flex items-center gap-1.5 rounded-xl"
+                  >
                     <Plus className="h-4 w-4" /> Nova Frase
                   </Button>
                 </CardHeader>
-                <CardContent>
-                  <div className="border rounded-lg overflow-hidden">
+                <CardContent className="p-0 overflow-x-auto">
+                  <div className="overflow-hidden">
                     <Table>
                       <TableHeader className="bg-slate-50">
                         <TableRow>
@@ -1005,18 +1011,18 @@ export default function Settings() {
             </TabsContent>
 
             <TabsContent value="engagement" className="mt-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
+              <Card className="border-slate-200 shadow-sm overflow-hidden flex flex-col">
+                <CardHeader className="px-5 py-4 border-b bg-white shrink-0">
+                  <CardTitle className="text-base text-slate-800 flex items-center gap-2">
                     <Activity className="h-5 w-5 text-primary" /> Relatório de Engajamento
                   </CardTitle>
-                  <CardDescription>
+                  <CardDescription className="text-xs mt-0.5">
                     Acompanhe quais operadores estão interagindo com os links das pílulas de
                     conhecimento.
                   </CardDescription>
                 </CardHeader>
-                <CardContent>
-                  <div className="border rounded-lg overflow-hidden">
+                <CardContent className="p-0 overflow-x-auto">
+                  <div className="overflow-hidden">
                     <Table>
                       <TableHeader className="bg-slate-50">
                         <TableRow>

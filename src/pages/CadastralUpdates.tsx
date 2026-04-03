@@ -72,29 +72,29 @@ export default function CadastralUpdates() {
   }
 
   return (
-    <div className="space-y-6 animate-fade-in-up">
-      <div className="flex flex-col gap-1">
-        <h1 className="text-3xl font-black tracking-tight text-slate-900">
-          Atualizações Cadastrais
-        </h1>
-        <p className="text-slate-500 font-medium">
-          Fila de pendências geradas pelos operadores durante os atendimentos.
-        </p>
+    <div className="space-y-6 animate-fade-in-up pb-10">
+      <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 shrink-0">
+        <div>
+          <h1 className="text-3xl font-black tracking-tight text-slate-900">
+            Atualizações Cadastrais
+          </h1>
+          <p className="text-slate-500 mt-1 font-medium">
+            Fila de pendências geradas pelos operadores durante os atendimentos.
+          </p>
+        </div>
       </div>
 
-      <Card className="border-slate-200 shadow-sm">
-        <CardHeader className="border-b bg-slate-50/50 pb-4">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-lg font-bold text-slate-800">Pendências</CardTitle>
-            <Badge variant="secondary" className="bg-white">
-              {updates.length} registros
-            </Badge>
+      <Card className="border-slate-200 shadow-sm overflow-hidden flex flex-col">
+        <CardHeader className="px-5 py-4 border-b bg-white flex flex-row items-center justify-between shrink-0">
+          <CardTitle className="text-base text-slate-800">Pendências de Atualização</CardTitle>
+          <div className="bg-slate-100 border border-slate-200 px-3 py-1 rounded-full text-xs font-bold text-slate-600 shadow-sm">
+            {updates.length} {updates.length === 1 ? 'registro' : 'registros'}
           </div>
         </CardHeader>
-        <CardContent className="p-0">
+        <CardContent className="p-0 overflow-x-auto">
           <Table>
-            <TableHeader>
-              <TableRow className="bg-slate-50/90 border-slate-100">
+            <TableHeader className="bg-slate-50">
+              <TableRow className="border-slate-100">
                 <TableHead className="font-semibold text-slate-600">Data / Solicitante</TableHead>
                 <TableHead className="font-semibold text-slate-600">Devedor / UC</TableHead>
                 <TableHead className="font-semibold text-slate-600">

@@ -239,11 +239,11 @@ function ImportCard({
 
   return (
     <Card className="border-slate-200 shadow-sm overflow-hidden flex flex-col h-full">
-      <CardHeader className="border-b bg-slate-50/50 pb-4">
-        <CardTitle className="text-lg flex items-center gap-2">
+      <CardHeader className="px-5 py-4 border-b bg-white shrink-0">
+        <CardTitle className="text-base flex items-center gap-2 text-slate-800">
           {icon} {title}
         </CardTitle>
-        <CardDescription>{description}</CardDescription>
+        <CardDescription className="text-xs mt-1">{description}</CardDescription>
       </CardHeader>
       <CardContent className="pt-6 space-y-4 flex-1 flex flex-col">
         {!file ? (
@@ -688,7 +688,7 @@ export default function ImportData() {
 
   return (
     <div className="space-y-6 animate-fade-in-up pb-10">
-      <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
+      <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 shrink-0">
         <div>
           <h1 className="text-3xl font-black tracking-tight text-slate-900">Importação de Dados</h1>
           <p className="text-slate-500 mt-1 font-medium">
@@ -749,10 +749,10 @@ export default function ImportData() {
             <RefreshCw className="h-4 w-4 mr-2" /> Atualizar Histórico
           </Button>
         </div>
-        <Card className="border-slate-200 shadow-sm overflow-hidden">
+        <Card className="border-slate-200 shadow-sm overflow-hidden flex flex-col">
           <div className="overflow-x-auto">
             <Table>
-              <TableHeader className="bg-slate-50 border-b">
+              <TableHeader className="bg-slate-50">
                 <TableRow>
                   <TableHead className="w-[180px] font-semibold text-slate-700">
                     Data/Hora Execução

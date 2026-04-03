@@ -254,21 +254,23 @@ export default function Index() {
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight text-primary">Visão Geral</h1>
-        <p className="text-muted-foreground mt-1">
-          Bem-vindo(a) de volta, {name}. Aqui está o panorama estratégico de recuperação.
-        </p>
+    <div className="space-y-6 animate-fade-in-up pb-10">
+      <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 shrink-0">
+        <div>
+          <h1 className="text-3xl font-black tracking-tight text-slate-900">Visão Geral</h1>
+          <p className="text-slate-500 mt-1 font-medium">
+            Bem-vindo(a) de volta, {name}. Aqui está o panorama estratégico de recuperação.
+          </p>
+        </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-sm font-medium">
-              Composição da Carteira (UC + Pessoa)
+        <Card className="border-slate-200 shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0 bg-white">
+            <CardTitle className="text-sm font-semibold text-slate-800">
+              Composição da Carteira
             </CardTitle>
-            <Briefcase className="h-4 w-4 text-muted-foreground" />
+            <Briefcase className="h-4 w-4 text-slate-400" />
           </CardHeader>
           <CardContent>
             <div className="flex justify-between items-start mt-1">
@@ -310,10 +312,12 @@ export default function Index() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-sm font-medium">Valores da Carteira</CardTitle>
-            <CircleDollarSign className="h-4 w-4 text-muted-foreground" />
+        <Card className="border-slate-200 shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0 bg-white">
+            <CardTitle className="text-sm font-semibold text-slate-800">
+              Valores da Carteira
+            </CardTitle>
+            <CircleDollarSign className="h-4 w-4 text-slate-400" />
           </CardHeader>
           <CardContent>
             <div className="flex justify-between items-start mt-1">
@@ -367,10 +371,12 @@ export default function Index() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-sm font-medium">Saldo Vencido vs. A Vencer</CardTitle>
-            <Split className="h-4 w-4 text-muted-foreground" />
+        <Card className="border-slate-200 shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0 bg-white">
+            <CardTitle className="text-sm font-semibold text-slate-800">
+              Saldo Vencido vs. A Vencer
+            </CardTitle>
+            <Split className="h-4 w-4 text-slate-400" />
           </CardHeader>
           <CardContent>
             <div className="flex justify-between items-start mt-1">
@@ -408,10 +414,12 @@ export default function Index() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-sm font-medium">Total de Atendimentos</CardTitle>
-            <Headphones className="h-4 w-4 text-muted-foreground" />
+        <Card className="border-slate-200 shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0 bg-white">
+            <CardTitle className="text-sm font-semibold text-slate-800">
+              Total de Atendimentos
+            </CardTitle>
+            <Headphones className="h-4 w-4 text-slate-400" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{evolution.productivity.current.contacts || 0}</div>
@@ -422,10 +430,12 @@ export default function Index() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-sm font-medium">Total de Follow-ups</CardTitle>
-            <ListTodo className="h-4 w-4 text-muted-foreground" />
+        <Card className="border-slate-200 shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0 bg-white">
+            <CardTitle className="text-sm font-semibold text-slate-800">
+              Total de Follow-ups
+            </CardTitle>
+            <ListTodo className="h-4 w-4 text-slate-400" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
@@ -438,10 +448,12 @@ export default function Index() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-sm font-medium">Cadastros Atualizados</CardTitle>
-            <UserCheck className="h-4 w-4 text-muted-foreground" />
+        <Card className="border-slate-200 shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0 bg-white">
+            <CardTitle className="text-sm font-semibold text-slate-800">
+              Cadastros Atualizados
+            </CardTitle>
+            <UserCheck className="h-4 w-4 text-slate-400" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-muted-foreground">0</div>
@@ -451,16 +463,18 @@ export default function Index() {
       </div>
 
       <div className="flex flex-col gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Equipe Operacional</CardTitle>
-            <CardDescription>
-              Status atual de conexão e indicadores de produtividade
-            </CardDescription>
+        <Card className="border-slate-200 shadow-sm overflow-hidden flex flex-col">
+          <CardHeader className="px-5 py-4 border-b bg-white flex flex-row items-center justify-between shrink-0">
+            <div>
+              <CardTitle className="text-base text-slate-800">Equipe Operacional</CardTitle>
+              <CardDescription className="text-xs mt-0.5">
+                Status atual de conexão e indicadores de produtividade
+              </CardDescription>
+            </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-0 overflow-x-auto">
             <Table>
-              <TableHeader>
+              <TableHeader className="bg-slate-50">
                 <TableRow>
                   <TableHead>Operadores de Cobrança</TableHead>
                   <TableHead className="text-center">Atend. (Hoje)</TableHead>

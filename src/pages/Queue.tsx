@@ -131,8 +131,8 @@ export default function Queue() {
   }
 
   return (
-    <div className="space-y-6 animate-fade-in-up">
-      <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
+    <div className="space-y-6 animate-fade-in-up pb-10">
+      <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 shrink-0">
         <div>
           <h1 className="text-3xl font-black tracking-tight text-slate-900">Fila Rápida</h1>
           <p className="text-slate-500 mt-1 font-medium">
@@ -140,10 +140,10 @@ export default function Queue() {
           </p>
         </div>
 
-        <div className="flex flex-col gap-3 w-full xl:w-auto">
-          <div className="flex flex-col sm:flex-row gap-3 w-full xl:justify-end">
+        <div className="flex flex-col gap-2 w-full xl:w-auto">
+          <div className="flex flex-col sm:flex-row gap-2 w-full xl:justify-end">
             <Select value={lotesFilter} onValueChange={(v: any) => setLotesFilter(v)}>
-              <SelectTrigger className="w-full sm:w-[160px] h-10 rounded-full bg-white border-slate-200 shadow-sm focus-visible:ring-primary/20 shrink-0">
+              <SelectTrigger className="w-full sm:w-[160px] h-10 rounded-xl bg-white border-slate-200 shadow-sm focus-visible:ring-primary/20 shrink-0">
                 <SelectValue placeholder="Lotes Vagos" />
               </SelectTrigger>
               <SelectContent className="rounded-xl">
@@ -153,7 +153,7 @@ export default function Queue() {
               </SelectContent>
             </Select>
             <Select value={retainedFilter} onValueChange={(v: any) => setRetainedFilter(v)}>
-              <SelectTrigger className="w-full sm:w-[160px] h-10 rounded-full bg-white border-slate-200 shadow-sm focus-visible:ring-primary/20 shrink-0">
+              <SelectTrigger className="w-full sm:w-[160px] h-10 rounded-xl bg-white border-slate-200 shadow-sm focus-visible:ring-primary/20 shrink-0">
                 <SelectValue placeholder="Retidos" />
               </SelectTrigger>
               <SelectContent className="rounded-xl">
@@ -163,7 +163,7 @@ export default function Queue() {
               </SelectContent>
             </Select>
             <Select value={debtStatus} onValueChange={(v: any) => setDebtStatus(v)}>
-              <SelectTrigger className="w-full sm:w-[140px] h-10 rounded-full bg-white border-slate-200 shadow-sm focus-visible:ring-primary/20 shrink-0">
+              <SelectTrigger className="w-full sm:w-[140px] h-10 rounded-xl bg-white border-slate-200 shadow-sm focus-visible:ring-primary/20 shrink-0">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent className="rounded-xl">
@@ -173,14 +173,14 @@ export default function Queue() {
               </SelectContent>
             </Select>
           </div>
-          <div className="flex flex-col sm:flex-row gap-3 w-full xl:justify-end">
+          <div className="flex flex-col sm:flex-row gap-2 w-full xl:justify-end">
             <div className="relative w-full sm:w-[350px]">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
               <Input
                 placeholder="Filtre UC, qualquer parte do nome ou Cpf/Cnpj"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="pl-9 rounded-full bg-white border-slate-200 shadow-sm h-10 w-full focus-visible:ring-primary/20"
+                className="pl-9 rounded-xl bg-white border-slate-200 shadow-sm h-10 w-full focus-visible:ring-primary/20"
               />
             </div>
             <div className="relative w-full sm:w-[300px]">
@@ -189,7 +189,7 @@ export default function Queue() {
                 placeholder="Digite qualquer parte do Endereço"
                 value={searchAddress}
                 onChange={(e) => setSearchAddress(e.target.value)}
-                className="pl-9 rounded-full bg-white border-slate-200 shadow-sm h-10 w-full focus-visible:ring-primary/20"
+                className="pl-9 rounded-xl bg-white border-slate-200 shadow-sm h-10 w-full focus-visible:ring-primary/20"
               />
             </div>
           </div>
@@ -198,27 +198,24 @@ export default function Queue() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
         {/* Coluna Esquerda: Fila de Devedores */}
-        <Card className="border-slate-200 shadow-sm flex flex-col h-[calc(100vh-12rem)] min-h-[500px]">
-          <CardHeader className="pb-3 border-b bg-slate-50/50 shrink-0">
-            <div className="flex justify-between items-center">
-              <div>
-                <CardTitle className="text-lg font-bold text-slate-800">
-                  Fila de Devedores
-                </CardTitle>
-                <CardDescription>Novas oportunidades de negociação</CardDescription>
-              </div>
-              <Badge
-                variant="secondary"
-                className="bg-white shadow-sm border-slate-200 text-slate-600"
-              >
-                {unattended.length} pendentes
-              </Badge>
+        <Card className="border-slate-200 shadow-sm flex flex-col h-[calc(100vh-12rem)] min-h-[500px] overflow-hidden">
+          <CardHeader className="px-5 py-4 border-b bg-white flex flex-row items-center justify-between shrink-0">
+            <div>
+              <CardTitle className="text-base font-bold text-slate-800">
+                Fila de Devedores
+              </CardTitle>
+              <CardDescription className="text-xs mt-0.5">
+                Novas oportunidades de negociação
+              </CardDescription>
+            </div>
+            <div className="bg-slate-100 border border-slate-200 px-3 py-1 rounded-full text-xs font-bold text-slate-600 shadow-sm">
+              {unattended.length} {unattended.length === 1 ? 'pendente' : 'pendentes'}
             </div>
           </CardHeader>
           <CardContent className="p-0 flex-1 overflow-hidden flex flex-col">
             <div className="flex-1 overflow-hidden [&>div]:h-full [&>div]:overflow-auto">
               <Table>
-                <TableHeader className="bg-slate-50/90 sticky top-0 z-10 outline outline-1 outline-slate-100 shadow-sm backdrop-blur-sm">
+                <TableHeader className="bg-slate-50 sticky top-0 z-10 outline outline-1 outline-slate-100 shadow-sm">
                   <TableRow className="border-slate-100 hover:bg-transparent">
                     <TableHead className="font-semibold text-slate-600">Devedor / UC</TableHead>
                     <TableHead className="font-semibold text-slate-600 w-[180px]">
@@ -427,29 +424,24 @@ export default function Queue() {
         </Card>
 
         {/* Coluna Direita: Fila de Atendimento */}
-        <Card className="border-slate-200 shadow-sm flex flex-col h-[calc(100vh-12rem)] min-h-[500px]">
-          <CardHeader className="pb-3 border-b bg-primary/5 shrink-0">
-            <div className="flex justify-between items-center">
-              <div>
-                <CardTitle className="text-lg font-bold text-primary">
-                  Fila de Atendimento
-                </CardTitle>
-                <CardDescription className="text-primary/70">
-                  Meus contatos em andamento
-                </CardDescription>
-              </div>
-              <Badge
-                variant="outline"
-                className="bg-white shadow-sm border-primary/20 text-primary"
-              >
-                {attended.length} em carteira
-              </Badge>
+        <Card className="border-slate-200 shadow-sm flex flex-col h-[calc(100vh-12rem)] min-h-[500px] overflow-hidden">
+          <CardHeader className="px-5 py-4 border-b bg-primary/5 flex flex-row items-center justify-between shrink-0">
+            <div>
+              <CardTitle className="text-base font-bold text-primary">
+                Fila de Atendimento
+              </CardTitle>
+              <CardDescription className="text-primary/70 text-xs mt-0.5">
+                Meus contatos em andamento
+              </CardDescription>
+            </div>
+            <div className="bg-white border border-primary/20 px-3 py-1 rounded-full text-xs font-bold text-primary shadow-sm">
+              {attended.length} em carteira
             </div>
           </CardHeader>
           <CardContent className="p-0 flex-1 overflow-hidden flex flex-col">
             <div className="flex-1 overflow-hidden [&>div]:h-full [&>div]:overflow-auto">
               <Table>
-                <TableHeader className="bg-slate-50/90 sticky top-0 z-10 outline outline-1 outline-slate-100 shadow-sm backdrop-blur-sm">
+                <TableHeader className="bg-slate-50 sticky top-0 z-10 outline outline-1 outline-slate-100 shadow-sm">
                   <TableRow className="border-slate-100 hover:bg-transparent">
                     <TableHead className="font-semibold text-slate-600">Devedor / UC</TableHead>
                     <TableHead className="font-semibold text-slate-600 w-[140px]">

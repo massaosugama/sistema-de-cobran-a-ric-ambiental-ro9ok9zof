@@ -1058,10 +1058,10 @@ export default function FollowUp() {
             Painel de gestão atividades de follow-up.
           </p>
         </div>
-        <div className="flex flex-col sm:flex-row items-center gap-3 w-full xl:w-auto">
-          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+        <div className="flex flex-col xl:flex-row items-start xl:items-center gap-3 w-full xl:w-auto">
+          <div className="flex flex-wrap sm:flex-nowrap gap-2 w-full xl:w-auto">
             <Select value={debtStatus} onValueChange={(v: any) => setDebtStatus(v)}>
-              <SelectTrigger className="w-full sm:w-[130px] h-10 rounded-full bg-white border-slate-200 shadow-sm focus-visible:ring-primary/20 shrink-0">
+              <SelectTrigger className="w-full sm:w-[130px] h-10 rounded-xl bg-white border-slate-200 shadow-sm focus-visible:ring-primary/20 shrink-0">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent className="rounded-xl">
@@ -1076,7 +1076,7 @@ export default function FollowUp() {
                 placeholder="Filtre UC, Nome..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="pl-9 rounded-full bg-white border-slate-200 shadow-sm h-10 w-full focus-visible:ring-primary/20"
+                className="pl-9 rounded-xl bg-white border-slate-200 shadow-sm h-10 w-full focus-visible:ring-primary/20"
               />
             </div>
             <div className="relative w-full sm:w-[220px]">
@@ -1085,27 +1085,27 @@ export default function FollowUp() {
                 placeholder="Filtre Endereço"
                 value={searchAddress}
                 onChange={(e) => setSearchAddress(e.target.value)}
-                className="pl-9 rounded-full bg-white border-slate-200 shadow-sm h-10 w-full focus-visible:ring-primary/20"
+                className="pl-9 rounded-xl bg-white border-slate-200 shadow-sm h-10 w-full focus-visible:ring-primary/20"
               />
             </div>
           </div>
-          <div className="flex gap-3 w-full sm:w-auto">
-            <div className="bg-slate-200/50 p-1 rounded-lg inline-flex w-full sm:w-auto">
+          <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto mt-2 xl:mt-0">
+            <div className="bg-slate-200/50 p-1 rounded-lg inline-flex flex-1 sm:flex-none h-10 items-center">
               <button
                 onClick={() => setView('meus')}
                 className={cn(
-                  'px-4 py-2 rounded-md text-sm font-semibold transition-all flex-1 sm:flex-none',
+                  'px-3 py-1.5 rounded-md text-xs font-semibold transition-all flex-1 sm:flex-none whitespace-nowrap',
                   view === 'meus'
                     ? 'bg-white shadow text-primary'
                     : 'text-slate-500 hover:text-slate-700',
                 )}
               >
-                Meus
+                Meus Atend.
               </button>
               <button
                 onClick={() => setView('todos')}
                 className={cn(
-                  'px-4 py-2 rounded-md text-sm font-semibold transition-all flex-1 sm:flex-none',
+                  'px-3 py-1.5 rounded-md text-xs font-semibold transition-all flex-1 sm:flex-none whitespace-nowrap',
                   view === 'todos'
                     ? 'bg-white shadow text-primary'
                     : 'text-slate-500 hover:text-slate-700',
@@ -1121,7 +1121,7 @@ export default function FollowUp() {
                   setSelectedNewDebt(null)
                   setIsNewActivitySheetOpen(true)
                 }}
-                className="w-full sm:w-auto px-4"
+                className="w-full sm:w-auto px-4 h-10 rounded-xl"
               >
                 <Plus className="w-4 h-4 sm:mr-2" />
                 <span className="hidden sm:inline">Nova Atividade</span>
