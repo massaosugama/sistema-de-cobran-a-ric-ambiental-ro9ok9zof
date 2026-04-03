@@ -73,17 +73,6 @@ export default function Queue() {
     return () => window.removeEventListener('contact-added', fetchQueue)
   }, [fetchQueue])
 
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'alta':
-        return 'destructive'
-      case 'media':
-        return 'warning'
-      default:
-        return 'secondary'
-    }
-  }
-
   const getDisplayedValue = (customer: ParsedDebt) => {
     if (debtStatus === 'vencido') return customer.valorVencido
     if (debtStatus === 'a_vencer') return customer.valorAVencer
@@ -292,34 +281,26 @@ export default function Queue() {
                                 </Tooltip>
                               )}
                             </div>
-                            <div className="flex flex-wrap items-center gap-1.5 mt-1">
-                              <Badge
-                                variant={getPriorityColor(customer.priority) as any}
-                                className="w-fit text-[10px] px-1.5 py-0 uppercase tracking-wider shadow-none"
-                              >
-                                {customer.priority}
-                              </Badge>
-                              {customer.recentOperators && customer.recentOperators.length > 0 && (
-                                <div className="flex items-center gap-1">
-                                  {customer.recentOperators.map((op, idx) => (
-                                    <Badge
-                                      key={idx}
-                                      className={cn(
-                                        'w-fit text-[9px] px-1.5 py-0 uppercase tracking-wider shadow-none hover:opacity-80 transition-opacity',
-                                        idx === 0
-                                          ? 'bg-slate-600 text-white'
-                                          : idx === 1
-                                            ? 'bg-slate-400 text-white'
-                                            : 'bg-slate-300 text-slate-700',
-                                      )}
-                                      title={`Atendido por: ${op}`}
-                                    >
-                                      {safeSlice(op, 0, 4)}
-                                    </Badge>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
+                            {customer.recentOperators && customer.recentOperators.length > 0 && (
+                              <div className="flex flex-wrap items-center gap-1 mt-1">
+                                {customer.recentOperators.map((op, idx) => (
+                                  <Badge
+                                    key={idx}
+                                    className={cn(
+                                      'w-fit text-[9px] px-1.5 py-0 uppercase tracking-wider shadow-none hover:opacity-80 transition-opacity',
+                                      idx === 0
+                                        ? 'bg-slate-600 text-white'
+                                        : idx === 1
+                                          ? 'bg-slate-400 text-white'
+                                          : 'bg-slate-300 text-slate-700',
+                                    )}
+                                    title={`Atendido por: ${op}`}
+                                  >
+                                    {safeSlice(op, 0, 4)}
+                                  </Badge>
+                                ))}
+                              </div>
+                            )}
                           </div>
                         </TableCell>
                         <TableCell className="text-right">
@@ -488,7 +469,7 @@ export default function Queue() {
                               </div>
                             )}
                             {customer.recentOperators && customer.recentOperators.length > 0 && (
-                              <div className="flex items-center gap-1 mt-1.5">
+                              <div className="flex flex-wrap items-center gap-1 mt-1.5">
                                 {customer.recentOperators.map((op, idx) => (
                                   <Badge
                                     key={idx}

@@ -29,12 +29,14 @@ import {
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { Calendar } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { useToast } from '@/hooks/use-toast'
 import { useAuth } from '@/hooks/use-auth'
+import { useDebounce } from '@/hooks/use-debounce'
 import { addContact } from '@/services/data'
 import { supabase } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
@@ -77,14 +79,17 @@ export function CustomerActionForm({
   const [searchedCustomer, setSearchedCustomer] = useState<ParsedDebt | null>(null)
   const [isSearchingUc, setIsSearchingUc] = useState(false)
 
+  const debouncedSearchTerm = useDebounce(searchTerm, 500)
+  const debouncedSearchAddress = useDebounce(searchAddress, 500)
+
   const { toast } = useToast()
   const { user, profile } = useAuth()
 
   const isConsultas = profile?.role === 'consultas'
 
-  const handleAdvancedSearch = async () => {
-    const term = searchTerm.trim()
-    const address = searchAddress.trim()
+  const handleAdvancedSearch = async (termParam?: string, addressParam?: string) => {
+    const term = (termParam !== undefined ? termParam : searchTerm).trim()
+    const address = (addressParam !== undefined ? addressParam : searchAddress).trim()
 
     if (term.length < 3 && address.length < 3) {
       toast({
@@ -127,8 +132,23 @@ export function CustomerActionForm({
           return acc
         }, {})
 
-        const parsedResults: (ParsedDebt & { address?: string })[] = Object.values(grouped).map(
-          (group: any) => {
+        const ucs = Object.keys(grouped)
+        const { data: contactsData } = await supabase
+          .from('contact_history')
+          .select('uc, profiles(first_name, name)')
+          .in('uc', ucs)
+          .order('created_at', { ascending: false })
+
+        const operatorsByUc: Record<string, string[]> = {}
+        contactsData?.forEach((c: any) => {
+          const profile = Array.isArray(c.profiles) ? c.profiles[0] : c.profiles
+          const name = profile?.first_name || profile?.name?.split(' ')[0] || 'OP'
+          if (!operatorsByUc[c.uc]) operatorsByUc[c.uc] = []
+          if (!operatorsByUc[c.uc].includes(name)) operatorsByUc[c.uc].push(name)
+        })
+
+        const parsedResults: (ParsedDebt & { address?: string; recentOperators?: string[] })[] =
+          Object.values(grouped).map((group: any) => {
             const first = group[0]
             return {
               uc: first.uc,
@@ -159,9 +179,9 @@ export function CustomerActionForm({
                 status: d.situ_docto || '',
               })),
               isLoteVago: first.setor === '4036',
+              recentOperators: operatorsByUc[first.uc]?.slice(0, 3) || [],
             }
-          },
-        )
+          })
         setSearchResults(parsedResults)
       } else {
         setSearchResults([])
@@ -177,6 +197,16 @@ export function CustomerActionForm({
       setIsSearchingUc(false)
     }
   }
+
+  useEffect(() => {
+    if (isSearchUcSheetOpen) {
+      if (debouncedSearchTerm.length >= 3 || debouncedSearchAddress.length >= 3) {
+        handleAdvancedSearch(debouncedSearchTerm, debouncedSearchAddress)
+      } else if (debouncedSearchTerm.length === 0 && debouncedSearchAddress.length === 0) {
+        setSearchResults(null)
+      }
+    }
+  }, [debouncedSearchTerm, debouncedSearchAddress, isSearchUcSheetOpen])
 
   useEffect(() => {
     const fetchRules = async () => {
@@ -901,13 +931,13 @@ export function CustomerActionForm({
                       className="h-11 rounded-xl bg-slate-50 focus:bg-white border-slate-200 text-base transition-colors"
                     />
                     <Button
-                      onClick={handleAdvancedSearch}
+                      onClick={() => handleAdvancedSearch()}
                       disabled={
                         isSearchingUc || (searchTerm.length < 3 && searchAddress.length < 3)
                       }
                       className="h-11 px-6 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm font-bold w-full sm:w-auto"
                     >
-                      {isSearchingUc ? '...' : 'Buscar'}
+                      {isSearchingUc ? 'Buscando...' : 'Buscar'}
                     </Button>
                   </div>
                   {searchTerm.length > 0 &&
@@ -981,6 +1011,26 @@ export function CustomerActionForm({
                           <span className="text-xs font-medium text-slate-400 line-clamp-1">
                             {res.address}
                           </span>
+                        )}
+                        {res.recentOperators && res.recentOperators.length > 0 && (
+                          <div className="flex flex-wrap items-center gap-1 mt-0.5">
+                            {res.recentOperators.map((op, idx) => (
+                              <Badge
+                                key={idx}
+                                className={cn(
+                                  'w-fit text-[9px] px-1.5 py-0 uppercase tracking-wider shadow-none hover:opacity-80 transition-opacity',
+                                  idx === 0
+                                    ? 'bg-slate-600 text-white'
+                                    : idx === 1
+                                      ? 'bg-slate-400 text-white'
+                                      : 'bg-slate-300 text-slate-700',
+                                )}
+                                title={`Atendido por: ${op}`}
+                              >
+                                {typeof op === 'string' ? op.slice(0, 4) : ''}
+                              </Badge>
+                            ))}
+                          </div>
                         )}
                       </div>
                       <Button
