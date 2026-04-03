@@ -69,7 +69,11 @@ export function CustomerActionForm({
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [requireCadastral, setRequireCadastral] = useState(false)
   const [isSearchUcSheetOpen, setIsSearchUcSheetOpen] = useState(false)
-  const [searchUcNumber, setSearchUcNumber] = useState('')
+  const [searchTerm, setSearchTerm] = useState('')
+  const [searchAddress, setSearchAddress] = useState('')
+  const [searchResults, setSearchResults] = useState<(ParsedDebt & { address?: string })[] | null>(
+    null,
+  )
   const [searchedCustomer, setSearchedCustomer] = useState<ParsedDebt | null>(null)
   const [isSearchingUc, setIsSearchingUc] = useState(false)
 
@@ -78,46 +82,94 @@ export function CustomerActionForm({
 
   const isConsultas = profile?.role === 'consultas'
 
-  const handleSearchUc = async () => {
-    if (!searchUcNumber.trim()) return
+  const handleAdvancedSearch = async () => {
+    const term = searchTerm.trim()
+    const address = searchAddress.trim()
+
+    if (term.length < 3 && address.length < 3) {
+      toast({
+        title: 'Aviso',
+        description: 'Digite pelo menos 3 caracteres para buscar.',
+        variant: 'destructive',
+      })
+      return
+    }
+
     setIsSearchingUc(true)
     try {
-      const { data, error } = await supabase
-        .from('pending_debts')
-        .select('*')
-        .eq('uc', searchUcNumber.trim())
+      let q = supabase.from('pending_debts').select('*')
+
+      if (term) {
+        const orConditions = [
+          `uc.ilike.%${term}%`,
+          `pessoa_fatura_nome.ilike.%${term}%`,
+          `pessoa_fatura_cpf_cnpj.ilike.%${term}%`,
+          `proprietario_nome.ilike.%${term}%`,
+          `proprietario_cpf_cnpj.ilike.%${term}%`,
+          `responsavel_nome.ilike.%${term}%`,
+          `responsavel_cpf_cnpj.ilike.%${term}%`,
+        ].join(',')
+        q = q.or(orConditions)
+      }
+
+      if (address) {
+        q = q.ilike('endereco', `%${address}%`)
+      }
+
+      const { data, error } = await q.limit(200)
 
       if (error) throw error
+
       if (data && data.length > 0) {
-        const first = data[0]
-        const parsedCustomer: ParsedDebt = {
-          uc: first.uc,
-          personCode: first.cod_pess_fat,
-          name:
-            first.pessoa_fatura_nome ||
-            first.proprietario_nome ||
-            first.responsavel_nome ||
-            'Cliente não identificado',
-          phones: [],
-          totalDebt: data.reduce((acc, curr) => acc + (Number(curr.valor_total) || 0), 0),
-          valorVencido: data.reduce((acc, curr) => acc + (Number(curr.valor_vencido) || 0), 0),
-          valorAVencer: data.reduce((acc, curr) => acc + (Number(curr.valor_a_vencer) || 0), 0),
-          invoices: data.map((d) => ({
-            ref: d.refs || '',
-            value: Number(d.valor_total) || 0,
-            dueDate: '',
-            status: d.situ_docto || '',
-          })),
-          isLoteVago: first.setor === '4036',
-        }
-        setSearchedCustomer(parsedCustomer)
+        const grouped = data.reduce((acc: any, curr: any) => {
+          if (!acc[curr.uc]) acc[curr.uc] = []
+          acc[curr.uc].push(curr)
+          return acc
+        }, {})
+
+        const parsedResults: (ParsedDebt & { address?: string })[] = Object.values(grouped).map(
+          (group: any) => {
+            const first = group[0]
+            return {
+              uc: first.uc,
+              personCode: first.cod_pess_fat,
+              name:
+                first.pessoa_fatura_nome ||
+                first.proprietario_nome ||
+                first.responsavel_nome ||
+                'Cliente não identificado',
+              address: first.endereco,
+              phones: [],
+              totalDebt: group.reduce(
+                (acc: number, curr: any) => acc + (Number(curr.valor_total) || 0),
+                0,
+              ),
+              valorVencido: group.reduce(
+                (acc: number, curr: any) => acc + (Number(curr.valor_vencido) || 0),
+                0,
+              ),
+              valorAVencer: group.reduce(
+                (acc: number, curr: any) => acc + (Number(curr.valor_a_vencer) || 0),
+                0,
+              ),
+              invoices: group.map((d: any) => ({
+                ref: d.refs || '',
+                value: Number(d.valor_total) || 0,
+                dueDate: '',
+                status: d.situ_docto || '',
+              })),
+              isLoteVago: first.setor === '4036',
+            }
+          },
+        )
+        setSearchResults(parsedResults)
       } else {
+        setSearchResults([])
         toast({
-          title: 'UC não encontrada',
-          description: 'Verifique o número e tente novamente.',
+          title: 'Nenhum resultado',
+          description: 'Não encontramos nenhuma UC com os termos informados.',
           variant: 'destructive',
         })
-        setSearchedCustomer(null)
       }
     } catch (error: any) {
       toast({ title: 'Erro', description: error.message, variant: 'destructive' })
@@ -831,22 +883,52 @@ export function CustomerActionForm({
                 Localize a UC correta para transferir o atendimento e solicitar a atualização
                 cadastral.
               </SheetDescription>
-              <div className="flex items-center gap-2 mt-5">
-                <Input
-                  placeholder="Digite o número da UC..."
-                  value={searchUcNumber}
-                  onChange={(e) => setSearchUcNumber(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleSearchUc()}
-                  className="h-12 rounded-xl bg-slate-50 border-slate-200 text-base"
-                />
-                <Button
-                  onClick={handleSearchUc}
-                  disabled={isSearchingUc}
-                  className="h-12 px-6 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm font-bold"
-                >
-                  {isSearchingUc ? 'Buscando...' : 'Buscar'}
-                </Button>
-              </div>
+              {!searchedCustomer ? (
+                <div className="flex flex-col gap-3 mt-5">
+                  <div className="flex flex-col sm:flex-row items-center gap-2">
+                    <Input
+                      placeholder="UC, Nome ou CPF/C..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && handleAdvancedSearch()}
+                      className="h-11 rounded-xl bg-slate-50 focus:bg-white border-slate-200 text-base transition-colors"
+                    />
+                    <Input
+                      placeholder="Filtre por Endereço..."
+                      value={searchAddress}
+                      onChange={(e) => setSearchAddress(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && handleAdvancedSearch()}
+                      className="h-11 rounded-xl bg-slate-50 focus:bg-white border-slate-200 text-base transition-colors"
+                    />
+                    <Button
+                      onClick={handleAdvancedSearch}
+                      disabled={
+                        isSearchingUc || (searchTerm.length < 3 && searchAddress.length < 3)
+                      }
+                      className="h-11 px-6 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm font-bold w-full sm:w-auto"
+                    >
+                      {isSearchingUc ? '...' : 'Buscar'}
+                    </Button>
+                  </div>
+                  {searchTerm.length > 0 &&
+                    searchTerm.length < 3 &&
+                    (searchAddress.length === 0 || searchAddress.length < 3) && (
+                      <span className="text-xs text-slate-500 font-medium">
+                        Digite pelo menos 3 caracteres em algum campo para buscar.
+                      </span>
+                    )}
+                </div>
+              ) : (
+                <div className="mt-4">
+                  <Button
+                    variant="outline"
+                    onClick={() => setSearchedCustomer(null)}
+                    className="h-9 rounded-lg text-slate-600 border-slate-200 hover:bg-slate-50"
+                  >
+                    &larr; Voltar aos resultados
+                  </Button>
+                </div>
+              )}
             </SheetHeader>
             <div className="p-6 flex-1 bg-slate-50/50">
               {searchedCustomer ? (
@@ -857,6 +939,11 @@ export function CustomerActionForm({
                       UC {searchedCustomer.uc}
                     </h3>
                     <p className="text-slate-600 font-semibold text-sm">{searchedCustomer.name}</p>
+                    {(searchedCustomer as any).address && (
+                      <p className="text-slate-500 text-xs mt-1">
+                        {(searchedCustomer as any).address}
+                      </p>
+                    )}
                   </div>
 
                   <CustomerActionForm
@@ -865,13 +952,59 @@ export function CustomerActionForm({
                     onClose={() => setIsSearchUcSheetOpen(false)}
                   />
                 </div>
+              ) : searchResults && searchResults.length > 0 ? (
+                <div className="space-y-3 animate-fade-in-up pb-10">
+                  <h4 className="text-sm font-bold text-slate-500 mb-4">
+                    {searchResults.length} resultado(s) encontrado(s)
+                  </h4>
+                  {searchResults.map((res) => (
+                    <div
+                      key={res.uc}
+                      className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:border-indigo-300 transition-colors group cursor-pointer"
+                      onClick={() => setSearchedCustomer(res)}
+                    >
+                      <div className="flex flex-col gap-1.5 flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="font-black text-slate-800 flex items-center gap-1.5 text-base">
+                            <MapPin className="w-4 h-4 text-indigo-500" /> UC {res.uc}
+                          </span>
+                          {res.isLoteVago && (
+                            <span className="bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded-full">
+                              Lote Vago
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-sm font-bold text-slate-600 truncate">
+                          {res.name}
+                        </span>
+                        {res.address && (
+                          <span className="text-xs font-medium text-slate-400 line-clamp-1">
+                            {res.address}
+                          </span>
+                        )}
+                      </div>
+                      <Button
+                        variant="secondary"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setSearchedCustomer(res)
+                        }}
+                        className="shrink-0 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 font-bold sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
+                      >
+                        Selecionar
+                      </Button>
+                    </div>
+                  ))}
+                </div>
               ) : (
                 <div className="flex flex-col items-center justify-center h-full text-slate-400 gap-4 py-16">
                   <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-sm border border-slate-100">
                     <Search className="w-10 h-10 text-slate-300" />
                   </div>
-                  <p className="font-semibold text-slate-500 text-center max-w-xs">
-                    Busque por uma UC para visualizar e registrar o atendimento.
+                  <p className="font-semibold text-slate-500 text-center max-w-xs leading-relaxed">
+                    {isSearchingUc
+                      ? 'Buscando...'
+                      : 'Busque por UC, Nome, CPF/C ou Endereço para localizar o imóvel correto.'}
                   </p>
                 </div>
               )}
