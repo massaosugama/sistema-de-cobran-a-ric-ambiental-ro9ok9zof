@@ -572,9 +572,6 @@ export type Database = {
           neg_desconto: number | null
           neg_parcelas: number | null
           neg_valor_acordo: number | null
-          pessoa_fatura_celular: string | null
-          pessoa_fatura_cpf_cnpj: string | null
-          pessoa_fatura_nome: string | null
           qt_fats: number | null
           refs: string | null
           tipo_baixa: string | null
@@ -594,9 +591,6 @@ export type Database = {
           neg_desconto?: number | null
           neg_parcelas?: number | null
           neg_valor_acordo?: number | null
-          pessoa_fatura_celular?: string | null
-          pessoa_fatura_cpf_cnpj?: string | null
-          pessoa_fatura_nome?: string | null
           qt_fats?: number | null
           refs?: string | null
           tipo_baixa?: string | null
@@ -616,9 +610,6 @@ export type Database = {
           neg_desconto?: number | null
           neg_parcelas?: number | null
           neg_valor_acordo?: number | null
-          pessoa_fatura_celular?: string | null
-          pessoa_fatura_cpf_cnpj?: string | null
-          pessoa_fatura_nome?: string | null
           qt_fats?: number | null
           refs?: string | null
           tipo_baixa?: string | null
@@ -950,9 +941,6 @@ export const Constants = {
 //   valor_total: numeric (nullable)
 //   refs: text (nullable)
 //   cod_pess_fat: text (nullable)
-//   pessoa_fatura_nome: text (nullable)
-//   pessoa_fatura_cpf_cnpj: text (nullable)
-//   pessoa_fatura_celular: text (nullable)
 //   databaixa_inicial: date (nullable)
 //   databaixa_final: date (nullable)
 //   datacredito_inicial: date (nullable)

@@ -1,19 +1,8 @@
 import { useEffect, useState, useCallback } from 'react'
-import { Link } from 'react-router-dom'
-import { Search, ArrowRight, Clock, MapPin, Info } from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
+import { supabase } from '@/lib/supabase/client'
+import { useAuth } from '@/hooks/use-auth'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+import { Input } from '@/components/ui/input'
 import {
   Select,
   SelectContent,
@@ -21,638 +10,530 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { getDebts, ParsedDebt } from '@/services/debts'
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable'
+import {
+  Search,
+  ChevronLeft,
+  ChevronRight,
+  User,
+  PhoneCall,
+  Clock,
+  CheckCircle2,
+  ArrowUpDown,
+  MapPin,
+} from 'lucide-react'
 import { useDebounce } from '@/hooks/use-debounce'
-import { useAuth } from '@/hooks/use-auth'
-import { format } from 'date-fns'
-import { ptBR } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
-import { supabase } from '@/lib/supabase/client'
-
-type EnrichedDebt = ParsedDebt & { valorRetido: number }
-
-const safeText = (text: any): string => (typeof text === 'string' ? text : '')
-const safeSlice = (text: any, start: number, end?: number): string =>
-  typeof text === 'string' ? text.slice(start, end) : ''
+import { format, parseISO } from 'date-fns'
+import { CustomerActionForm } from '@/pages/customer/CustomerActionForm'
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from '@/components/ui/sheet'
+import { parseDebtRow, type ParsedDebt } from '@/services/debts'
 
 export default function Queue() {
   const { user } = useAuth()
-  const [search, setSearch] = useState('')
-  const [searchAddress, setSearchAddress] = useState('')
-  const [debtStatus, setDebtStatus] = useState<'vencido' | 'a_vencer' | 'ambos'>('vencido')
-  const [lotesFilter, setLotesFilter] = useState<'nao_vagos' | 'so_vagos' | 'ambos'>('nao_vagos')
-  const [retainedFilter, setRetainedFilter] = useState<'nao_retidos' | 'so_retidos' | 'ambos'>(
-    'nao_retidos',
-  )
-  const debouncedSearch = useDebounce(search, 500)
-  const debouncedSearchAddress = useDebounce(searchAddress, 500)
+  const [isMobile, setIsMobile] = useState(false)
 
-  const [unattended, setUnattended] = useState<EnrichedDebt[]>([])
-  const [attended, setAttended] = useState<EnrichedDebt[]>([])
-  const [loading, setLoading] = useState(true)
+  // Debtors State
+  const [debtors, setDebtors] = useState<ParsedDebt[]>([])
+  const [debtorsCount, setDebtorsCount] = useState(0)
+  const [debtorsLoading, setDebtorsLoading] = useState(false)
+  const [debtorsPage, setDebtorsPage] = useState(1)
+  const [debtorsPageSize, setDebtorsPageSize] = useState('10')
+  const [debtorsSortBy, setDebtorsSortBy] = useState('valor_total')
+  const [debtSearch, setDebtSearch] = useState('')
+  const debouncedDebtSearch = useDebounce(debtSearch, 500)
 
-  const fetchQueue = useCallback(() => {
-    if (!user?.id) return
-    setLoading(true)
-    setUnattended([])
-    setAttended([])
+  // Attended State
+  const [contacts, setContacts] = useState<any[]>([])
+  const [contactsCount, setContactsCount] = useState(0)
+  const [contactsLoading, setContactsLoading] = useState(false)
+  const [contactsPage, setContactsPage] = useState(1)
+  const [contactsPageSize, setContactsPageSize] = useState('10')
+  const [attendedOperator, setAttendedOperator] = useState<string>('todos')
 
-    const fetchHideLotes = lotesFilter === 'nao_vagos'
+  // Operators List
+  const [operators, setOperators] = useState<any[]>([])
 
-    getDebts(debouncedSearch, user.id, debouncedSearchAddress, debtStatus, fetchHideLotes)
-      .then(async (data) => {
-        const allUcs = [...data.unattended, ...data.attended].map((d) => d.uc)
-        const uniqueUcs = Array.from(new Set(allUcs))
-        const retidasMap: Record<string, number> = {}
-
-        if (uniqueUcs.length > 0) {
-          const chunkSize = 100
-          for (let i = 0; i < uniqueUcs.length; i += chunkSize) {
-            const chunk = uniqueUcs.slice(i, i + chunkSize)
-            const { data: retidasData } = await supabase
-              .from('pending_debts')
-              .select('uc, valor_retidas_em_aberto')
-              .in('uc', chunk)
-
-            if (retidasData) {
-              retidasData.forEach((r) => {
-                if (r.valor_retidas_em_aberto) {
-                  retidasMap[r.uc] = (retidasMap[r.uc] || 0) + Number(r.valor_retidas_em_aberto)
-                }
-              })
-            }
-          }
-        }
-
-        const enrichDebt = (d: ParsedDebt): EnrichedDebt => ({
-          ...d,
-          valorRetido: retidasMap[d.uc] || 0,
-        })
-
-        let unattendedRes = data.unattended.map(enrichDebt)
-        let attendedRes = data.attended.map(enrichDebt)
-
-        if (lotesFilter === 'so_vagos') {
-          unattendedRes = unattendedRes.filter((d) => d.isLoteVago)
-          attendedRes = attendedRes.filter((d) => d.isLoteVago)
-        }
-
-        if (retainedFilter === 'nao_retidos') {
-          unattendedRes = unattendedRes.filter((d) => d.valorRetido === 0)
-          attendedRes = attendedRes.filter((d) => d.valorRetido === 0)
-        } else if (retainedFilter === 'so_retidos') {
-          unattendedRes = unattendedRes.filter((d) => d.valorRetido > 0)
-          attendedRes = attendedRes.filter((d) => d.valorRetido > 0)
-        }
-
-        setUnattended(unattendedRes)
-        setAttended(attendedRes)
-        setLoading(false)
-      })
-      .catch((err) => {
-        console.error(err)
-        setLoading(false)
-      })
-  }, [debouncedSearch, debouncedSearchAddress, debtStatus, lotesFilter, retainedFilter, user?.id])
+  // Action Sheet State
+  const [selectedDebt, setSelectedDebt] = useState<ParsedDebt | null>(null)
+  const [isActionSheetOpen, setIsActionSheetOpen] = useState(false)
 
   useEffect(() => {
-    fetchQueue()
-  }, [fetchQueue])
+    const checkMobile = () => setIsMobile(window.innerWidth < 1024)
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
 
   useEffect(() => {
-    window.addEventListener('contact-added', fetchQueue)
-    return () => window.removeEventListener('contact-added', fetchQueue)
-  }, [fetchQueue])
+    if (user) {
+      setAttendedOperator(user.id)
+    }
+  }, [user])
 
-  const getDisplayedValue = (customer: EnrichedDebt) => {
-    if (debtStatus === 'vencido') return customer.valorVencido
-    if (debtStatus === 'a_vencer') return customer.valorAVencer
-    return customer.totalDebt
+  useEffect(() => {
+    supabase
+      .from('profiles')
+      .select('id, name, first_name, last_name, color')
+      .order('first_name', { ascending: true })
+      .then(({ data }) => {
+        if (data) setOperators(data)
+      })
+  }, [])
+
+  const fetchDebtors = useCallback(async () => {
+    setDebtorsLoading(true)
+    try {
+      let q = supabase.from('pending_debts').select('*', { count: 'exact' })
+
+      if (debouncedDebtSearch) {
+        q = q.or(
+          `uc.ilike.%${debouncedDebtSearch}%,pessoa_fatura_nome.ilike.%${debouncedDebtSearch}%,cod_pess_fat.ilike.%${debouncedDebtSearch}%`,
+        )
+      }
+
+      const size = parseInt(debtorsPageSize)
+      const from = (debtorsPage - 1) * size
+      const to = from + size - 1
+
+      if (debtorsSortBy === 'uc') {
+        q = q.order('uc', { ascending: true })
+      } else if (debtorsSortBy === 'nome') {
+        q = q.order('pessoa_fatura_nome', { ascending: true })
+      } else {
+        q = q.order('valor_total', { ascending: false })
+      }
+
+      q = q.range(from, to)
+
+      const { data, count, error } = await q
+      if (!error && data) {
+        setDebtors(data.map(parseDebtRow))
+        setDebtorsCount(count || 0)
+      }
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setDebtorsLoading(false)
+    }
+  }, [debouncedDebtSearch, debtorsPage, debtorsPageSize, debtorsSortBy])
+
+  const fetchContacts = useCallback(async () => {
+    if (!attendedOperator) return
+    setContactsLoading(true)
+    try {
+      let q = supabase
+        .from('contact_history')
+        .select(
+          '*, profiles!contact_history_operator_id_fkey(name, first_name, last_name, color)',
+          { count: 'exact' },
+        )
+        .eq('is_active', true)
+
+      if (attendedOperator !== 'todos') {
+        q = q.eq('operator_id', attendedOperator)
+      }
+
+      const size = parseInt(contactsPageSize)
+      const from = (contactsPage - 1) * size
+      const to = from + size - 1
+
+      q = q.order('created_at', { ascending: false }).range(from, to)
+
+      const { data, count, error } = await q
+      if (!error && data) {
+        setContacts(data)
+        setContactsCount(count || 0)
+      }
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setContactsLoading(false)
+    }
+  }, [attendedOperator, contactsPage, contactsPageSize])
+
+  useEffect(() => {
+    fetchDebtors()
+  }, [fetchDebtors])
+
+  useEffect(() => {
+    fetchContacts()
+  }, [fetchContacts])
+
+  useEffect(() => {
+    const handleContactAdded = () => {
+      fetchContacts()
+      fetchDebtors()
+      setIsActionSheetOpen(false)
+      setSelectedDebt(null)
+    }
+    window.addEventListener('contact-added', handleContactAdded)
+    return () => window.removeEventListener('contact-added', handleContactAdded)
+  }, [fetchContacts, fetchDebtors])
+
+  const handleAtender = (debt: ParsedDebt) => {
+    setSelectedDebt(debt)
+    setIsActionSheetOpen(true)
   }
 
+  const renderPagination = (
+    page: number,
+    setPage: (p: number) => void,
+    totalCount: number,
+    pageSize: string,
+  ) => {
+    const size = parseInt(pageSize)
+    const totalPages = Math.ceil(totalCount / size)
+    const from = (page - 1) * size + 1
+    const to = Math.min(page * size, totalCount)
+
+    return (
+      <div className="flex items-center justify-between px-2">
+        <span className="text-xs text-slate-500">
+          {totalCount > 0 ? `Mostrando ${from} a ${to} de ${totalCount}` : 'Nenhum registro'}
+        </span>
+        <div className="flex items-center gap-1">
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-7 w-7"
+            onClick={() => setPage(Math.max(1, page - 1))}
+            disabled={page <= 1}
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <span className="text-xs font-medium px-2 text-slate-600">
+            {page} / {totalPages || 1}
+          </span>
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-7 w-7"
+            onClick={() => setPage(Math.min(totalPages, page + 1))}
+            disabled={page >= totalPages}
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
+  const renderDebtorsQueue = () => (
+    <div className="flex flex-col h-full bg-slate-50/50">
+      <div className="p-4 border-b bg-white shrink-0 space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="font-bold text-lg text-slate-800 flex items-center gap-2">
+            <PhoneCall className="w-5 h-5 text-primary" /> Fila de Devedores
+          </h2>
+        </div>
+        <div className="flex flex-col sm:flex-row gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+            <Input
+              placeholder="Buscar UC, Nome ou CPF/CNPJ..."
+              value={debtSearch}
+              onChange={(e) => {
+                setDebtSearch(e.target.value)
+                setDebtorsPage(1)
+              }}
+              className="pl-9 h-10 rounded-xl bg-white border-slate-200 shadow-sm focus-visible:ring-primary/20"
+            />
+          </div>
+          <Select
+            value={debtorsSortBy}
+            onValueChange={(v) => {
+              setDebtorsSortBy(v)
+              setDebtorsPage(1)
+            }}
+          >
+            <SelectTrigger className="w-full sm:w-[180px] h-10 rounded-xl bg-white border-slate-200 shadow-sm shrink-0">
+              <div className="flex items-center gap-2 text-slate-600">
+                <ArrowUpDown className="w-4 h-4 shrink-0" />
+                <span className="truncate">
+                  <SelectValue placeholder="Ordenar por" />
+                </span>
+              </div>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="uc">UC</SelectItem>
+              <SelectItem value="valor_total">Valor Total da Dívida</SelectItem>
+              <SelectItem value="nome">Nome do Cliente</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select
+            value={debtorsPageSize}
+            onValueChange={(v) => {
+              setDebtorsPageSize(v)
+              setDebtorsPage(1)
+            }}
+          >
+            <SelectTrigger className="w-full sm:w-[90px] h-10 rounded-xl bg-white border-slate-200 shadow-sm shrink-0">
+              <SelectValue placeholder="Qtd" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="10">10</SelectItem>
+              <SelectItem value="20">20</SelectItem>
+              <SelectItem value="50">50</SelectItem>
+              <SelectItem value="100">100</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-y-auto p-4 space-y-3">
+        {debtorsLoading ? (
+          <div className="text-center py-8 text-slate-500 text-sm">Carregando fila...</div>
+        ) : debtors.length === 0 ? (
+          <div className="text-center py-8 text-slate-400 text-sm border-2 border-dashed border-slate-200 rounded-xl bg-white/50">
+            Nenhum devedor encontrado.
+          </div>
+        ) : (
+          debtors.map((debt) => (
+            <div
+              key={`${debt.uc}_${debt.personCode}`}
+              className="p-4 bg-white border border-slate-200 rounded-xl hover:border-primary/50 shadow-sm transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+            >
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-xs font-bold px-2 py-0.5 bg-slate-100 text-slate-600 rounded-md">
+                    UC {debt.uc}
+                  </span>
+                  <span className="text-sm font-black text-rose-600">
+                    R$ {debt.totalDebt.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  </span>
+                </div>
+                <h3 className="font-bold text-slate-800 truncate" title={debt.name}>
+                  {debt.name || 'Sem nome'}
+                </h3>
+                {debt.address && (
+                  <p
+                    className="text-xs text-slate-500 mt-1 flex items-center gap-1 truncate"
+                    title={debt.address}
+                  >
+                    <MapPin className="w-3 h-3 shrink-0" /> {debt.address}
+                  </p>
+                )}
+              </div>
+              <Button
+                onClick={() => handleAtender(debt)}
+                className="shrink-0 w-full sm:w-auto shadow-sm"
+              >
+                Atender Cliente
+              </Button>
+            </div>
+          ))
+        )}
+      </div>
+
+      <div className="p-3 border-t bg-white shrink-0">
+        {renderPagination(debtorsPage, setDebtorsPage, debtorsCount, debtorsPageSize)}
+      </div>
+    </div>
+  )
+
+  const renderAttendedQueue = () => (
+    <div className="flex flex-col h-full bg-slate-50/50">
+      <div className="p-4 border-b bg-white shrink-0 space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="font-bold text-lg text-slate-800 flex items-center gap-2">
+            <CheckCircle2 className="w-5 h-5 text-emerald-600" /> Fila de Atendimento
+          </h2>
+        </div>
+        <div className="flex flex-col sm:flex-row gap-2">
+          <Select
+            value={attendedOperator}
+            onValueChange={(v) => {
+              setAttendedOperator(v)
+              setContactsPage(1)
+            }}
+          >
+            <SelectTrigger className="w-full h-10 rounded-xl bg-white border-slate-200 shadow-sm">
+              <div className="flex items-center gap-2 text-slate-600">
+                <User className="w-4 h-4 shrink-0" />
+                <span className="truncate">
+                  <SelectValue placeholder="Filtrar Atendente" />
+                </span>
+              </div>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos os Atendentes</SelectItem>
+              {operators.map((op) => (
+                <SelectItem key={op.id} value={op.id}>
+                  {op.first_name
+                    ? `${op.first_name} ${op.last_name || ''}`.trim()
+                    : op.name || 'Sem nome'}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select
+            value={contactsPageSize}
+            onValueChange={(v) => {
+              setContactsPageSize(v)
+              setContactsPage(1)
+            }}
+          >
+            <SelectTrigger className="w-full sm:w-[90px] h-10 rounded-xl bg-white border-slate-200 shadow-sm shrink-0">
+              <SelectValue placeholder="Qtd" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="10">10</SelectItem>
+              <SelectItem value="20">20</SelectItem>
+              <SelectItem value="50">50</SelectItem>
+              <SelectItem value="100">100</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-y-auto p-4 space-y-3">
+        {contactsLoading ? (
+          <div className="text-center py-8 text-slate-500 text-sm">Carregando fila...</div>
+        ) : contacts.length === 0 ? (
+          <div className="text-center py-8 text-slate-400 text-sm border-2 border-dashed border-slate-200 rounded-xl bg-white/50">
+            Nenhum atendimento registrado.
+          </div>
+        ) : (
+          contacts.map((contact) => (
+            <div
+              key={contact.id}
+              className="p-3 bg-white border border-slate-200 rounded-xl shadow-sm hover:border-slate-300 transition-colors"
+            >
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <div
+                    className="w-2 h-2 rounded-full"
+                    style={{ backgroundColor: contact.profiles?.color || '#94a3b8' }}
+                  />
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-600">
+                    {contact.profiles?.first_name || contact.profiles?.name || 'Operador'}
+                  </span>
+                </div>
+                <span className="text-[10px] font-medium text-slate-400 flex items-center">
+                  <Clock className="w-3 h-3 mr-1" />
+                  {format(parseISO(contact.created_at), 'dd/MM/yy HH:mm')}
+                </span>
+              </div>
+              <div className="flex items-center gap-2 mb-1.5">
+                <span className="text-xs font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded">
+                  UC {contact.uc}
+                </span>
+                <span className="text-[10px] font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded border border-primary/20">
+                  {contact.contact_type || 'Contato'}
+                </span>
+              </div>
+              <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed bg-slate-50 p-2 rounded border border-slate-100 mt-2">
+                {contact.notes || 'Sem observações.'}
+              </p>
+              {contact.status && (
+                <div className="mt-2 text-[10px] font-medium text-slate-500">
+                  Status: <span className="font-semibold text-slate-700">{contact.status}</span>
+                </div>
+              )}
+            </div>
+          ))
+        )}
+      </div>
+
+      <div className="p-3 border-t bg-white shrink-0">
+        {renderPagination(contactsPage, setContactsPage, contactsCount, contactsPageSize)}
+      </div>
+    </div>
+  )
+
   return (
-    <div className="space-y-6 animate-fade-in-up pb-10">
-      <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 shrink-0">
-        <div>
-          <h1 className="text-3xl font-black tracking-tight text-slate-900">Fila Rápida</h1>
-          <p className="text-slate-500 mt-1 font-medium">
-            Gerencie seus contatos pendentes e acompanhe suas negociações em andamento.
-          </p>
-        </div>
-
-        <div className="flex flex-col gap-2 w-full xl:w-auto">
-          <div className="flex flex-col sm:flex-row gap-2 w-full xl:justify-end">
-            <Select value={lotesFilter} onValueChange={(v: any) => setLotesFilter(v)}>
-              <SelectTrigger className="w-full sm:w-[160px] h-10 rounded-xl bg-white border-slate-200 shadow-sm focus-visible:ring-primary/20 shrink-0">
-                <SelectValue placeholder="Lotes Vagos" />
-              </SelectTrigger>
-              <SelectContent className="rounded-xl">
-                <SelectItem value="nao_vagos">Só com Ligação</SelectItem>
-                <SelectItem value="so_vagos">Só Lotes Vagos</SelectItem>
-                <SelectItem value="ambos">Ambos</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={retainedFilter} onValueChange={(v: any) => setRetainedFilter(v)}>
-              <SelectTrigger className="w-full sm:w-[160px] h-10 rounded-xl bg-white border-slate-200 shadow-sm focus-visible:ring-primary/20 shrink-0">
-                <SelectValue placeholder="Retidos" />
-              </SelectTrigger>
-              <SelectContent className="rounded-xl">
-                <SelectItem value="nao_retidos">Só Emitidas</SelectItem>
-                <SelectItem value="so_retidos">Só Retidas</SelectItem>
-                <SelectItem value="ambos">Ambos</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={debtStatus} onValueChange={(v: any) => setDebtStatus(v)}>
-              <SelectTrigger className="w-full sm:w-[140px] h-10 rounded-xl bg-white border-slate-200 shadow-sm focus-visible:ring-primary/20 shrink-0">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent className="rounded-xl">
-                <SelectItem value="vencido">Vencidos</SelectItem>
-                <SelectItem value="a_vencer">A Vencer</SelectItem>
-                <SelectItem value="ambos">Ambos</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="flex flex-col sm:flex-row gap-2 w-full xl:justify-end">
-            <div className="relative w-full sm:w-[350px]">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-              <Input
-                placeholder="Filtre UC, qualquer parte do nome ou Cpf/Cnpj"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pl-9 rounded-xl bg-white border-slate-200 shadow-sm h-10 w-full focus-visible:ring-primary/20"
-              />
-            </div>
-            <div className="relative w-full sm:w-[300px]">
-              <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-              <Input
-                placeholder="Digite qualquer parte do Endereço"
-                value={searchAddress}
-                onChange={(e) => setSearchAddress(e.target.value)}
-                className="pl-9 rounded-xl bg-white border-slate-200 shadow-sm h-10 w-full focus-visible:ring-primary/20"
-              />
-            </div>
-          </div>
-        </div>
+    <div
+      className={cn(
+        'animate-fade-in-up flex flex-col min-h-[600px] space-y-4',
+        isMobile
+          ? 'pb-10'
+          : 'h-[calc(100vh-2.5rem)] md:h-[calc(100vh-3.5rem)] lg:h-[calc(100vh-4.5rem)] pb-0',
+      )}
+    >
+      <div className="shrink-0">
+        <h1 className="text-3xl font-black tracking-tight text-slate-900">Fila Rápida</h1>
+        <p className="text-slate-500 mt-1 font-medium">
+          Gestão ágil de devedores e histórico de atendimentos.
+        </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-        {/* Coluna Esquerda: Fila de Devedores */}
-        <Card className="border-slate-200 shadow-sm flex flex-col h-[calc(100vh-12rem)] min-h-[500px] overflow-hidden">
-          <CardHeader className="px-5 py-4 border-b bg-white flex flex-row items-center justify-between shrink-0">
-            <div>
-              <CardTitle className="text-base font-bold text-slate-800">
-                Fila de Devedores
-              </CardTitle>
-              <CardDescription className="text-xs mt-0.5">
-                Novas oportunidades de negociação
-              </CardDescription>
+      <div className="flex-1 min-h-0 -mx-4 sm:mx-0">
+        {isMobile ? (
+          <div className="flex flex-col gap-6 h-full overflow-y-auto px-4 sm:px-0">
+            <div className="h-[600px] border rounded-xl overflow-hidden shadow-sm shrink-0">
+              {renderDebtorsQueue()}
             </div>
-            <div className="bg-slate-100 border border-slate-200 px-3 py-1 rounded-full text-xs font-bold text-slate-600 shadow-sm">
-              {unattended.length} {unattended.length === 1 ? 'pendente' : 'pendentes'}
+            <div className="h-[600px] border rounded-xl overflow-hidden shadow-sm shrink-0">
+              {renderAttendedQueue()}
             </div>
-          </CardHeader>
-          <CardContent className="p-0 flex-1 overflow-hidden flex flex-col">
-            <div className="flex-1 overflow-hidden [&>div]:h-full [&>div]:overflow-auto">
-              <Table>
-                <TableHeader className="bg-slate-50 sticky top-0 z-10 outline outline-1 outline-slate-100 shadow-sm">
-                  <TableRow className="border-slate-100 hover:bg-transparent">
-                    <TableHead className="font-semibold text-slate-600">Devedor / UC</TableHead>
-                    <TableHead className="font-semibold text-slate-600 w-[180px]">
-                      {debtStatus === 'vencido'
-                        ? 'Valor Vencido'
-                        : debtStatus === 'a_vencer'
-                          ? 'Valor A Vencer'
-                          : 'Valor Total'}
-                    </TableHead>
-                    <TableHead className="text-right font-semibold text-slate-600 w-[60px]"></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {loading ? (
-                    <TableRow>
-                      <TableCell
-                        colSpan={3}
-                        className="text-center py-10 text-slate-500 font-medium"
-                      >
-                        Buscando devedores...
-                      </TableCell>
-                    </TableRow>
-                  ) : unattended.length === 0 ? (
-                    <TableRow>
-                      <TableCell
-                        colSpan={3}
-                        className="text-center py-10 text-slate-500 font-medium"
-                      >
-                        Nenhum devedor novo encontrado.
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    unattended.map((customer) => (
-                      <TableRow
-                        key={`${customer.uc}_${customer.personCode}`}
-                        className={cn(
-                          'border-slate-100 group transition-colors',
-                          customer.valorRetido > 0
-                            ? 'bg-orange-50/40 hover:bg-orange-100/50'
-                            : customer.isLoteVago
-                              ? 'bg-amber-50/40 hover:bg-amber-100/50'
-                              : 'hover:bg-primary/5',
-                        )}
-                      >
-                        <TableCell>
-                          <div className="flex flex-col max-w-[180px] sm:max-w-[250px]">
-                            <span
-                              className={cn(
-                                'font-bold truncate',
-                                customer.isLoteVago ? 'text-amber-950' : 'text-slate-900',
-                              )}
-                              title={safeText(customer.name)}
-                            >
-                              {safeText(customer.name)}
-                            </span>
-                            <span
-                              className="text-xs font-medium text-slate-500 truncate flex items-center gap-1 flex-wrap"
-                              title={`${customer.uc} • ${safeText(customer.document)}`}
-                            >
-                              UC: {customer.uc} • {safeText(customer.document)}
-                              {customer.isLoteVago && (
-                                <Badge
-                                  variant="outline"
-                                  className="bg-amber-100 text-amber-800 border-amber-200 text-[9px] px-1.5 py-0 leading-none uppercase shrink-0"
-                                >
-                                  Lote Vago
-                                </Badge>
-                              )}
-                            </span>
-                            {customer.address && (
-                              <div className="flex items-center flex-wrap gap-1.5 mt-0.5">
-                                <span
-                                  className="text-xs font-medium text-slate-400 truncate max-w-[150px] sm:max-w-[200px]"
-                                  title={safeText(customer.address)}
-                                >
-                                  {safeText(customer.address)}
-                                </span>
-                                <a
-                                  href={`https://www.google.com.br/maps/search/?api=1&query=${encodeURIComponent(customer.address)}`}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  onClick={(e) => e.stopPropagation()}
-                                  className="inline-flex items-center text-[10px] text-primary hover:text-primary/80 hover:bg-primary/10 px-1.5 py-0.5 rounded transition-colors shrink-0"
-                                  title="Ver no Mapa"
-                                >
-                                  <MapPin className="w-3 h-3" />
-                                </a>
-                              </div>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex flex-col items-start">
-                            <div className="flex items-center gap-1.5">
-                              <span
-                                className={cn(
-                                  'font-bold whitespace-nowrap',
-                                  customer.valorRetido > 0 ? 'text-orange-600' : 'text-slate-900',
-                                )}
-                              >
-                                R${' '}
-                                {getDisplayedValue(customer).toLocaleString('pt-BR', {
-                                  minimumFractionDigits: 2,
-                                })}
-                              </span>
-                              {customer.valorRetido > 0 && (
-                                <Badge className="bg-orange-100 text-orange-800 hover:bg-orange-200 border-none text-[9px] px-1.5 py-0 uppercase tracking-wider shrink-0">
-                                  Retido
-                                </Badge>
-                              )}
-                              {(customer.valorVencido > 0 ||
-                                customer.valorAVencer > 0 ||
-                                customer.valorRetido > 0) && (
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Info
-                                      className={cn(
-                                        'h-3.5 w-3.5 cursor-help shrink-0',
-                                        customer.valorRetido > 0
-                                          ? 'text-orange-400 hover:text-orange-600'
-                                          : 'text-slate-400 hover:text-primary',
-                                      )}
-                                    />
-                                  </TooltipTrigger>
-                                  <TooltipContent className="p-2 bg-white border border-slate-200 shadow-lg rounded-lg text-xs">
-                                    <div className="space-y-1">
-                                      {customer.valorVencido > 0 && (
-                                        <div className="flex justify-between gap-3">
-                                          <span className="text-slate-500">Vencido:</span>
-                                          <span className="font-bold text-rose-600">
-                                            R${' '}
-                                            {(customer.valorVencido || 0).toLocaleString('pt-BR', {
-                                              minimumFractionDigits: 2,
-                                            })}
-                                          </span>
-                                        </div>
-                                      )}
-                                      {customer.valorAVencer > 0 && (
-                                        <div className="flex justify-between gap-3">
-                                          <span className="text-slate-500">A Vencer:</span>
-                                          <span className="font-bold text-emerald-600">
-                                            R${' '}
-                                            {(customer.valorAVencer || 0).toLocaleString('pt-BR', {
-                                              minimumFractionDigits: 2,
-                                            })}
-                                          </span>
-                                        </div>
-                                      )}
-                                      {customer.valorRetido > 0 && (
-                                        <div className="flex justify-between gap-3">
-                                          <span className="text-slate-500">Retido:</span>
-                                          <span className="font-bold text-orange-600">
-                                            R${' '}
-                                            {(customer.valorRetido || 0).toLocaleString('pt-BR', {
-                                              minimumFractionDigits: 2,
-                                            })}
-                                          </span>
-                                        </div>
-                                      )}
-                                    </div>
-                                  </TooltipContent>
-                                </Tooltip>
-                              )}
-                            </div>
-                            {customer.recentOperators && customer.recentOperators.length > 0 && (
-                              <div className="flex flex-wrap items-center gap-1 mt-1">
-                                {customer.recentOperators.map((op, idx) => (
-                                  <Badge
-                                    key={idx}
-                                    className={cn(
-                                      'w-fit text-[9px] px-1.5 py-0 uppercase tracking-wider shadow-none hover:opacity-80 transition-opacity',
-                                      idx === 0
-                                        ? 'bg-slate-600 text-white'
-                                        : idx === 1
-                                          ? 'bg-slate-400 text-white'
-                                          : 'bg-slate-300 text-slate-700',
-                                    )}
-                                    title={`Atendido por: ${op}`}
-                                  >
-                                    {safeSlice(op, 0, 4)}
-                                  </Badge>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            asChild
-                            className="text-slate-400 group-hover:text-primary group-hover:bg-primary/10 rounded-full transition-all"
-                          >
-                            <Link to={`/customer/${customer.id}`} title="Atender Devedor">
-                              <ArrowRight className="h-4 w-4" />
-                            </Link>
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Coluna Direita: Fila de Atendimento */}
-        <Card className="border-slate-200 shadow-sm flex flex-col h-[calc(100vh-12rem)] min-h-[500px] overflow-hidden">
-          <CardHeader className="px-5 py-4 border-b bg-primary/5 flex flex-row items-center justify-between shrink-0">
-            <div>
-              <CardTitle className="text-base font-bold text-primary">
-                Fila de Atendimento
-              </CardTitle>
-              <CardDescription className="text-primary/70 text-xs mt-0.5">
-                Meus contatos em andamento
-              </CardDescription>
-            </div>
-            <div className="bg-white border border-primary/20 px-3 py-1 rounded-full text-xs font-bold text-primary shadow-sm">
-              {attended.length} em carteira
-            </div>
-          </CardHeader>
-          <CardContent className="p-0 flex-1 overflow-hidden flex flex-col">
-            <div className="flex-1 overflow-hidden [&>div]:h-full [&>div]:overflow-auto">
-              <Table>
-                <TableHeader className="bg-slate-50 sticky top-0 z-10 outline outline-1 outline-slate-100 shadow-sm">
-                  <TableRow className="border-slate-100 hover:bg-transparent">
-                    <TableHead className="font-semibold text-slate-600">Devedor / UC</TableHead>
-                    <TableHead className="font-semibold text-slate-600 w-[140px]">
-                      Último Contato
-                    </TableHead>
-                    <TableHead className="text-right font-semibold text-slate-600 w-[60px]"></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {loading ? (
-                    <TableRow>
-                      <TableCell
-                        colSpan={3}
-                        className="text-center py-10 text-slate-500 font-medium"
-                      >
-                        Buscando atendimentos...
-                      </TableCell>
-                    </TableRow>
-                  ) : attended.length === 0 ? (
-                    <TableRow>
-                      <TableCell
-                        colSpan={3}
-                        className="text-center py-10 text-slate-500 font-medium"
-                      >
-                        Você ainda não iniciou nenhum atendimento.
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    attended.map((customer) => (
-                      <TableRow
-                        key={`${customer.uc}_${customer.personCode}`}
-                        className={cn(
-                          'border-slate-100 group transition-colors',
-                          customer.valorRetido > 0
-                            ? 'bg-orange-50/40 hover:bg-orange-100/50'
-                            : customer.isLoteVago
-                              ? 'bg-amber-50/40 hover:bg-amber-100/50'
-                              : 'hover:bg-primary/5',
-                        )}
-                      >
-                        <TableCell>
-                          <div className="flex flex-col max-w-[180px] sm:max-w-[250px]">
-                            <span
-                              className={cn(
-                                'font-bold truncate',
-                                customer.isLoteVago ? 'text-amber-950' : 'text-slate-900',
-                              )}
-                              title={safeText(customer.name)}
-                            >
-                              {safeText(customer.name)}
-                            </span>
-                            <span
-                              className="text-xs font-medium text-slate-500 truncate flex items-center gap-1 flex-wrap"
-                              title={`UC: ${customer.uc}`}
-                            >
-                              UC: {customer.uc}
-                              {customer.isLoteVago && (
-                                <Badge
-                                  variant="outline"
-                                  className="bg-amber-100 text-amber-800 border-amber-200 text-[9px] px-1.5 py-0 leading-none uppercase shrink-0"
-                                >
-                                  Lote Vago
-                                </Badge>
-                              )}
-                            </span>
-                            <div className="flex items-center gap-1 mt-0.5">
-                              <span
-                                className={cn(
-                                  'text-xs font-semibold',
-                                  customer.valorRetido > 0 ? 'text-orange-600' : 'text-slate-700',
-                                )}
-                              >
-                                R${' '}
-                                {getDisplayedValue(customer).toLocaleString('pt-BR', {
-                                  minimumFractionDigits: 2,
-                                })}
-                              </span>
-                              {customer.valorRetido > 0 && (
-                                <Badge className="bg-orange-100 text-orange-800 hover:bg-orange-200 border-none text-[9px] px-1.5 py-0 uppercase tracking-wider shrink-0">
-                                  Retido
-                                </Badge>
-                              )}
-                              {(customer.valorVencido > 0 ||
-                                customer.valorAVencer > 0 ||
-                                customer.valorRetido > 0) && (
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Info
-                                      className={cn(
-                                        'h-3 w-3 cursor-help shrink-0',
-                                        customer.valorRetido > 0
-                                          ? 'text-orange-400 hover:text-orange-600'
-                                          : 'text-slate-400 hover:text-primary',
-                                      )}
-                                    />
-                                  </TooltipTrigger>
-                                  <TooltipContent className="p-2 bg-white border border-slate-200 shadow-lg rounded-lg text-xs">
-                                    <div className="space-y-1">
-                                      {customer.valorVencido > 0 && (
-                                        <div className="flex justify-between gap-3">
-                                          <span className="text-slate-500">Vencido:</span>
-                                          <span className="font-bold text-rose-600">
-                                            R${' '}
-                                            {(customer.valorVencido || 0).toLocaleString('pt-BR', {
-                                              minimumFractionDigits: 2,
-                                            })}
-                                          </span>
-                                        </div>
-                                      )}
-                                      {customer.valorAVencer > 0 && (
-                                        <div className="flex justify-between gap-3">
-                                          <span className="text-slate-500">A Vencer:</span>
-                                          <span className="font-bold text-emerald-600">
-                                            R${' '}
-                                            {(customer.valorAVencer || 0).toLocaleString('pt-BR', {
-                                              minimumFractionDigits: 2,
-                                            })}
-                                          </span>
-                                        </div>
-                                      )}
-                                      {customer.valorRetido > 0 && (
-                                        <div className="flex justify-between gap-3">
-                                          <span className="text-slate-500">Retido:</span>
-                                          <span className="font-bold text-orange-600">
-                                            R${' '}
-                                            {(customer.valorRetido || 0).toLocaleString('pt-BR', {
-                                              minimumFractionDigits: 2,
-                                            })}
-                                          </span>
-                                        </div>
-                                      )}
-                                    </div>
-                                  </TooltipContent>
-                                </Tooltip>
-                              )}
-                            </div>
-                            {customer.address && (
-                              <div className="flex items-center flex-wrap gap-1.5 mt-0.5">
-                                <span
-                                  className="text-xs font-medium text-slate-400 truncate max-w-[150px] sm:max-w-[200px]"
-                                  title={safeText(customer.address)}
-                                >
-                                  {safeText(customer.address)}
-                                </span>
-                                <a
-                                  href={`https://www.google.com.br/maps/search/?api=1&query=${encodeURIComponent(customer.address)}`}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  onClick={(e) => e.stopPropagation()}
-                                  className="inline-flex items-center text-[10px] text-primary hover:text-primary/80 hover:bg-primary/10 px-1.5 py-0.5 rounded transition-colors shrink-0"
-                                  title="Ver no Mapa"
-                                >
-                                  <MapPin className="w-3 h-3" />
-                                </a>
-                              </div>
-                            )}
-                            {customer.recentOperators && customer.recentOperators.length > 0 && (
-                              <div className="flex flex-wrap items-center gap-1 mt-1.5">
-                                {customer.recentOperators.map((op, idx) => (
-                                  <Badge
-                                    key={idx}
-                                    className={cn(
-                                      'w-fit text-[9px] px-1.5 py-0 uppercase tracking-wider shadow-none hover:opacity-80 transition-opacity',
-                                      idx === 0
-                                        ? 'bg-slate-600 text-white'
-                                        : idx === 1
-                                          ? 'bg-slate-400 text-white'
-                                          : 'bg-slate-300 text-slate-700',
-                                    )}
-                                    title={`Atendido por: ${op}`}
-                                  >
-                                    {safeSlice(op, 0, 4)}
-                                  </Badge>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-1.5 text-slate-600 whitespace-nowrap">
-                            <Clock className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-                            <span className="text-xs font-medium">
-                              {customer.lastContactDate
-                                ? format(new Date(customer.lastContactDate), "dd/MM 'às' HH:mm", {
-                                    locale: ptBR,
-                                  })
-                                : '-'}
-                            </span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            asChild
-                            className="text-slate-400 group-hover:text-primary group-hover:bg-primary/10 rounded-full transition-all"
-                          >
-                            <Link to={`/customer/${customer.id}`} title="Continuar Atendimento">
-                              <ArrowRight className="h-4 w-4" />
-                            </Link>
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-          </CardContent>
-        </Card>
+          </div>
+        ) : (
+          <ResizablePanelGroup
+            direction="horizontal"
+            className="border rounded-xl shadow-sm bg-white overflow-hidden h-full"
+          >
+            <ResizablePanel defaultSize={50} minSize={30} className="flex flex-col bg-white">
+              {renderDebtorsQueue()}
+            </ResizablePanel>
+            <ResizableHandle withHandle />
+            <ResizablePanel defaultSize={50} minSize={30} className="flex flex-col bg-white">
+              {renderAttendedQueue()}
+            </ResizablePanel>
+          </ResizablePanelGroup>
+        )}
       </div>
+
+      <Sheet open={isActionSheetOpen} onOpenChange={setIsActionSheetOpen}>
+        <SheetContent className="w-full sm:max-w-xl overflow-y-auto bg-slate-50 p-0 flex flex-col">
+          <SheetHeader className="p-6 bg-white border-b shrink-0">
+            <SheetTitle>Atendimento Rápido</SheetTitle>
+            <SheetDescription>
+              Registre o contato e defina o próximo passo para este devedor.
+            </SheetDescription>
+          </SheetHeader>
+          <div className="flex-1 p-6 overflow-y-auto">
+            {selectedDebt && (
+              <div className="space-y-4">
+                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm relative overflow-hidden">
+                  <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary/80"></div>
+                  <div className="pl-1">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-xs font-bold text-slate-500">UC {selectedDebt.uc}</span>
+                      <span className="text-sm font-black text-rose-600">
+                        R${' '}
+                        {selectedDebt.totalDebt.toLocaleString('pt-BR', {
+                          minimumFractionDigits: 2,
+                        })}
+                      </span>
+                    </div>
+                    <p className="font-bold text-sm text-slate-900">
+                      {selectedDebt.name || 'Sem nome'}
+                    </p>
+                    {selectedDebt.address && (
+                      <p className="text-[12px] text-slate-500 leading-tight mt-2 flex gap-1">
+                        <MapPin className="w-3 h-3 shrink-0" /> {selectedDebt.address}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <CustomerActionForm
+                  key={selectedDebt.id}
+                  customer={selectedDebt}
+                  isSheet={true}
+                  onClose={() => setIsActionSheetOpen(false)}
+                />
+              </div>
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   )
 }
