@@ -15,6 +15,7 @@ import {
   LineChart,
   Line,
   Tooltip,
+  ResponsiveContainer,
 } from 'recharts'
 import { supabase } from '@/lib/supabase/client'
 import { Target, Users, Zap, Wallet, TrendingDown, Lightbulb, Activity } from 'lucide-react'
