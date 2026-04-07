@@ -1,6 +1,7 @@
 import { Link, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard,
+  Presentation,
   Users,
   FileText,
   Settings,
@@ -34,6 +35,7 @@ import { SidebarQuote } from './SidebarQuote'
 
 const navigation = [
   { name: 'Visão Geral', href: '/', icon: LayoutDashboard },
+  { name: 'Painel Estratégico', href: '/strategic-dashboard', icon: Presentation },
   { name: 'Fila Rápida', href: '/queue', icon: PhoneCall },
   { name: 'Follow-up', href: '/follow-up', icon: CalendarDays },
   { name: 'Atualizar Cadastros', href: '/cadastral-updates', icon: UserCog },

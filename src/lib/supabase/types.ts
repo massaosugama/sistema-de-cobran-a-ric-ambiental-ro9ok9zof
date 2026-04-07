@@ -620,7 +620,36 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      vw_pending_debts_with_contacts: {
+        Row: {
+          cod_pess_fat: string | null
+          contact_count: number | null
+          endereco: string | null
+          latest_contact_date: string | null
+          operator_ids: Json | null
+          pessoa_fatura_celular: string | null
+          pessoa_fatura_cpf_cnpj: string | null
+          pessoa_fatura_nome: string | null
+          proprietario_celular: string | null
+          proprietario_cpf_cnpj: string | null
+          proprietario_nome: string | null
+          qt_fats: number | null
+          refs: string | null
+          responsavel_celular: string | null
+          responsavel_cpf_cnpj: string | null
+          responsavel_nome: string | null
+          setor: string | null
+          situ_docto: string | null
+          ta_nome_de_quem: string | null
+          uc: string | null
+          uc_repete: string | null
+          valor_a_vencer: number | null
+          valor_retidas_em_aberto: number | null
+          valor_total: number | null
+          valor_vencido: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       cleanup_old_settlements: { Args: never; Returns: undefined }
@@ -951,6 +980,32 @@ export const Constants = {
 //   neg_desconto: numeric (nullable)
 //   created_at: timestamp with time zone (not null, default: now())
 //   datacriacao: timestamp with time zone (nullable)
+// Table: vw_pending_debts_with_contacts
+//   uc: text (nullable)
+//   cod_pess_fat: text (nullable)
+//   setor: text (nullable)
+//   endereco: text (nullable)
+//   uc_repete: text (nullable)
+//   ta_nome_de_quem: text (nullable)
+//   qt_fats: integer (nullable)
+//   situ_docto: text (nullable)
+//   valor_total: numeric (nullable)
+//   refs: text (nullable)
+//   pessoa_fatura_nome: text (nullable)
+//   pessoa_fatura_cpf_cnpj: text (nullable)
+//   pessoa_fatura_celular: text (nullable)
+//   proprietario_nome: text (nullable)
+//   proprietario_cpf_cnpj: text (nullable)
+//   proprietario_celular: text (nullable)
+//   responsavel_nome: text (nullable)
+//   responsavel_cpf_cnpj: text (nullable)
+//   responsavel_celular: text (nullable)
+//   valor_vencido: numeric (nullable)
+//   valor_a_vencer: numeric (nullable)
+//   valor_retidas_em_aberto: numeric (nullable)
+//   latest_contact_date: timestamp with time zone (nullable)
+//   operator_ids: jsonb (nullable)
+//   contact_count: bigint (nullable)
 
 // --- CONSTRAINTS ---
 // Table: app_settings

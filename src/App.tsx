@@ -8,6 +8,7 @@ import { ProtectedRoute } from './components/ProtectedRoute'
 import Layout from './components/Layout'
 import Index from './pages/Index'
 import Queue from './pages/Queue'
+import StrategicDashboard from './pages/StrategicDashboard'
 import FollowUp from './pages/FollowUp'
 import CustomerPage from './pages/customer/CustomerPage'
 import ImportData from './pages/ImportData'
@@ -29,6 +30,7 @@ const App = () => (
             <Route element={<ProtectedRoute />}>
               <Route element={<Layout />}>
                 <Route path="/" element={<Index />} />
+                <Route path="/strategic-dashboard" element={<StrategicDashboard />} />
                 <Route path="/queue" element={<Queue />} />
                 <Route path="/follow-up" element={<FollowUp />} />
                 <Route path="/cadastral-updates" element={<CadastralUpdates />} />
