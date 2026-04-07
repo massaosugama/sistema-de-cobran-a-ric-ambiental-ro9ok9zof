@@ -1143,12 +1143,12 @@ export const Constants = {
 //     today_date date := date(now() AT TIME ZONE tz);
 //   BEGIN
 //     SELECT
-//       count(*) FILTER (WHERE COALESCE(setor, '') != '4036') as total_cases,
-//       COALESCE(sum(valor_total) FILTER (WHERE COALESCE(setor, '') != '4036'), 0) as total_value,
-//       COALESCE(sum(valor_vencido) FILTER (WHERE COALESCE(setor, '') != '4036'), 0) as total_vencido,
-//       COALESCE(sum(valor_a_vencer) FILTER (WHERE COALESCE(setor, '') != '4036'), 0) as total_a_vencer,
-//       COALESCE(sum(valor_retidas_em_aberto) FILTER (WHERE COALESCE(setor, '') != '4036'), 0) as total_retidas,
-//       count(*) FILTER (WHERE COALESCE(setor, '') != '4036' AND valor_retidas_em_aberto > 0) as total_retidas_cases,
+//       count(*) FILTER (WHERE COALESCE(setor, '') != '4036' AND COALESCE(valor_retidas_em_aberto, 0) <= 0) as total_cases,
+//       COALESCE(sum(valor_total) FILTER (WHERE COALESCE(setor, '') != '4036' AND COALESCE(valor_retidas_em_aberto, 0) <= 0), 0) as total_value,
+//       COALESCE(sum(valor_vencido) FILTER (WHERE COALESCE(setor, '') != '4036' AND COALESCE(valor_retidas_em_aberto, 0) <= 0), 0) as total_vencido,
+//       COALESCE(sum(valor_a_vencer) FILTER (WHERE COALESCE(setor, '') != '4036' AND COALESCE(valor_retidas_em_aberto, 0) <= 0), 0) as total_a_vencer,
+//       COALESCE(sum(valor_retidas_em_aberto) FILTER (WHERE COALESCE(setor, '') != '4036' AND COALESCE(valor_retidas_em_aberto, 0) > 0), 0) as total_retidas,
+//       count(*) FILTER (WHERE COALESCE(setor, '') != '4036' AND COALESCE(valor_retidas_em_aberto, 0) > 0) as total_retidas_cases,
 //       count(*) FILTER (WHERE COALESCE(setor, '') = '4036') as total_lotes_cases,
 //       COALESCE(sum(valor_total) FILTER (WHERE COALESCE(setor, '') = '4036'), 0) as total_lotes_value
 //     INTO curr_portfolio
@@ -1256,11 +1256,12 @@ export const Constants = {
 //     result json;
 //   BEGIN
 //     SELECT json_build_object(
-//       'total_cases', count(*) FILTER (WHERE COALESCE(setor, '') != '4036'),
-//       'total_value', COALESCE(sum(valor_total) FILTER (WHERE COALESCE(setor, '') != '4036'), 0),
-//       'total_vencido', COALESCE(sum(valor_vencido) FILTER (WHERE COALESCE(setor, '') != '4036'), 0),
-//       'total_a_vencer', COALESCE(sum(valor_a_vencer) FILTER (WHERE COALESCE(setor, '') != '4036'), 0),
-//       'total_retidas', COALESCE(sum(valor_retidas_em_aberto) FILTER (WHERE COALESCE(setor, '') != '4036'), 0),
+//       'total_cases', count(*) FILTER (WHERE COALESCE(setor, '') != '4036' AND COALESCE(valor_retidas_em_aberto, 0) <= 0),
+//       'total_value', COALESCE(sum(valor_total) FILTER (WHERE COALESCE(setor, '') != '4036' AND COALESCE(valor_retidas_em_aberto, 0) <= 0), 0),
+//       'total_vencido', COALESCE(sum(valor_vencido) FILTER (WHERE COALESCE(setor, '') != '4036' AND COALESCE(valor_retidas_em_aberto, 0) <= 0), 0),
+//       'total_a_vencer', COALESCE(sum(valor_a_vencer) FILTER (WHERE COALESCE(setor, '') != '4036' AND COALESCE(valor_retidas_em_aberto, 0) <= 0), 0),
+//       'total_retidas', COALESCE(sum(valor_retidas_em_aberto) FILTER (WHERE COALESCE(setor, '') != '4036' AND COALESCE(valor_retidas_em_aberto, 0) > 0), 0),
+//       'total_retidas_cases', count(*) FILTER (WHERE COALESCE(setor, '') != '4036' AND COALESCE(valor_retidas_em_aberto, 0) > 0),
 //       'total_lotes_cases', count(*) FILTER (WHERE COALESCE(setor, '') = '4036'),
 //       'total_lotes_value', COALESCE(sum(valor_total) FILTER (WHERE COALESCE(setor, '') = '4036'), 0)
 //     ) INTO result
@@ -1398,12 +1399,12 @@ export const Constants = {
 //       )
 //       SELECT
 //           CURRENT_DATE,
-//           COUNT(*) FILTER (WHERE COALESCE(setor, '') != '4036'),
-//           COALESCE(SUM(valor_total) FILTER (WHERE COALESCE(setor, '') != '4036'), 0),
-//           COALESCE(SUM(valor_vencido) FILTER (WHERE COALESCE(setor, '') != '4036'), 0),
-//           COALESCE(SUM(valor_a_vencer) FILTER (WHERE COALESCE(setor, '') != '4036'), 0),
-//           COALESCE(SUM(valor_retidas_em_aberto) FILTER (WHERE COALESCE(setor, '') != '4036'), 0),
-//           COUNT(*) FILTER (WHERE COALESCE(setor, '') != '4036' AND valor_retidas_em_aberto > 0),
+//           COUNT(*) FILTER (WHERE COALESCE(setor, '') != '4036' AND COALESCE(valor_retidas_em_aberto, 0) <= 0),
+//           COALESCE(SUM(valor_total) FILTER (WHERE COALESCE(setor, '') != '4036' AND COALESCE(valor_retidas_em_aberto, 0) <= 0), 0),
+//           COALESCE(SUM(valor_vencido) FILTER (WHERE COALESCE(setor, '') != '4036' AND COALESCE(valor_retidas_em_aberto, 0) <= 0), 0),
+//           COALESCE(SUM(valor_a_vencer) FILTER (WHERE COALESCE(setor, '') != '4036' AND COALESCE(valor_retidas_em_aberto, 0) <= 0), 0),
+//           COALESCE(SUM(valor_retidas_em_aberto) FILTER (WHERE COALESCE(setor, '') != '4036' AND COALESCE(valor_retidas_em_aberto, 0) > 0), 0),
+//           COUNT(*) FILTER (WHERE COALESCE(setor, '') != '4036' AND COALESCE(valor_retidas_em_aberto, 0) > 0),
 //           COUNT(*) FILTER (WHERE COALESCE(setor, '') = '4036'),
 //           COALESCE(SUM(valor_total) FILTER (WHERE COALESCE(setor, '') = '4036'), 0)
 //       FROM public.pending_debts

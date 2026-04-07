@@ -119,9 +119,7 @@ export default function Reversions() {
 
         let setQuery = supabase.from('settlements').select('uc')
         if (debouncedSearch) {
-          setQuery = setQuery.or(
-            `uc.ilike.%${debouncedSearch}%,pessoa_fatura_nome.ilike.%${debouncedSearch}%`,
-          )
+          setQuery = setQuery.ilike('uc', `%${debouncedSearch}%`)
         }
 
         const [debtsRes, setRes] = await Promise.all([debtQuery.limit(500), setQuery.limit(500)])
@@ -175,10 +173,7 @@ export default function Reversions() {
           return {
             ...r,
             endereco: debt?.endereco || '',
-            nome_cliente:
-              debt?.pessoa_fatura_nome ||
-              result?.settlements?.pessoa_fatura_nome ||
-              'Não identificado',
+            nome_cliente: debt?.pessoa_fatura_nome || 'Não identificado',
             is_reverted: !!result,
             result_data: result,
             opName,
