@@ -11,6 +11,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
+import { Input } from '@/components/ui/input'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { supabase } from '@/lib/supabase/client'
@@ -31,6 +32,7 @@ export function DayDetailsModal({
   const [isWorkingDay, setIsWorkingDay] = useState(true)
   const [weatherCondition, setWeatherCondition] = useState('normal')
   const [notes, setNotes] = useState('')
+  const [vencimentoPadrao, setVencimentoPadrao] = useState('')
   const [loading, setLoading] = useState(false)
   const { toast } = useToast()
 
@@ -39,6 +41,7 @@ export function DayDetailsModal({
       setIsWorkingDay(settings?.is_working_day ?? true)
       setWeatherCondition(settings?.weather_condition || 'normal')
       setNotes(settings?.notes || '')
+      setVencimentoPadrao(settings?.vencimento_padrao?.toString() || '')
     }
   }, [date, settings])
 
@@ -52,10 +55,10 @@ export function DayDetailsModal({
       is_working_day: isWorkingDay,
       weather_condition: weatherCondition,
       notes: notes,
+      vencimento_padrao: vencimentoPadrao ? parseInt(vencimentoPadrao, 10) : null,
       updated_at: new Date().toISOString(),
       ...(settings
         ? {
-            vencimento_padrao: settings.vencimento_padrao,
             ignored_readers: settings.ignored_readers,
             added_readers: settings.added_readers,
             reader_statuses: settings.reader_statuses,
@@ -102,6 +105,16 @@ export function DayDetailsModal({
               </p>
             </div>
             <Switch checked={isWorkingDay} onCheckedChange={setIsWorkingDay} />
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-sm font-semibold">Vencimento Padrão</Label>
+            <Input
+              type="number"
+              placeholder="Ex: 5"
+              value={vencimentoPadrao}
+              onChange={(e) => setVencimentoPadrao(e.target.value)}
+            />
           </div>
 
           <div className="space-y-3">

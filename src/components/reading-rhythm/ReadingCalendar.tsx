@@ -48,6 +48,7 @@ export function ReadingCalendar({
             const daySettings = settings[dateStr]
             const isWorking = daySettings ? daySettings.is_working_day : true
             const weather = daySettings?.weather_condition || 'normal'
+            const hasVencimento = daySettings?.vencimento_padrao != null
 
             return (
               <button
@@ -58,13 +59,35 @@ export function ReadingCalendar({
                   !isCurrentMonth && 'text-muted-foreground opacity-50 bg-muted/30 border-dashed',
                   !isWorking &&
                     'bg-destructive/10 text-destructive border-destructive/20 line-through decoration-destructive/50',
+                  isWorking &&
+                    hasVencimento &&
+                    'text-emerald-700 border-emerald-500/30 dark:text-emerald-400',
+                  isWorking && hasVencimento && weather !== 'chuvoso' && 'bg-emerald-500/10',
+                  isWorking && weather === 'chuvoso' && 'bg-gray-100 dark:bg-gray-800',
+                  isWorking &&
+                    weather === 'chuvoso' &&
+                    !hasVencimento &&
+                    'text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700',
                   isDayToday &&
                     'border-primary text-primary font-bold shadow-sm ring-1 ring-primary ring-offset-1',
                 )}
               >
-                <span>{format(day, 'd')}</span>
-                {weather === 'chuvoso' && (
-                  <CloudRain className="w-3.5 h-3.5 text-blue-500 absolute bottom-1 right-1 drop-shadow-sm" />
+                {weather === 'chuvoso' ? (
+                  <div className="relative flex items-center justify-center text-current">
+                    <CloudRain className={cn('w-7 h-7 text-current opacity-50')} strokeWidth={1} />
+                    <span className="absolute text-[10px] font-bold mt-1.5">
+                      {format(day, 'd')}
+                    </span>
+                  </div>
+                ) : (
+                  <span
+                    className={cn(
+                      'flex h-7 w-7 items-center justify-center rounded-full',
+                      isDayToday && 'bg-primary text-primary-foreground',
+                    )}
+                  >
+                    {format(day, 'd')}
+                  </span>
                 )}
               </button>
             )

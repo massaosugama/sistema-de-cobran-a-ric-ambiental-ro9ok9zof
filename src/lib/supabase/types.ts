@@ -1,17 +1,11 @@
 // AVOID UPDATING THIS FILE DIRECTLY. It is automatically generated.
-export type Json =
-  | string
-  | number
-  | boolean
-  | null
-  | { [key: string]: Json | undefined }
-  | Json[]
+export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
 
 export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.5"
+    PostgrestVersion: '14.5'
   }
   public: {
     Tables: {
@@ -33,11 +27,11 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "access_logs_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: 'access_logs_user_id_fkey'
+            columns: ['user_id']
             isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
           },
         ]
       }
@@ -104,18 +98,18 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "cadastral_updates_requester_id_fkey"
-            columns: ["requester_id"]
+            foreignKeyName: 'cadastral_updates_requester_id_fkey'
+            columns: ['requester_id']
             isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "cadastral_updates_resolver_id_fkey"
-            columns: ["resolver_id"]
+            foreignKeyName: 'cadastral_updates_resolver_id_fkey'
+            columns: ['resolver_id']
             isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
           },
         ]
       }
@@ -164,7 +158,7 @@ export type Database = {
       contact_history: {
         Row: {
           cod_pess_fat: string | null
-          contact_type: Database["public"]["Enums"]["contact_type_enum"] | null
+          contact_type: Database['public']['Enums']['contact_type_enum'] | null
           created_at: string
           id: string
           is_active: boolean | null
@@ -182,7 +176,7 @@ export type Database = {
         }
         Insert: {
           cod_pess_fat?: string | null
-          contact_type?: Database["public"]["Enums"]["contact_type_enum"] | null
+          contact_type?: Database['public']['Enums']['contact_type_enum'] | null
           created_at?: string
           id?: string
           is_active?: boolean | null
@@ -200,7 +194,7 @@ export type Database = {
         }
         Update: {
           cod_pess_fat?: string | null
-          contact_type?: Database["public"]["Enums"]["contact_type_enum"] | null
+          contact_type?: Database['public']['Enums']['contact_type_enum'] | null
           created_at?: string
           id?: string
           is_active?: boolean | null
@@ -218,11 +212,11 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "contact_history_operator_id_fkey"
-            columns: ["operator_id"]
+            foreignKeyName: 'contact_history_operator_id_fkey'
+            columns: ['operator_id']
             isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
           },
         ]
       }
@@ -253,11 +247,11 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "contact_history_audit_contact_id_fkey"
-            columns: ["contact_id"]
+            foreignKeyName: 'contact_history_audit_contact_id_fkey'
+            columns: ['contact_id']
             isOneToOne: false
-            referencedRelation: "contact_history"
-            referencedColumns: ["id"]
+            referencedRelation: 'contact_history'
+            referencedColumns: ['id']
           },
         ]
       }
@@ -300,18 +294,18 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "contact_results_contact_id_fkey"
-            columns: ["contact_id"]
+            foreignKeyName: 'contact_results_contact_id_fkey'
+            columns: ['contact_id']
             isOneToOne: false
-            referencedRelation: "contact_history"
-            referencedColumns: ["id"]
+            referencedRelation: 'contact_history'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "contact_results_settlement_id_fkey"
-            columns: ["settlement_id"]
+            foreignKeyName: 'contact_results_settlement_id_fkey'
+            columns: ['settlement_id']
             isOneToOne: false
-            referencedRelation: "settlements"
-            referencedColumns: ["id"]
+            referencedRelation: 'settlements'
+            referencedColumns: ['id']
           },
         ]
       }
@@ -468,11 +462,11 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "follow_up_tasks_assigned_by_fkey"
-            columns: ["assigned_by"]
+            foreignKeyName: 'follow_up_tasks_assigned_by_fkey'
+            columns: ['assigned_by']
             isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
           },
         ]
       }
@@ -638,18 +632,18 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "legal_queue_operator_id_fkey"
-            columns: ["operator_id"]
+            foreignKeyName: 'legal_queue_operator_id_fkey'
+            columns: ['operator_id']
             isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "legal_queue_strategic_assignment_id_fkey"
-            columns: ["strategic_assignment_id"]
+            foreignKeyName: 'legal_queue_strategic_assignment_id_fkey'
+            columns: ['strategic_assignment_id']
             isOneToOne: false
-            referencedRelation: "strategic_assignments"
-            referencedColumns: ["id"]
+            referencedRelation: 'strategic_assignments'
+            referencedColumns: ['id']
           },
         ]
       }
@@ -959,18 +953,18 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "quote_clicks_quote_id_fkey"
-            columns: ["quote_id"]
+            foreignKeyName: 'quote_clicks_quote_id_fkey'
+            columns: ['quote_id']
             isOneToOne: false
-            referencedRelation: "quotes"
-            referencedColumns: ["id"]
+            referencedRelation: 'quotes'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "quote_clicks_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: 'quote_clicks_user_id_fkey'
+            columns: ['user_id']
             isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
           },
         ]
       }
@@ -1007,11 +1001,11 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "quotes_analyzed_by_fkey"
-            columns: ["analyzed_by"]
+            foreignKeyName: 'quotes_analyzed_by_fkey'
+            columns: ['analyzed_by']
             isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
           },
         ]
       }
@@ -1072,32 +1066,32 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "researched_phones_uc_cod_pess_fat_fkey"
-            columns: ["uc", "cod_pess_fat"]
+            foreignKeyName: 'researched_phones_uc_cod_pess_fat_fkey'
+            columns: ['uc', 'cod_pess_fat']
             isOneToOne: false
-            referencedRelation: "pending_debts"
-            referencedColumns: ["uc", "cod_pess_fat"]
+            referencedRelation: 'pending_debts'
+            referencedColumns: ['uc', 'cod_pess_fat']
           },
           {
-            foreignKeyName: "researched_phones_uc_cod_pess_fat_fkey"
-            columns: ["uc", "cod_pess_fat"]
+            foreignKeyName: 'researched_phones_uc_cod_pess_fat_fkey'
+            columns: ['uc', 'cod_pess_fat']
             isOneToOne: false
-            referencedRelation: "vw_pending_debts_with_contacts"
-            referencedColumns: ["uc", "cod_pess_fat"]
+            referencedRelation: 'vw_pending_debts_with_contacts'
+            referencedColumns: ['uc', 'cod_pess_fat']
           },
           {
-            foreignKeyName: "researched_phones_uc_cod_pess_fat_fkey"
-            columns: ["uc", "cod_pess_fat"]
+            foreignKeyName: 'researched_phones_uc_cod_pess_fat_fkey'
+            columns: ['uc', 'cod_pess_fat']
             isOneToOne: false
-            referencedRelation: "vw_queue_debts"
-            referencedColumns: ["uc", "cod_pess_fat"]
+            referencedRelation: 'vw_queue_debts'
+            referencedColumns: ['uc', 'cod_pess_fat']
           },
           {
-            foreignKeyName: "researched_phones_uc_cod_pess_fat_fkey"
-            columns: ["uc", "cod_pess_fat"]
+            foreignKeyName: 'researched_phones_uc_cod_pess_fat_fkey'
+            columns: ['uc', 'cod_pess_fat']
             isOneToOne: false
-            referencedRelation: "vw_terms_queue_debts"
-            referencedColumns: ["uc", "cod_pess_fat"]
+            referencedRelation: 'vw_terms_queue_debts'
+            referencedColumns: ['uc', 'cod_pess_fat']
           },
         ]
       }
@@ -1353,18 +1347,18 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "strategic_assignments_assigned_by_fkey"
-            columns: ["assigned_by"]
+            foreignKeyName: 'strategic_assignments_assigned_by_fkey'
+            columns: ['assigned_by']
             isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "strategic_assignments_operator_id_fkey"
-            columns: ["operator_id"]
+            foreignKeyName: 'strategic_assignments_operator_id_fkey'
+            columns: ['operator_id']
             isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
           },
         ]
       }
@@ -1779,41 +1773,41 @@ export type Database = {
       truncate_pending_debts: { Args: never; Returns: undefined }
       uc_numeric:
         | {
-            Args: { rec: Database["public"]["Tables"]["pending_debts"]["Row"] }
+            Args: { rec: Database['public']['Tables']['pending_debts']['Row'] }
             Returns: number
           }
         | {
             Args: {
-              vw: Database["public"]["Views"]["vw_pending_debts_with_contacts"]["Row"]
+              vw: Database['public']['Views']['vw_pending_debts_with_contacts']['Row']
             }
             Returns: {
               error: true
-            } & "Could not choose the best candidate function between: public.uc_numeric(vw => vw_pending_debts_with_contacts), public.uc_numeric(vw => vw_queue_debts), public.uc_numeric(vw => vw_terms_queue_debts). Try renaming the parameters or the function itself in the database so function overloading can be resolved"
+            } & 'Could not choose the best candidate function between: public.uc_numeric(vw => vw_pending_debts_with_contacts), public.uc_numeric(vw => vw_queue_debts), public.uc_numeric(vw => vw_terms_queue_debts). Try renaming the parameters or the function itself in the database so function overloading can be resolved'
           }
         | {
-            Args: { vw: Database["public"]["Views"]["vw_queue_debts"]["Row"] }
+            Args: { vw: Database['public']['Views']['vw_queue_debts']['Row'] }
             Returns: {
               error: true
-            } & "Could not choose the best candidate function between: public.uc_numeric(vw => vw_pending_debts_with_contacts), public.uc_numeric(vw => vw_queue_debts), public.uc_numeric(vw => vw_terms_queue_debts). Try renaming the parameters or the function itself in the database so function overloading can be resolved"
+            } & 'Could not choose the best candidate function between: public.uc_numeric(vw => vw_pending_debts_with_contacts), public.uc_numeric(vw => vw_queue_debts), public.uc_numeric(vw => vw_terms_queue_debts). Try renaming the parameters or the function itself in the database so function overloading can be resolved'
           }
         | {
             Args: {
-              vw: Database["public"]["Views"]["vw_terms_queue_debts"]["Row"]
+              vw: Database['public']['Views']['vw_terms_queue_debts']['Row']
             }
             Returns: {
               error: true
-            } & "Could not choose the best candidate function between: public.uc_numeric(vw => vw_pending_debts_with_contacts), public.uc_numeric(vw => vw_queue_debts), public.uc_numeric(vw => vw_terms_queue_debts). Try renaming the parameters or the function itself in the database so function overloading can be resolved"
+            } & 'Could not choose the best candidate function between: public.uc_numeric(vw => vw_pending_debts_with_contacts), public.uc_numeric(vw => vw_queue_debts), public.uc_numeric(vw => vw_terms_queue_debts). Try renaming the parameters or the function itself in the database so function overloading can be resolved'
           }
       update_serasa_debts_status: { Args: never; Returns: undefined }
     }
     Enums: {
       contact_type_enum:
-        | "WTK PASSIVO"
-        | "TEL PASSIVO"
-        | "WTK ATIVO"
-        | "TEL ATIVO"
-        | "E-MAIL"
-        | "OUTRO"
+        | 'WTK PASSIVO'
+        | 'TEL PASSIVO'
+        | 'WTK ATIVO'
+        | 'TEL ATIVO'
+        | 'E-MAIL'
+        | 'OUTRO'
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1821,33 +1815,31 @@ export type Database = {
   }
 }
 
-type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+type DatabaseWithoutInternals = Omit<Database, '__InternalSupabase'>
 
-type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, 'public'>]
 
 export type Tables<
   DefaultSchemaTableNameOrOptions extends
-    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | keyof (DefaultSchema['Tables'] & DefaultSchema['Views'])
     | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables'] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Views'])
     : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
-  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables'] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Views'])[TableName] extends {
       Row: infer R
     }
     ? R
     : never
-  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
-        DefaultSchema["Views"])
-    ? (DefaultSchema["Tables"] &
-        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema['Tables'] & DefaultSchema['Views'])
+    ? (DefaultSchema['Tables'] & DefaultSchema['Views'])[DefaultSchemaTableNameOrOptions] extends {
         Row: infer R
       }
       ? R
@@ -1856,23 +1848,23 @@ export type Tables<
 
 export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema["Tables"]
+    | keyof DefaultSchema['Tables']
     | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables']
     : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
-  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables'][TableName] extends {
       Insert: infer I
     }
     ? I
     : never
-  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema['Tables']
+    ? DefaultSchema['Tables'][DefaultSchemaTableNameOrOptions] extends {
         Insert: infer I
       }
       ? I
@@ -1881,23 +1873,23 @@ export type TablesInsert<
 
 export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema["Tables"]
+    | keyof DefaultSchema['Tables']
     | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables']
     : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
-  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables'][TableName] extends {
       Update: infer U
     }
     ? U
     : never
-  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema['Tables']
+    ? DefaultSchema['Tables'][DefaultSchemaTableNameOrOptions] extends {
         Update: infer U
       }
       ? U
@@ -1906,53 +1898,52 @@ export type TablesUpdate<
 
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends
-    | keyof DefaultSchema["Enums"]
+    | keyof DefaultSchema['Enums']
     | { schema: keyof DatabaseWithoutInternals },
   EnumName extends DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions['schema']]['Enums']
     : never = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
-  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
-  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
-    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions['schema']]['Enums'][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema['Enums']
+    ? DefaultSchema['Enums'][DefaultSchemaEnumNameOrOptions]
     : never
 
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
-    | keyof DefaultSchema["CompositeTypes"]
+    | keyof DefaultSchema['CompositeTypes']
     | { schema: keyof DatabaseWithoutInternals },
   CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions['schema']]['CompositeTypes']
     : never = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
-  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
-  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
-    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions['schema']]['CompositeTypes'][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema['CompositeTypes']
+    ? DefaultSchema['CompositeTypes'][PublicCompositeTypeNameOrOptions]
     : never
 
 export const Constants = {
   public: {
     Enums: {
       contact_type_enum: [
-        "WTK PASSIVO",
-        "TEL PASSIVO",
-        "WTK ATIVO",
-        "TEL ATIVO",
-        "E-MAIL",
-        "OUTRO",
+        'WTK PASSIVO',
+        'TEL PASSIVO',
+        'WTK ATIVO',
+        'TEL ATIVO',
+        'E-MAIL',
+        'OUTRO',
       ],
     },
   },
 } as const
-
 
 // ====== DATABASE EXTENDED CONTEXT (auto-generated) ======
 // This section contains actual PostgreSQL column types, constraints, RLS policies,
@@ -2682,7 +2673,7 @@ export const Constants = {
 //     END LOOP;
 //   END;
 //   $function$
-//   
+//
 // FUNCTION audit_contact_history_changes()
 //   CREATE OR REPLACE FUNCTION public.audit_contact_history_changes()
 //    RETURNS trigger
@@ -2700,7 +2691,7 @@ export const Constants = {
 //       RETURN NEW;
 //   END;
 //   $function$
-//   
+//
 // FUNCTION bulk_update_ultimo_disparo(jsonb)
 //   CREATE OR REPLACE FUNCTION public.bulk_update_ultimo_disparo(payload jsonb)
 //    RETURNS void
@@ -2717,7 +2708,7 @@ export const Constants = {
 //     END LOOP;
 //   END;
 //   $function$
-//   
+//
 // FUNCTION check_needs_recalculation(timestamp with time zone)
 //   CREATE OR REPLACE FUNCTION public.check_needs_recalculation(p_month timestamp with time zone)
 //    RETURNS boolean
@@ -2736,21 +2727,21 @@ export const Constants = {
 //   BEGIN
 //     v_start_date := date_trunc('month', p_month AT TIME ZONE 'America/Sao_Paulo')::DATE;
 //     v_end_date := (date_trunc('month', p_month AT TIME ZONE 'America/Sao_Paulo') + INTERVAL '1 month' - INTERVAL '1 day')::DATE;
-//     
+//
 //     v_start_ts := v_start_date::timestamp AT TIME ZONE 'America/Sao_Paulo';
 //     v_end_ts := (v_end_date + INTERVAL '1 day')::timestamp AT TIME ZONE 'America/Sao_Paulo';
-//   
+//
 //     -- Verifica o último cálculo feito para as leituras que ocorreram neste mês
 //     SELECT COUNT(*), MAX(updated_at)
 //     INTO v_calc_count, v_last_calc
 //     FROM public.reading_working_days_metrics
 //     WHERE data_leitura_real >= v_start_date AND data_leitura_real <= v_end_date;
-//   
+//
 //     -- Se não há nenhum cálculo para o mês
 //     IF v_calc_count = 0 THEN
 //       -- verifica se tem leituras
 //       IF EXISTS (
-//         SELECT 1 FROM public.daily_readings 
+//         SELECT 1 FROM public.daily_readings
 //         WHERE data_leitura_real >= v_start_ts
 //           AND data_leitura_real < v_end_ts
 //       ) THEN
@@ -2759,32 +2750,32 @@ export const Constants = {
 //         RETURN false; -- sem leituras, não tem o que recalcular
 //       END IF;
 //     END IF;
-//   
+//
 //     -- Verifica a última alteração nas configurações do calendário neste mês
 //     SELECT MAX(updated_at)
 //     INTO v_last_setting
 //     FROM public.calendar_settings
 //     WHERE date >= v_start_date AND date <= v_end_date;
-//   
+//
 //     -- Se a última alteração no calendário for mais recente que o último cálculo, precisa recalcular
 //     IF v_last_setting IS NOT NULL AND v_last_setting > v_last_calc THEN
 //       RETURN true;
 //     END IF;
-//   
+//
 //     -- Verifica a última inserção/atualização de leituras neste mês
 //     SELECT MAX(created_at)
 //     INTO v_last_reading
 //     FROM public.daily_readings
 //     WHERE data_leitura_real >= v_start_ts AND data_leitura_real < v_end_ts;
-//   
+//
 //     IF v_last_reading IS NOT NULL AND v_last_reading > v_last_calc THEN
 //       RETURN true;
 //     END IF;
-//   
+//
 //     RETURN false;
 //   END;
 //   $function$
-//   
+//
 // FUNCTION cleanup_old_settlements()
 //   CREATE OR REPLACE FUNCTION public.cleanup_old_settlements()
 //    RETURNS void
@@ -2795,20 +2786,20 @@ export const Constants = {
 //     retention_days INT;
 //   BEGIN
 //     -- Tenta ler o parâmetro de retenção do app_settings, se não encontrar usa 90 como padrão
-//     SELECT (value->>'retention_days')::int INTO retention_days 
-//     FROM public.app_settings 
+//     SELECT (value->>'retention_days')::int INTO retention_days
+//     FROM public.app_settings
 //     WHERE key = 'conversion_params';
-//     
-//     IF retention_days IS NULL THEN 
-//       retention_days := 90; 
+//
+//     IF retention_days IS NULL THEN
+//       retention_days := 90;
 //     END IF;
-//   
+//
 //     -- Remove as movimentações de baixas mais antigas que o prazo estipulado (priorizando a data de criação real do registro no GIS)
 //     DELETE FROM public.settlements
 //     WHERE COALESCE(datacriacao, created_at) < NOW() - (retention_days || ' days')::interval;
 //   END;
 //   $function$
-//   
+//
 // FUNCTION delete_daily_readings_by_reference(timestamp with time zone)
 //   CREATE OR REPLACE FUNCTION public.delete_daily_readings_by_reference(p_data_ref timestamp with time zone)
 //    RETURNS json
@@ -2824,12 +2815,12 @@ export const Constants = {
 //     )
 //     DELETE FROM public.daily_readings
 //     WHERE id IN (SELECT id FROM to_delete);
-//     
+//
 //     GET DIAGNOSTICS deleted_count = ROW_COUNT;
 //     RETURN json_build_object('deleted_count', deleted_count);
 //   END;
 //   $function$
-//   
+//
 // FUNCTION delete_invalid_debts_batch(jsonb)
 //   CREATE OR REPLACE FUNCTION public.delete_invalid_debts_batch(p_records jsonb)
 //    RETURNS json
@@ -2846,12 +2837,12 @@ export const Constants = {
 //     DELETE FROM public.pending_debts pd
 //     USING to_delete
 //     WHERE pd.uc = to_delete.uc AND pd.cod_pess_fat = to_delete.cod_pess_fat;
-//     
+//
 //     GET DIAGNOSTICS deleted_count = ROW_COUNT;
 //     RETURN json_build_object('deleted_count', deleted_count);
 //   END;
 //   $function$
-//   
+//
 // FUNCTION execute_post_import_routines()
 //   CREATE OR REPLACE FUNCTION public.execute_post_import_routines()
 //    RETURNS void
@@ -2861,20 +2852,20 @@ export const Constants = {
 //   BEGIN
 //     -- 1º: Limpeza de dados baseada no prazo de retenção (retention_days lido do app_settings)
 //     PERFORM public.cleanup_old_settlements();
-//     
+//
 //     -- 2º: Processamento do motor de cálculo de conversões apenas nos dados que restaram e são elegíveis
 //     PERFORM public.process_conversions();
-//   
+//
 //     -- 3º: Atualização das métricas de dias úteis (mês atual e anterior para garantir histórico atualizado)
 //     PERFORM public.recalculate_working_days_metrics(NOW());
 //     PERFORM public.recalculate_working_days_metrics(NOW() - INTERVAL '1 month');
-//   
+//
 //     -- 4º: Atualização da tabela de resumo diário
 //     PERFORM public.refresh_daily_readings_summary(NOW());
 //     PERFORM public.refresh_daily_readings_summary(NOW() - INTERVAL '1 month');
 //   END;
 //   $function$
-//   
+//
 // FUNCTION get_all_readers()
 //   CREATE OR REPLACE FUNCTION public.get_all_readers()
 //    RETURNS json
@@ -2892,11 +2883,11 @@ export const Constants = {
 //     ), '[]'::json) INTO result
 //     FROM public.gis_users u
 //     ORDER BY COALESCE(u.nome, u.usuario_id);
-//   
+//
 //     RETURN result;
 //   END;
 //   $function$
-//   
+//
 // FUNCTION get_assignable_debts(numeric, numeric, text[], text, text, text, text, text, integer, integer)
 //   CREATE OR REPLACE FUNCTION public.get_assignable_debts(p_min_value numeric DEFAULT NULL::numeric, p_max_value numeric DEFAULT NULL::numeric, p_periods text[] DEFAULT NULL::text[], p_search_text text DEFAULT NULL::text, p_search_address text DEFAULT NULL::text, p_lotes text DEFAULT 'com_ligacoes'::text, p_retidas text DEFAULT 'sem_retidas'::text, p_situacao_ligacao text DEFAULT 'todos'::text, p_limit integer DEFAULT 500, p_offset integer DEFAULT 0)
 //    RETURNS TABLE(uc text, cod_pess_fat text, pessoa_fatura_nome text, valor_total numeric, valor_vencido numeric, qt_fats integer, refs text, latest_contact_date timestamp with time zone, tem_negociacao_vencida boolean, qtd_os_total_cancel_devolv integer, ultima_data_criacao_os date)
@@ -2905,13 +2896,13 @@ export const Constants = {
 //   AS $function$
 //   BEGIN
 //     RETURN QUERY
-//     SELECT 
-//       pd.uc, 
-//       pd.cod_pess_fat, 
-//       pd.pessoa_fatura_nome, 
-//       pd.valor_total, 
-//       pd.valor_vencido, 
-//       pd.qt_fats, 
+//     SELECT
+//       pd.uc,
+//       pd.cod_pess_fat,
+//       pd.pessoa_fatura_nome,
+//       pd.valor_total,
+//       pd.valor_vencido,
+//       pd.qt_fats,
 //       pd.refs,
 //       vw.latest_contact_date,
 //       pd.tem_negociacao_vencida,
@@ -2923,22 +2914,22 @@ export const Constants = {
 //       AND (p_min_value IS NULL OR pd.valor_vencido >= p_min_value)
 //       AND (p_max_value IS NULL OR pd.valor_vencido <= p_max_value)
 //       AND (
-//         p_periods IS NULL 
-//         OR array_length(p_periods, 1) IS NULL 
+//         p_periods IS NULL
+//         OR array_length(p_periods, 1) IS NULL
 //         OR EXISTS (
-//           SELECT 1 FROM unnest(p_periods) per 
+//           SELECT 1 FROM unnest(p_periods) per
 //           WHERE pd.refs ~ ('(?:^|\s)''?' || per || '(?:\s|$)')
 //         )
 //       )
 //       AND (
-//         p_search_text IS NULL 
+//         p_search_text IS NULL
 //         OR p_search_text = ''
 //         OR pd.uc ILIKE '%' || p_search_text || '%'
 //         OR pd.pessoa_fatura_nome ILIKE '%' || p_search_text || '%'
 //         OR pd.pessoa_fatura_cpf_cnpj ILIKE '%' || p_search_text || '%'
 //       )
 //       AND (
-//         p_search_address IS NULL 
+//         p_search_address IS NULL
 //         OR p_search_address = ''
 //         OR pd.endereco ILIKE '%' || p_search_address || '%'
 //       )
@@ -2958,8 +2949,8 @@ export const Constants = {
 //         OR (p_situacao_ligacao = 'ativo' AND pd.situacao_ligacao = 'ATIVO')
 //       )
 //       AND NOT EXISTS (
-//         SELECT 1 FROM public.strategic_assignments sa 
-//         WHERE sa.uc = pd.uc AND sa.cod_pess_fat = pd.cod_pess_fat 
+//         SELECT 1 FROM public.strategic_assignments sa
+//         WHERE sa.uc = pd.uc AND sa.cod_pess_fat = pd.cod_pess_fat
 //         AND (
 //           (sa.queue_type = 'strategic' AND sa.status IN ('pending', 'started')) OR
 //           (sa.queue_type = 'legal' AND sa.status IN ('a_encaminhar', 'encaminhado')) OR
@@ -2973,7 +2964,7 @@ export const Constants = {
 //     LIMIT p_limit OFFSET p_offset;
 //   END;
 //   $function$
-//   
+//
 // FUNCTION get_billing_routes_stats()
 //   CREATE OR REPLACE FUNCTION public.get_billing_routes_stats()
 //    RETURNS json
@@ -2984,7 +2975,7 @@ export const Constants = {
 //     result json;
 //   BEGIN
 //     WITH route_stats AS (
-//       SELECT 
+//       SELECT
 //         NULLIF(split_part(localizacao_ligacao, '.', 3), '') as route,
 //         NULLIF(split_part(localizacao_ligacao, '.', 2), '') as cycle,
 //         count(*) as expected_ucs,
@@ -2995,7 +2986,7 @@ export const Constants = {
 //       GROUP BY split_part(localizacao_ligacao, '.', 3), split_part(localizacao_ligacao, '.', 2)
 //     ),
 //     enriched AS (
-//       SELECT 
+//       SELECT
 //         route,
 //         cycle,
 //         expected_ucs,
@@ -3006,7 +2997,7 @@ export const Constants = {
 //       WHERE route IS NOT NULL AND cycle IS NOT NULL
 //     ),
 //     final_routes AS (
-//       SELECT 
+//       SELECT
 //         gen_random_uuid() as id,
 //         'R-' || route as route,
 //         'Ciclo ' || cycle as cycle,
@@ -3014,7 +3005,7 @@ export const Constants = {
 //         read_ucs as "readUcs",
 //         percentage,
 //         remaining_days as "remainingDays",
-//         CASE 
+//         CASE
 //           WHEN percentage = 0 AND remaining_days >= 0 THEN 'Não Iniciada'
 //           WHEN percentage = 100 THEN 'Concluída'
 //           WHEN remaining_days < 0 AND percentage < 100 THEN 'Atrasada'
@@ -3025,11 +3016,11 @@ export const Constants = {
 //       ORDER BY remaining_days ASC, percentage ASC
 //     )
 //     SELECT COALESCE(json_agg(row_to_json(r)), '[]'::json) INTO result FROM final_routes r;
-//   
+//
 //     RETURN result;
 //   END;
 //   $function$
-//   
+//
 // FUNCTION get_cadastral_debts(text, text, text, boolean, integer, integer)
 //   CREATE OR REPLACE FUNCTION public.get_cadastral_debts(p_filter_type text, p_search text DEFAULT NULL::text, p_order_by text DEFAULT 'valor_vencido'::text, p_order_desc boolean DEFAULT true, p_limit integer DEFAULT 50, p_offset integer DEFAULT 0)
 //    RETURNS TABLE(uc text, cod_pess_fat text, pessoa_fatura_nome text, pessoa_fatura_cpf_cnpj text, pessoa_fatura_celular text, valor_total numeric, valor_vencido numeric, qt_fats integer, total_count bigint)
@@ -3045,11 +3036,11 @@ export const Constants = {
 //     ELSIF p_filter_type = 'invalid_doc' THEN
 //       v_where := v_where || ' AND (pessoa_fatura_cpf_cnpj IS NULL OR pessoa_fatura_cpf_cnpj = '''' OR LENGTH(REGEXP_REPLACE(pessoa_fatura_cpf_cnpj, ''[^0-9]'', '''', ''g'')) NOT IN (11, 14))';
 //     END IF;
-//   
+//
 //     IF p_search IS NOT NULL AND p_search <> '' THEN
 //       v_where := v_where || ' AND (uc ILIKE ''%'' || p_search || ''%'' OR pessoa_fatura_nome ILIKE ''%'' || p_search || ''%'' OR pessoa_fatura_cpf_cnpj ILIKE ''%'' || p_search || ''%'')';
 //     END IF;
-//   
+//
 //     v_sql := 'WITH filtered AS (
 //                 SELECT uc, cod_pess_fat, pessoa_fatura_nome, pessoa_fatura_cpf_cnpj, pessoa_fatura_celular, valor_total, valor_vencido, qt_fats
 //                 FROM public.pending_debts
@@ -3059,11 +3050,11 @@ export const Constants = {
 //               FROM filtered
 //               ORDER BY ' || quote_ident(p_order_by) || CASE WHEN p_order_desc THEN ' DESC NULLS LAST' ELSE ' ASC NULLS LAST' END || '
 //               LIMIT ' || p_limit || ' OFFSET ' || p_offset;
-//   
+//
 //     RETURN QUERY EXECUTE v_sql;
 //   END;
 //   $function$
-//   
+//
 // FUNCTION get_daily_readings_by_day(timestamp with time zone)
 //   CREATE OR REPLACE FUNCTION public.get_daily_readings_by_day(p_month timestamp with time zone)
 //    RETURNS json
@@ -3079,10 +3070,10 @@ export const Constants = {
 //   BEGIN
 //     v_start_date := date_trunc('month', p_month AT TIME ZONE 'America/Sao_Paulo')::date;
 //     v_end_date := (v_start_date + interval '1 month' - interval '1 day')::date;
-//     
+//
 //     v_start_ts := v_start_date::timestamp AT TIME ZONE 'America/Sao_Paulo';
 //     v_end_ts := (v_end_date + interval '1 day')::timestamp AT TIME ZONE 'America/Sao_Paulo';
-//   
+//
 //     WITH calendar AS (
 //       SELECT d::date as cal_date
 //       FROM generate_series(v_start_date, LEAST(v_end_date, (NOW() AT TIME ZONE 'America/Sao_Paulo')::date), '1 day'::interval) d
@@ -3092,7 +3083,7 @@ export const Constants = {
 //       )
 //     ),
 //     daily_stats AS (
-//       SELECT 
+//       SELECT
 //         (dr.data_leitura_real AT TIME ZONE 'America/Sao_Paulo')::date as read_date,
 //         COUNT(dr.id) as total_read
 //       FROM public.daily_readings dr
@@ -3100,7 +3091,7 @@ export const Constants = {
 //       GROUP BY (dr.data_leitura_real AT TIME ZONE 'America/Sao_Paulo')::date
 //     ),
 //     combined AS (
-//       SELECT 
+//       SELECT
 //         to_char(c.cal_date, 'YYYY-MM-DD') as date_label,
 //         COALESCE(ds.total_read, 0) as total_read
 //       FROM calendar c
@@ -3108,11 +3099,11 @@ export const Constants = {
 //       ORDER BY c.cal_date ASC
 //     )
 //     SELECT COALESCE(json_agg(row_to_json(t)), '[]'::json) INTO result FROM combined t;
-//   
+//
 //     RETURN result;
 //   END;
 //   $function$
-//   
+//
 // FUNCTION get_daily_readings_evolution()
 //   CREATE OR REPLACE FUNCTION public.get_daily_readings_evolution()
 //    RETURNS json
@@ -3123,7 +3114,7 @@ export const Constants = {
 //     result json;
 //   BEGIN
 //     WITH monthly_stats AS (
-//       SELECT 
+//       SELECT
 //         to_char(data_referencia AT TIME ZONE 'UTC', 'MM/YYYY') as month_label,
 //         date_trunc('month', data_referencia AT TIME ZONE 'UTC') as ref_date,
 //         COUNT(*) as total_expected,
@@ -3134,11 +3125,11 @@ export const Constants = {
 //       ORDER BY ref_date ASC
 //     )
 //     SELECT COALESCE(json_agg(row_to_json(t)), '[]'::json) INTO result FROM monthly_stats t;
-//   
+//
 //     RETURN result;
 //   END;
 //   $function$
-//   
+//
 // FUNCTION get_daily_readings_references()
 //   CREATE OR REPLACE FUNCTION public.get_daily_readings_references()
 //    RETURNS TABLE(referencia text, data_ref text)
@@ -3155,7 +3146,7 @@ export const Constants = {
 //     ORDER BY data_ref DESC;
 //   END;
 //   $function$
-//   
+//
 // FUNCTION get_dashboard_evolution(text)
 //   CREATE OR REPLACE FUNCTION public.get_dashboard_evolution(tz text DEFAULT 'America/Sao_Paulo'::text)
 //    RETURNS json
@@ -3175,7 +3166,7 @@ export const Constants = {
 //     pending_updates bigint;
 //     today_date date := date(now() AT TIME ZONE tz);
 //   BEGIN
-//     SELECT 
+//     SELECT
 //       count(*) FILTER (WHERE COALESCE(pd.setor, '') != '4036' AND pd.is_active = true) as total_cases,
 //       COALESCE(sum(COALESCE(pd.valor_total, 0) - COALESCE(pd.valor_retidas_em_aberto, 0)) FILTER (WHERE COALESCE(pd.setor, '') != '4036' AND pd.is_active = true), 0) as total_value,
 //       COALESCE(sum(pd.valor_vencido) FILTER (WHERE COALESCE(pd.setor, '') != '4036' AND pd.is_active = true), 0) as total_vencido,
@@ -3186,41 +3177,41 @@ export const Constants = {
 //       COALESCE(sum(pd.valor_total) FILTER (WHERE COALESCE(pd.setor, '') = '4036' AND pd.is_active = true), 0) as total_lotes_value,
 //       COALESCE(sum(pd.valor_vencido) FILTER (WHERE COALESCE(pd.setor, '') = '4036' AND pd.is_active = true), 0) as total_lotes_vencido,
 //       COALESCE(sum(pd.valor_a_vencer) FILTER (WHERE COALESCE(pd.setor, '') = '4036' AND pd.is_active = true), 0) as total_lotes_a_vencer,
-//       
+//
 //       count(*) FILTER (WHERE COALESCE(pd.setor, '') != '4036' AND pd.is_active = true AND sa.queue_type = 'strategic') as total_estrat_cases,
 //       COALESCE(sum(COALESCE(pd.valor_total, 0) - COALESCE(pd.valor_retidas_em_aberto, 0)) FILTER (WHERE COALESCE(pd.setor, '') != '4036' AND pd.is_active = true AND sa.queue_type = 'strategic'), 0) as total_estrat_value,
 //       COALESCE(sum(pd.valor_vencido) FILTER (WHERE COALESCE(pd.setor, '') != '4036' AND pd.is_active = true AND sa.queue_type = 'strategic'), 0) as total_estrat_vencido,
 //       COALESCE(sum(pd.valor_a_vencer) FILTER (WHERE COALESCE(pd.setor, '') != '4036' AND pd.is_active = true AND sa.queue_type = 'strategic'), 0) as total_estrat_a_vencer,
 //       COALESCE(sum(pd.valor_retidas_em_aberto) FILTER (WHERE COALESCE(pd.setor, '') != '4036' AND pd.is_active = true AND sa.queue_type = 'strategic'), 0) as total_estrat_retidas,
 //       count(*) FILTER (WHERE COALESCE(pd.setor, '') != '4036' AND COALESCE(pd.valor_retidas_em_aberto, 0) > 0 AND pd.is_active = true AND sa.queue_type = 'strategic') as total_estrat_retidas_cases,
-//   
+//
 //       count(*) FILTER (WHERE COALESCE(pd.setor, '') != '4036' AND pd.is_active = true AND sa.queue_type = 'legal') as total_jurid_cases,
 //       COALESCE(sum(COALESCE(pd.valor_total, 0) - COALESCE(pd.valor_retidas_em_aberto, 0)) FILTER (WHERE COALESCE(pd.setor, '') != '4036' AND pd.is_active = true AND sa.queue_type = 'legal'), 0) as total_jurid_value,
 //       COALESCE(sum(pd.valor_vencido) FILTER (WHERE COALESCE(pd.setor, '') != '4036' AND pd.is_active = true AND sa.queue_type = 'legal'), 0) as total_jurid_vencido,
 //       COALESCE(sum(pd.valor_a_vencer) FILTER (WHERE COALESCE(pd.setor, '') != '4036' AND pd.is_active = true AND sa.queue_type = 'legal'), 0) as total_jurid_a_vencer,
 //       COALESCE(sum(pd.valor_retidas_em_aberto) FILTER (WHERE COALESCE(pd.setor, '') != '4036' AND pd.is_active = true AND sa.queue_type = 'legal'), 0) as total_jurid_retidas,
 //       count(*) FILTER (WHERE COALESCE(pd.setor, '') != '4036' AND COALESCE(pd.valor_retidas_em_aberto, 0) > 0 AND pd.is_active = true AND sa.queue_type = 'legal') as total_jurid_retidas_cases,
-//   
+//
 //       count(*) FILTER (WHERE COALESCE(pd.setor, '') != '4036' AND pd.is_active = true AND sa.queue_type = 'cut') as total_corte_cases,
 //       COALESCE(sum(COALESCE(pd.valor_total, 0) - COALESCE(pd.valor_retidas_em_aberto, 0)) FILTER (WHERE COALESCE(pd.setor, '') != '4036' AND pd.is_active = true AND sa.queue_type = 'cut'), 0) as total_corte_value,
 //       COALESCE(sum(pd.valor_vencido) FILTER (WHERE COALESCE(pd.setor, '') != '4036' AND pd.is_active = true AND sa.queue_type = 'cut'), 0) as total_corte_vencido,
 //       COALESCE(sum(pd.valor_a_vencer) FILTER (WHERE COALESCE(pd.setor, '') != '4036' AND pd.is_active = true AND sa.queue_type = 'cut'), 0) as total_corte_a_vencer,
 //       COALESCE(sum(pd.valor_retidas_em_aberto) FILTER (WHERE COALESCE(pd.setor, '') != '4036' AND pd.is_active = true AND sa.queue_type = 'cut'), 0) as total_corte_retidas,
 //       count(*) FILTER (WHERE COALESCE(pd.setor, '') != '4036' AND COALESCE(pd.valor_retidas_em_aberto, 0) > 0 AND pd.is_active = true AND sa.queue_type = 'cut') as total_corte_retidas_cases,
-//   
+//
 //       count(*) FILTER (WHERE COALESCE(pd.setor, '') != '4036' AND pd.is_active = true AND sa.queue_type = 'recut') as total_recorte_cases,
 //       COALESCE(sum(COALESCE(pd.valor_total, 0) - COALESCE(pd.valor_retidas_em_aberto, 0)) FILTER (WHERE COALESCE(pd.setor, '') != '4036' AND pd.is_active = true AND sa.queue_type = 'recut'), 0) as total_recorte_value,
 //       COALESCE(sum(pd.valor_vencido) FILTER (WHERE COALESCE(pd.setor, '') != '4036' AND pd.is_active = true AND sa.queue_type = 'recut'), 0) as total_recorte_vencido,
 //       COALESCE(sum(pd.valor_a_vencer) FILTER (WHERE COALESCE(pd.setor, '') != '4036' AND pd.is_active = true AND sa.queue_type = 'recut'), 0) as total_recorte_a_vencer,
 //       COALESCE(sum(pd.valor_retidas_em_aberto) FILTER (WHERE COALESCE(pd.setor, '') != '4036' AND pd.is_active = true AND sa.queue_type = 'recut'), 0) as total_recorte_retidas,
 //       count(*) FILTER (WHERE COALESCE(pd.setor, '') != '4036' AND COALESCE(pd.valor_retidas_em_aberto, 0) > 0 AND pd.is_active = true AND sa.queue_type = 'recut') as total_recorte_retidas_cases
-//   
+//
 //     INTO curr_portfolio
 //     FROM public.pending_debts pd
 //     LEFT JOIN LATERAL (
-//       SELECT queue_type 
-//       FROM public.strategic_assignments 
-//       WHERE uc = pd.uc AND cod_pess_fat = pd.cod_pess_fat 
+//       SELECT queue_type
+//       FROM public.strategic_assignments
+//       WHERE uc = pd.uc AND cod_pess_fat = pd.cod_pess_fat
 //         AND (
 //           (queue_type = 'strategic' AND status IN ('pending', 'started')) OR
 //           (queue_type = 'legal' AND status IN ('a_encaminhar', 'encaminhado')) OR
@@ -3229,31 +3220,31 @@ export const Constants = {
 //         )
 //       LIMIT 1
 //     ) sa ON true;
-//   
+//
 //     SELECT * INTO prev_portfolio
 //     FROM public.portfolio_history
 //     WHERE snapshot_date < today_date
 //     ORDER BY snapshot_date DESC
 //     LIMIT 1;
-//   
+//
 //     SELECT count(*) INTO curr_contacts FROM public.contact_history;
 //     SELECT count(*) INTO curr_followups FROM public.follow_up_tasks;
-//     
+//
 //     SELECT count(*) INTO curr_updates FROM public.cadastral_updates WHERE status = 'completed';
 //     SELECT count(*) INTO pending_updates FROM public.cadastral_updates WHERE status = 'pending';
-//   
-//     SELECT count(*) INTO prev_contacts 
-//     FROM public.contact_history 
+//
+//     SELECT count(*) INTO prev_contacts
+//     FROM public.contact_history
 //     WHERE date(created_at AT TIME ZONE tz) < today_date;
-//     
-//     SELECT count(*) INTO prev_followups 
-//     FROM public.follow_up_tasks 
+//
+//     SELECT count(*) INTO prev_followups
+//     FROM public.follow_up_tasks
 //     WHERE date(created_at AT TIME ZONE tz) < today_date;
-//   
-//     SELECT count(*) INTO prev_updates 
-//     FROM public.cadastral_updates 
+//
+//     SELECT count(*) INTO prev_updates
+//     FROM public.cadastral_updates
 //     WHERE status = 'completed' AND date(resolved_at AT TIME ZONE tz) < today_date;
-//   
+//
 //     SELECT json_build_object(
 //       'portfolio', json_build_object(
 //          'current', json_build_object(
@@ -3344,11 +3335,11 @@ export const Constants = {
 //          )
 //       )
 //     ) INTO result;
-//   
+//
 //     RETURN result;
 //   END;
 //   $function$
-//   
+//
 // FUNCTION get_devedores_a_negativar(text, integer, integer, text[], text, boolean, text[], text)
 //   CREATE OR REPLACE FUNCTION public.get_devedores_a_negativar(p_search text DEFAULT NULL::text, p_limit integer DEFAULT 50, p_offset integer DEFAULT 0, p_situ_docto text[] DEFAULT ARRAY['pend'::text], p_order_by text DEFAULT 'valor_vencido'::text, p_order_desc boolean DEFAULT true, p_periods text[] DEFAULT NULL::text[], p_blacklist_filter text DEFAULT 'sem'::text)
 //    RETURNS TABLE(uc text, cod_pess_fat text, cpf_cnpj text, nome text, valor_vencido numeric, qt_fats integer, total_count bigint)
@@ -3358,31 +3349,31 @@ export const Constants = {
 //   BEGIN
 //     RETURN QUERY
 //     WITH blacklisted AS (
-//       SELECT regexp_replace(b.cpf_cnpj, '[^0-9]', '', 'g') as clean_cpf 
+//       SELECT regexp_replace(b.cpf_cnpj, '[^0-9]', '', 'g') as clean_cpf
 //       FROM public.serasa_blacklist b
 //     ),
 //     base_debts AS (
-//       SELECT 
-//         pd.uc, pd.cod_pess_fat, 
-//         REGEXP_REPLACE(pd.pessoa_fatura_cpf_cnpj, '[^0-9]', '', 'g') as clean_cpf_cnpj, 
+//       SELECT
+//         pd.uc, pd.cod_pess_fat,
+//         REGEXP_REPLACE(pd.pessoa_fatura_cpf_cnpj, '[^0-9]', '', 'g') as clean_cpf_cnpj,
 //         pd.pessoa_fatura_nome as nome, pd.valor_vencido, pd.qt_fats, pd.situ_docto, pd.refs
 //       FROM public.pending_debts pd
-//       WHERE pd.is_active = true 
+//       WHERE pd.is_active = true
 //         AND pd.valor_vencido > 0
 //         AND (
-//           p_search IS NULL OR p_search = '' 
-//           OR pd.uc ILIKE '%' || p_search || '%' 
-//           OR pd.pessoa_fatura_nome ILIKE '%' || p_search || '%' 
+//           p_search IS NULL OR p_search = ''
+//           OR pd.uc ILIKE '%' || p_search || '%'
+//           OR pd.pessoa_fatura_nome ILIKE '%' || p_search || '%'
 //           OR pd.pessoa_fatura_cpf_cnpj ILIKE '%' || p_search || '%'
 //         )
 //         AND (
 //           p_situ_docto IS NULL OR array_length(p_situ_docto, 1) IS NULL OR pd.situ_docto = ANY(p_situ_docto)
 //         )
 //         AND (
-//           p_periods IS NULL 
-//           OR array_length(p_periods, 1) IS NULL 
+//           p_periods IS NULL
+//           OR array_length(p_periods, 1) IS NULL
 //           OR EXISTS (
-//             SELECT 1 FROM unnest(p_periods) per 
+//             SELECT 1 FROM unnest(p_periods) per
 //             WHERE pd.refs ~ ('(?:^|\s)''?' || per || '(?:\s|$)')
 //           )
 //         )
@@ -3392,11 +3383,11 @@ export const Constants = {
 //       FROM base_debts b
 //       WHERE LENGTH(b.clean_cpf_cnpj) IN (11, 14)
 //         AND NOT EXISTS (
-//           SELECT 1 FROM public.serasa_workflow sw 
+//           SELECT 1 FROM public.serasa_workflow sw
 //           WHERE sw.uc = b.uc AND sw.cod_pess_fat = b.cod_pess_fat
 //         )
 //         AND NOT EXISTS (
-//           SELECT 1 FROM public.serasa_negativations sn 
+//           SELECT 1 FROM public.serasa_negativations sn
 //           WHERE REGEXP_REPLACE(sn.cpf_cnpj, '[^0-9]', '', 'g') = b.clean_cpf_cnpj
 //         )
 //         AND (
@@ -3405,11 +3396,11 @@ export const Constants = {
 //           (p_blacklist_filter = 'so' AND EXISTS (SELECT 1 FROM blacklisted bl WHERE bl.clean_cpf = b.clean_cpf_cnpj))
 //         )
 //     )
-//     SELECT 
-//       f.uc, f.cod_pess_fat, f.clean_cpf_cnpj as cpf_cnpj, f.nome, f.valor_vencido, f.qt_fats, 
+//     SELECT
+//       f.uc, f.cod_pess_fat, f.clean_cpf_cnpj as cpf_cnpj, f.nome, f.valor_vencido, f.qt_fats,
 //       COUNT(*) OVER() AS total_count
 //     FROM filtered f
-//     ORDER BY 
+//     ORDER BY
 //       CASE WHEN p_order_by = 'uc' AND p_order_desc THEN f.uc END DESC NULLS LAST,
 //       CASE WHEN p_order_by = 'uc' AND NOT p_order_desc THEN f.uc END ASC NULLS LAST,
 //       CASE WHEN p_order_by = 'nome' AND p_order_desc THEN f.nome END DESC NULLS LAST,
@@ -3424,7 +3415,7 @@ export const Constants = {
 //     LIMIT p_limit OFFSET p_offset;
 //   END;
 //   $function$
-//   
+//
 // FUNCTION get_distinct_refs()
 //   CREATE OR REPLACE FUNCTION public.get_distinct_refs()
 //    RETURNS TABLE(ref text)
@@ -3439,19 +3430,19 @@ export const Constants = {
 //       WHERE refs IS NOT NULL AND refs != ''
 //     ),
 //     cleaned_refs AS (
-//       SELECT DISTINCT 
+//       SELECT DISTINCT
 //         CASE WHEN r LIKE '''%' THEN substring(r from 2) ELSE r END as clean_ref
 //       FROM all_refs
 //       WHERE r != ''
 //     )
-//     SELECT clean_ref 
+//     SELECT clean_ref
 //     FROM cleaned_refs
-//     ORDER BY 
-//       CASE WHEN clean_ref = 'NEG' THEN 1 ELSE 0 END, 
+//     ORDER BY
+//       CASE WHEN clean_ref = 'NEG' THEN 1 ELSE 0 END,
 //       clean_ref DESC;
 //   END;
 //   $function$
-//   
+//
 // FUNCTION get_invalid_debts_for_audit()
 //   CREATE OR REPLACE FUNCTION public.get_invalid_debts_for_audit()
 //    RETURNS TABLE(uc text, cod_pess_fat text, pessoa_fatura_nome text, refs text, is_active boolean, issue_type text, duplicate_status text)
@@ -3461,15 +3452,15 @@ export const Constants = {
 //   BEGIN
 //     RETURN QUERY
 //     WITH all_debts AS (
-//       SELECT 
-//         d.uc, 
-//         d.cod_pess_fat, 
-//         d.pessoa_fatura_nome, 
-//         d.refs, 
+//       SELECT
+//         d.uc,
+//         d.cod_pess_fat,
+//         d.pessoa_fatura_nome,
+//         d.refs,
 //         COALESCE(d.is_active, true) as is_active,
 //         (
-//           d.refs IS NOT NULL 
-//           AND trim(d.refs) != '' 
+//           d.refs IS NOT NULL
+//           AND trim(d.refs) != ''
 //           AND NOT EXISTS (
 //             SELECT 1 FROM unnest(regexp_split_to_array(trim(d.refs), '\s+')) AS t
 //             WHERE t !~ '^''?(NEG|[0-9]{2}/[0-9]{2})'
@@ -3478,24 +3469,24 @@ export const Constants = {
 //         ) AS is_valid
 //       FROM public.pending_debts d
 //     )
-//     SELECT 
+//     SELECT
 //       a.uc,
 //       a.cod_pess_fat,
 //       a.pessoa_fatura_nome,
 //       a.refs,
 //       a.is_active,
-//       CASE 
+//       CASE
 //         WHEN a.refs LIKE '%0.00%' THEN 'Valor Zerado no REFS'::text
 //         WHEN a.is_active = false THEN 'Inativo com Ref Inválida'::text
 //         ELSE 'Ativo com Ref Inválida'::text
 //       END as issue_type,
 //       COALESCE((
-//         SELECT CASE 
+//         SELECT CASE
 //                  WHEN bool_or(b.is_active = true) THEN 'active'::text
 //                  ELSE 'inactive'::text
 //                END
 //         FROM all_debts b
-//         WHERE b.uc = a.uc 
+//         WHERE b.uc = a.uc
 //           AND b.is_valid = true
 //       ), 'none'::text) as duplicate_status
 //     FROM all_debts a
@@ -3503,7 +3494,7 @@ export const Constants = {
 //     ORDER BY a.uc, a.is_active DESC;
 //   END;
 //   $function$
-//   
+//
 // FUNCTION get_negotiations_summary()
 //   CREATE OR REPLACE FUNCTION public.get_negotiations_summary()
 //    RETURNS json
@@ -3520,11 +3511,11 @@ export const Constants = {
 //       'total_cases', COUNT(*) FILTER (WHERE is_active = true AND refs ILIKE '%NEG%')
 //     ) INTO result
 //     FROM public.pending_debts;
-//     
+//
 //     RETURN result;
 //   END;
 //   $function$
-//   
+//
 // FUNCTION get_operator_stats()
 //   CREATE OR REPLACE FUNCTION public.get_operator_stats()
 //    RETURNS TABLE(operator_id uuid, total_contacts bigint, today_contacts bigint, total_followups bigint, today_followups bigint)
@@ -3533,7 +3524,7 @@ export const Constants = {
 //   AS $function$
 //   BEGIN
 //       RETURN QUERY
-//       SELECT 
+//       SELECT
 //           p.id as operator_id,
 //           COALESCE(c.total_contacts, 0) as total_contacts,
 //           COALESCE(c.today_contacts, 0) as today_contacts,
@@ -3541,16 +3532,16 @@ export const Constants = {
 //           COALESCE(f.today_followups, 0) as today_followups
 //       FROM public.profiles p
 //       LEFT JOIN (
-//           SELECT 
-//               ch.operator_id, 
+//           SELECT
+//               ch.operator_id,
 //               count(*) as total_contacts,
 //               sum(CASE WHEN date(ch.created_at AT TIME ZONE 'America/Sao_Paulo') = date(now() AT TIME ZONE 'America/Sao_Paulo') THEN 1 ELSE 0 END) as today_contacts
 //           FROM public.contact_history ch
 //           GROUP BY ch.operator_id
 //       ) c ON c.operator_id = p.id
 //       LEFT JOIN (
-//           SELECT 
-//               ft.operator_id, 
+//           SELECT
+//               ft.operator_id,
 //               count(*) as total_followups,
 //               sum(CASE WHEN date(ft.created_at AT TIME ZONE 'America/Sao_Paulo') = date(now() AT TIME ZONE 'America/Sao_Paulo') THEN 1 ELSE 0 END) as today_followups
 //           FROM public.follow_up_tasks ft
@@ -3558,7 +3549,7 @@ export const Constants = {
 //       ) f ON f.operator_id = p.id;
 //   END;
 //   $function$
-//   
+//
 // FUNCTION get_overview_dashboard()
 //   CREATE OR REPLACE FUNCTION public.get_overview_dashboard()
 //    RETURNS json
@@ -3571,14 +3562,14 @@ export const Constants = {
 //     WITH active_assignments AS (
 //       SELECT uc, cod_pess_fat, queue_type
 //       FROM public.strategic_assignments
-//       WHERE 
+//       WHERE
 //         (queue_type = 'strategic' AND status IN ('pending', 'started')) OR
 //         (queue_type = 'legal' AND status IN ('a_encaminhar', 'encaminhado')) OR
 //         (queue_type = 'cut' AND status IN ('para_abrir_os', 'os_corte_aberta')) OR
 //         (queue_type = 'recut' AND status IN ('para_abrir_os', 'os_recorte_aberta'))
 //     ),
 //     base_data AS (
-//       SELECT 
+//       SELECT
 //         pd.valor_total,
 //         pd.valor_vencido,
 //         pd.valor_a_vencer,
@@ -3627,11 +3618,11 @@ export const Constants = {
 //         'valor_retidas', SUM(valor_retidas_em_aberto) FILTER (WHERE q_type = 'recut' AND COALESCE(setor, '') != '4036')
 //       )
 //     ) INTO result FROM base_data;
-//   
+//
 //     RETURN result;
 //   END;
 //   $function$
-//   
+//
 // FUNCTION get_portfolio_stats()
 //   CREATE OR REPLACE FUNCTION public.get_portfolio_stats()
 //    RETURNS json
@@ -3652,11 +3643,11 @@ export const Constants = {
 //       'total_lotes_value', COALESCE(sum(valor_total) FILTER (WHERE COALESCE(setor, '') = '4036' AND is_active = true), 0)
 //     ) INTO result
 //     FROM public.pending_debts;
-//     
+//
 //     RETURN result;
 //   END;
 //   $function$
-//   
+//
 // FUNCTION get_readers_by_day(timestamp with time zone)
 //   CREATE OR REPLACE FUNCTION public.get_readers_by_day(p_month timestamp with time zone)
 //    RETURNS json
@@ -3672,10 +3663,10 @@ export const Constants = {
 //   BEGIN
 //     v_start_date := date_trunc('month', p_month AT TIME ZONE 'America/Sao_Paulo')::date;
 //     v_end_date := (v_start_date + interval '1 month' - interval '1 day')::date;
-//     
+//
 //     v_start_ts := v_start_date::timestamp AT TIME ZONE 'America/Sao_Paulo';
 //     v_end_ts := (v_end_date + interval '1 day')::timestamp AT TIME ZONE 'America/Sao_Paulo';
-//   
+//
 //     WITH calendar AS (
 //       SELECT d::date as cal_date
 //       FROM generate_series(v_start_date, LEAST(v_end_date, (NOW() AT TIME ZONE 'America/Sao_Paulo')::date), '1 day'::interval) d
@@ -3685,11 +3676,11 @@ export const Constants = {
 //       )
 //     ),
 //     daily_readers AS (
-//       SELECT 
+//       SELECT
 //         (dr.data_leitura_real AT TIME ZONE 'America/Sao_Paulo')::date as cal_date,
 //         dr.usuario_id,
 //         COUNT(dr.id) as total_read
-//       FROM public.daily_readings dr 
+//       FROM public.daily_readings dr
 //       WHERE dr.usuario_id IS NOT NULL AND dr.usuario_id != ''
 //         AND dr.data_leitura_real >= v_start_ts AND dr.data_leitura_real < v_end_ts
 //       GROUP BY (dr.data_leitura_real AT TIME ZONE 'America/Sao_Paulo')::date, dr.usuario_id
@@ -3707,11 +3698,11 @@ export const Constants = {
 //       ORDER BY c.cal_date ASC
 //     )
 //     SELECT COALESCE(json_agg(row_to_json(t)), '[]'::json) INTO result FROM aggregated t;
-//   
+//
 //     RETURN result;
 //   END;
 //   $function$
-//   
+//
 // FUNCTION get_reading_rhythm_comparison(timestamp with time zone, date[])
 //   CREATE OR REPLACE FUNCTION public.get_reading_rhythm_comparison(p_current_month timestamp with time zone, p_references date[])
 //    RETURNS json
@@ -3726,7 +3717,7 @@ export const Constants = {
 //   BEGIN
 //     v_start := date_trunc('month', p_current_month AT TIME ZONE 'America/Sao_Paulo')::date;
 //     v_end := (v_start + interval '1 month' - interval '1 day')::date;
-//   
+//
 //     WITH calendar AS (
 //       SELECT d::date as cal_date,
 //              COALESCE((SELECT weather_condition FROM public.calendar_settings cs2 WHERE cs2.date = d::date), 'normal') as weather_condition
@@ -3737,7 +3728,7 @@ export const Constants = {
 //       )
 //     ),
 //     current_month_metrics AS (
-//       SELECT 
+//       SELECT
 //         m.uc,
 //         m.data_leitura_real as cal_date,
 //         m.working_day_index
@@ -3745,7 +3736,7 @@ export const Constants = {
 //       WHERE m.data_referencia = v_start
 //     ),
 //     reference_metrics AS (
-//       SELECT 
+//       SELECT
 //         m.uc,
 //         ROUND(AVG(m.working_day_index)) as avg_ref_index
 //       FROM public.reading_working_days_metrics m
@@ -3753,9 +3744,9 @@ export const Constants = {
 //       GROUP BY m.uc
 //     ),
 //     comparison AS (
-//       SELECT 
+//       SELECT
 //         c.cal_date,
-//         CASE 
+//         CASE
 //           WHEN r.avg_ref_index IS NULL THEN 'gray'
 //           WHEN c.working_day_index < r.avg_ref_index THEN 'green'
 //           WHEN c.working_day_index = r.avg_ref_index THEN 'yellow'
@@ -3765,7 +3756,7 @@ export const Constants = {
 //       LEFT JOIN reference_metrics r ON r.uc = c.uc
 //     ),
 //     daily_counts AS (
-//       SELECT 
+//       SELECT
 //         to_char(cal.cal_date, 'YYYY-MM-DD') as date_label,
 //         cal.weather_condition,
 //         COUNT(comp.*) FILTER (WHERE comp.status = 'green') as green_count,
@@ -3778,11 +3769,11 @@ export const Constants = {
 //       ORDER BY cal.cal_date ASC
 //     )
 //     SELECT COALESCE(json_agg(row_to_json(t)), '[]'::json) INTO result FROM daily_counts t;
-//   
+//
 //     RETURN result;
 //   END;
 //   $function$
-//   
+//
 // FUNCTION get_reading_rhythm_day_details(timestamp with time zone, text, date[])
 //   CREATE OR REPLACE FUNCTION public.get_reading_rhythm_day_details(p_current_month timestamp with time zone, p_date_label text, p_references date[])
 //    RETURNS json
@@ -3807,9 +3798,9 @@ export const Constants = {
 //     v_month_minus_4 := (v_start - interval '4 months')::date;
 //     v_month_minus_5 := (v_start - interval '5 months')::date;
 //     v_month_minus_6 := (v_start - interval '6 months')::date;
-//   
+//
 //     WITH current_day_metrics AS (
-//       SELECT 
+//       SELECT
 //         m.uc,
 //         m.data_leitura_real,
 //         m.working_day_index
@@ -3818,7 +3809,7 @@ export const Constants = {
 //         AND m.data_leitura_real = p_date_label::date
 //     ),
 //     reference_metrics AS (
-//       SELECT 
+//       SELECT
 //         m.uc,
 //         ROUND(AVG(m.working_day_index)) as avg_ref_index
 //       FROM current_day_metrics c
@@ -3827,7 +3818,7 @@ export const Constants = {
 //       GROUP BY m.uc
 //     ),
 //     history_metrics AS (
-//       SELECT 
+//       SELECT
 //         m.uc,
 //         MAX(m.working_day_index) FILTER (WHERE m.data_referencia = v_month_minus_1) as m1,
 //         MAX(m.working_day_index) FILTER (WHERE m.data_referencia = v_month_minus_2) as m2,
@@ -3841,19 +3832,19 @@ export const Constants = {
 //       GROUP BY m.uc
 //     ),
 //     comparison AS (
-//       SELECT 
+//       SELECT
 //         c.uc,
 //         c.data_leitura_real,
 //         c.working_day_index,
 //         r.avg_ref_index,
 //         h.m1, h.m2, h.m3, h.m4, h.m5, h.m6,
-//         CASE 
+//         CASE
 //           WHEN r.avg_ref_index IS NULL THEN 'gray'
 //           WHEN c.working_day_index < r.avg_ref_index THEN 'green'
 //           WHEN c.working_day_index = r.avg_ref_index THEN 'yellow'
 //           WHEN c.working_day_index > r.avg_ref_index THEN 'red'
 //         END as status,
-//         CASE 
+//         CASE
 //           WHEN r.avg_ref_index IS NULL THEN 1
 //           WHEN c.working_day_index > r.avg_ref_index THEN 2
 //           WHEN c.working_day_index = r.avg_ref_index THEN 3
@@ -3868,11 +3859,11 @@ export const Constants = {
 //       SELECT * FROM comparison
 //       ORDER BY order_weight ASC, uc ASC
 //     ) t;
-//   
+//
 //     RETURN result;
 //   END;
 //   $function$
-//   
+//
 // FUNCTION get_reading_rhythm_ruler(timestamp with time zone, text[])
 //   CREATE OR REPLACE FUNCTION public.get_reading_rhythm_ruler(p_current_month timestamp with time zone, p_references text[] DEFAULT '{}'::text[])
 //    RETURNS json
@@ -3887,17 +3878,17 @@ export const Constants = {
 //     v_refs DATE[];
 //   BEGIN
 //     v_current_month_start := date_trunc('month', p_current_month AT TIME ZONE 'America/Sao_Paulo')::date;
-//     
+//
 //     IF p_references IS NOT NULL THEN
 //       SELECT array_agg(d::date) INTO v_refs FROM unnest(p_references) d;
 //     ELSE
 //       v_refs := '{}'::date[];
 //     END IF;
-//   
+//
 //     -- Calculate the global max working days from history
 //     SELECT MAX(working_day_index) INTO v_max_working_days_global
 //     FROM public.reading_working_days_metrics;
-//   
+//
 //     -- Fallback to current month if no data
 //     IF v_max_working_days_global IS NULL OR v_max_working_days_global = 0 THEN
 //       SELECT COUNT(*) INTO v_max_working_days_global
@@ -3905,22 +3896,22 @@ export const Constants = {
 //       WHERE date >= v_current_month_start
 //         AND date < (v_current_month_start + interval '1 month')::date
 //         AND is_working_day = true;
-//         
+//
 //       IF v_max_working_days_global IS NULL OR v_max_working_days_global = 0 THEN
 //         v_max_working_days_global := 23;
 //       END IF;
 //     END IF;
-//   
+//
 //     IF date_trunc('month', now() AT TIME ZONE 'America/Sao_Paulo')::date = v_current_month_start THEN
 //       SELECT COUNT(*) INTO v_current_working_day
 //       FROM public.calendar_settings
-//       WHERE date >= v_current_month_start 
+//       WHERE date >= v_current_month_start
 //         AND date <= (now() AT TIME ZONE 'America/Sao_Paulo')::date
 //         AND is_working_day = true;
 //     ELSE
 //       v_current_working_day := NULL;
 //     END IF;
-//   
+//
 //     WITH days AS (
 //       SELECT generate_series(1, v_max_working_days_global) as idx
 //     ),
@@ -3930,7 +3921,7 @@ export const Constants = {
 //       SELECT unnest(v_refs) as month_date, false as is_current
 //     ),
 //     monthly_daily AS (
-//       SELECT 
+//       SELECT
 //         data_referencia,
 //         working_day_index,
 //         COUNT(uc) as cnt
@@ -3958,7 +3949,7 @@ export const Constants = {
 //       GROUP BY idx
 //     ),
 //     monthly_json AS (
-//       SELECT 
+//       SELECT
 //         m.month_date,
 //         m.is_current,
 //         to_char(m.month_date, 'MM/YYYY') as month_label,
@@ -3989,11 +3980,11 @@ export const Constants = {
 //         FROM monthly_json
 //       )
 //     ) INTO result;
-//   
+//
 //     RETURN result;
 //   END;
 //   $function$
-//   
+//
 // FUNCTION get_reading_rhythm_status(timestamp with time zone)
 //   CREATE OR REPLACE FUNCTION public.get_reading_rhythm_status(p_month timestamp with time zone DEFAULT now())
 //    RETURNS json
@@ -4006,9 +3997,9 @@ export const Constants = {
 //     result json;
 //   BEGIN
 //     v_start_date := date_trunc('month', p_month AT TIME ZONE 'America/Sao_Paulo')::DATE;
-//   
+//
 //     WITH calendar AS (
-//       SELECT 
+//       SELECT
 //         d::DATE as cal_date,
 //         COALESCE(cs.is_working_day, true) as is_working
 //       FROM generate_series(v_start_date, LEAST((NOW() AT TIME ZONE 'America/Sao_Paulo')::DATE, (v_start_date + INTERVAL '1 month' - INTERVAL '1 day')::DATE), '1 day'::interval) d
@@ -4016,13 +4007,13 @@ export const Constants = {
 //     )
 //     SELECT SUM(CASE WHEN is_working THEN 1 ELSE 0 END) INTO v_current_working_day_index
 //     FROM calendar;
-//   
+//
 //     IF v_current_working_day_index IS NULL THEN
 //       v_current_working_day_index := 0;
 //     END IF;
-//   
+//
 //     WITH historical_avg AS (
-//       SELECT 
+//       SELECT
 //         uc,
 //         AVG(working_day_index) as avg_index
 //       FROM public.reading_working_days_metrics
@@ -4031,7 +4022,7 @@ export const Constants = {
 //       GROUP BY uc
 //     ),
 //     current_month_expected AS (
-//       SELECT 
+//       SELECT
 //         dr.uc,
 //         dr.data_leitura_real,
 //         h.avg_index,
@@ -4041,9 +4032,9 @@ export const Constants = {
 //       WHERE date_trunc('month', dr.data_referencia AT TIME ZONE 'UTC')::DATE = v_start_date
 //     ),
 //     status_calc AS (
-//       SELECT 
+//       SELECT
 //         uc,
-//         CASE 
+//         CASE
 //           WHEN data_leitura_real IS NOT NULL THEN 'Lido'
 //           WHEN current_index > CEIL(avg_index) THEN 'Atrasado'
 //           WHEN current_index < FLOOR(avg_index) THEN 'Adiantado'
@@ -4059,11 +4050,11 @@ export const Constants = {
 //       'current_working_day', v_current_working_day_index
 //     ) INTO result
 //     FROM status_calc;
-//   
+//
 //     RETURN COALESCE(result, '{"atrasado":0,"em_dia":0,"adiantado":0,"lido":0,"current_working_day":0}'::json);
 //   END;
 //   $function$
-//   
+//
 // FUNCTION get_regularized_assignments(integer, integer)
 //   CREATE OR REPLACE FUNCTION public.get_regularized_assignments(p_limit integer DEFAULT 50, p_offset integer DEFAULT 0)
 //    RETURNS TABLE(id uuid, uc text, cod_pess_fat text, snapshot_nome_cliente text, created_at timestamp with time zone, status text, images jsonb, total_count bigint)
@@ -4073,7 +4064,7 @@ export const Constants = {
 //   BEGIN
 //     RETURN QUERY
 //     WITH filtered AS (
-//       SELECT 
+//       SELECT
 //         sa.id,
 //         sa.uc,
 //         sa.cod_pess_fat,
@@ -4082,18 +4073,18 @@ export const Constants = {
 //         sa.status,
 //         sa.images
 //       FROM public.strategic_assignments sa
-//       WHERE sa.images IS NOT NULL 
+//       WHERE sa.images IS NOT NULL
 //         AND jsonb_typeof(sa.images) = 'array'
 //         AND jsonb_array_length(sa.images) > 0
 //         AND NOT EXISTS (
-//           SELECT 1 
-//           FROM public.pending_debts pd 
-//           WHERE pd.uc = sa.uc 
-//             AND pd.cod_pess_fat = sa.cod_pess_fat 
+//           SELECT 1
+//           FROM public.pending_debts pd
+//           WHERE pd.uc = sa.uc
+//             AND pd.cod_pess_fat = sa.cod_pess_fat
 //             AND pd.is_active = true
 //         )
 //     )
-//     SELECT 
+//     SELECT
 //       f.id,
 //       f.uc,
 //       f.cod_pess_fat,
@@ -4107,7 +4098,7 @@ export const Constants = {
 //     LIMIT p_limit OFFSET p_offset;
 //   END;
 //   $function$
-//   
+//
 // FUNCTION get_researched_phones()
 //   CREATE OR REPLACE FUNCTION public.get_researched_phones()
 //    RETURNS TABLE(id uuid, uc text, cod_pess_fat text, phones jsonb, created_at timestamp with time zone, pessoa_fatura_nome text, valor_total numeric, ultimo_disparo timestamp with time zone)
@@ -4116,7 +4107,7 @@ export const Constants = {
 //   AS $function$
 //   BEGIN
 //     RETURN QUERY
-//     SELECT 
+//     SELECT
 //       rp.id,
 //       rp.uc,
 //       rp.cod_pess_fat,
@@ -4131,7 +4122,7 @@ export const Constants = {
 //     LIMIT 100;
 //   END;
 //   $function$
-//   
+//
 // FUNCTION get_researched_phones_paginated(integer, integer)
 //   CREATE OR REPLACE FUNCTION public.get_researched_phones_paginated(p_limit integer DEFAULT 100, p_offset integer DEFAULT 0)
 //    RETURNS TABLE(id uuid, uc text, cod_pess_fat text, phones jsonb, created_at timestamp with time zone, pessoa_fatura_nome text, pessoa_fatura_cpf_cnpj text, valor_total numeric, ultimo_disparo timestamp with time zone, total_count bigint)
@@ -4141,7 +4132,7 @@ export const Constants = {
 //     BEGIN
 //       RETURN QUERY
 //       WITH filtered AS (
-//         SELECT 
+//         SELECT
 //           rp.id,
 //           rp.uc,
 //           rp.cod_pess_fat,
@@ -4155,7 +4146,7 @@ export const Constants = {
 //         FROM public.researched_phones rp
 //         JOIN public.pending_debts pd ON pd.uc = rp.uc AND pd.cod_pess_fat = rp.cod_pess_fat
 //       )
-//       SELECT 
+//       SELECT
 //         f.id, f.uc, f.cod_pess_fat, f.phones, f.created_at, f.pessoa_fatura_nome, f.pessoa_fatura_cpf_cnpj, f.valor_total, f.ultimo_disparo,
 //         (SELECT count(*) FROM filtered)::bigint AS total_count
 //       FROM filtered f
@@ -4163,7 +4154,7 @@ export const Constants = {
 //       LIMIT p_limit OFFSET p_offset;
 //     END;
 //     $function$
-//   
+//
 // FUNCTION get_serasa_cross_reference(text, boolean, date, date, numeric, numeric, integer, integer, boolean)
 //   CREATE OR REPLACE FUNCTION public.get_serasa_cross_reference(p_cpf_cnpj text DEFAULT NULL::text, p_possui_debitos boolean DEFAULT NULL::boolean, p_start_date date DEFAULT NULL::date, p_end_date date DEFAULT NULL::date, p_min_value numeric DEFAULT NULL::numeric, p_max_value numeric DEFAULT NULL::numeric, p_limit integer DEFAULT 50, p_offset integer DEFAULT 0, p_baixado_aqui boolean DEFAULT false)
 //    RETURNS TABLE(id uuid, cpf_cnpj text, nome text, num_contrato text, valor numeric, data_envio date, situacao text, created_at timestamp with time zone, possui_debitos boolean, ultima_verificacao timestamp with time zone, baixado_aqui boolean, data_baixa_aqui timestamp with time zone, is_blacklisted boolean)
@@ -4173,12 +4164,12 @@ export const Constants = {
 //   BEGIN
 //     RETURN QUERY
 //     WITH blacklisted AS (
-//       SELECT regexp_replace(b.cpf_cnpj, '[^0-9]', '', 'g') as clean_cpf 
+//       SELECT regexp_replace(b.cpf_cnpj, '[^0-9]', '', 'g') as clean_cpf
 //       FROM public.serasa_blacklist b
 //     )
-//     SELECT 
-//       s.id, s.cpf_cnpj, s.nome, s.num_contrato, s.valor, s.data_envio, 
-//       s.situacao, s.created_at, s.possui_debitos, s.ultima_verificacao, 
+//     SELECT
+//       s.id, s.cpf_cnpj, s.nome, s.num_contrato, s.valor, s.data_envio,
+//       s.situacao, s.created_at, s.possui_debitos, s.ultima_verificacao,
 //       s.baixado_aqui, s.data_baixa_aqui,
 //       EXISTS (SELECT 1 FROM blacklisted bl WHERE bl.clean_cpf = regexp_replace(s.cpf_cnpj, '[^0-9]', '', 'g')) as is_blacklisted
 //     FROM public.serasa_negativations s
@@ -4189,7 +4180,7 @@ export const Constants = {
 //       AND (p_min_value IS NULL OR s.valor >= p_min_value)
 //       AND (p_max_value IS NULL OR s.valor <= p_max_value)
 //       AND (s.baixado_aqui = p_baixado_aqui)
-//     ORDER BY 
+//     ORDER BY
 //       EXISTS (SELECT 1 FROM blacklisted bl WHERE bl.clean_cpf = regexp_replace(s.cpf_cnpj, '[^0-9]', '', 'g')) DESC,
 //       CASE WHEN s.possui_debitos = false THEN 0 ELSE 1 END,
 //       s.created_at DESC
@@ -4197,7 +4188,7 @@ export const Constants = {
 //     OFFSET p_offset;
 //   END;
 //   $function$
-//   
+//
 // FUNCTION get_strategic_dashboard_data()
 //   CREATE OR REPLACE FUNCTION public.get_strategic_dashboard_data()
 //    RETURNS json
@@ -4221,7 +4212,7 @@ export const Constants = {
 //       WHERE snapshot_date >= '2026-04-01'
 //       ORDER BY snapshot_date ASC
 //     ) t;
-//   
+//
 //     IF json_array_length(d1_history) = 0 THEN
 //       SELECT COALESCE(json_agg(row_to_json(t)), '[]'::json) INTO d1_history
 //       FROM (
@@ -4230,11 +4221,11 @@ export const Constants = {
 //         WHERE COALESCE(setor, '') != '4036' AND is_active = true
 //       ) t;
 //     END IF;
-//   
+//
 //     -- D2: Atuação por Operador e Canal
 //     SELECT COALESCE(json_agg(row_to_json(t)), '[]'::json) INTO d2_operator_channel
 //     FROM (
-//       SELECT 
+//       SELECT
 //         COALESCE(p.first_name, p.name, 'SISTEMA') as operator,
 //         ch.contact_type as channel,
 //         COUNT(*) as count
@@ -4243,11 +4234,11 @@ export const Constants = {
 //       WHERE ch.contact_type IS NOT NULL
 //       GROUP BY COALESCE(p.first_name, p.name, 'SISTEMA'), ch.contact_type
 //     ) t;
-//   
+//
 //     -- D4: Desempenho do Setor
 //     SELECT COALESCE(json_agg(row_to_json(t)), '[]'::json) INTO d4_performance
 //     FROM (
-//       SELECT 
+//       SELECT
 //         COALESCE(p.first_name, p.name, 'SISTEMA') as operator,
 //         COUNT(ch.id) as contacts,
 //         COUNT(cr.id) as recoveries,
@@ -4259,12 +4250,12 @@ export const Constants = {
 //       ORDER BY COALESCE(SUM(cr.valor_recuperado), 0) DESC
 //       LIMIT 10
 //     ) t;
-//   
+//
 //     -- D6: Análise de Perfis (CPF vs CNPJ) - Apenas ativos
 //     SELECT COALESCE(json_agg(row_to_json(t)), '[]'::json) INTO d6_profiles
 //     FROM (
-//       SELECT 
-//         CASE 
+//       SELECT
+//         CASE
 //           WHEN LENGTH(REGEXP_REPLACE(COALESCE(pessoa_fatura_cpf_cnpj, ''), '[^0-9]', '', 'g')) <= 11 THEN 'Residencial (PF)'
 //           WHEN LENGTH(REGEXP_REPLACE(COALESCE(pessoa_fatura_cpf_cnpj, ''), '[^0-9]', '', 'g')) > 11 THEN 'Comercial (PJ)'
 //           ELSE 'Não Identificado'
@@ -4275,11 +4266,11 @@ export const Constants = {
 //       WHERE COALESCE(setor, '') != '4036' AND is_active = true
 //       GROUP BY 1
 //     ) t;
-//   
+//
 //     -- Contact Results
 //     SELECT COALESCE(json_agg(row_to_json(t)), '[]'::json) INTO contact_results
 //     FROM (
-//       SELECT 
+//       SELECT
 //         COALESCE(status, 'Sem Status') as status,
 //         COUNT(*) as count
 //       FROM public.contact_history
@@ -4287,12 +4278,12 @@ export const Constants = {
 //       GROUP BY status
 //       ORDER BY count DESC
 //     ) t;
-//   
+//
 //     -- Follow up stats
 //     SELECT COALESCE(json_agg(row_to_json(t)), '[]'::json) INTO follow_up_stats
 //     FROM (
-//       SELECT 
-//         CASE 
+//       SELECT
+//         CASE
 //           WHEN completed = true THEN 'Concluído'
 //           WHEN due_date < CURRENT_DATE THEN 'Atrasado'
 //           WHEN due_date = CURRENT_DATE THEN 'Hoje'
@@ -4303,7 +4294,7 @@ export const Constants = {
 //       GROUP BY 1
 //       ORDER BY count DESC
 //     ) t;
-//   
+//
 //     SELECT json_build_object(
 //       'd1_history', d1_history,
 //       'd2_operator_channel', d2_operator_channel,
@@ -4312,11 +4303,11 @@ export const Constants = {
 //       'contact_results', contact_results,
 //       'follow_up_stats', follow_up_stats
 //     ) INTO result;
-//   
+//
 //     RETURN result;
 //   END;
 //   $function$
-//   
+//
 // FUNCTION handle_new_user()
 //   CREATE OR REPLACE FUNCTION public.handle_new_user()
 //    RETURNS trigger
@@ -4341,7 +4332,7 @@ export const Constants = {
 //     RETURN NEW;
 //   END;
 //   $function$
-//   
+//
 // FUNCTION keep_latest_20_import_history()
 //   CREATE OR REPLACE FUNCTION public.keep_latest_20_import_history()
 //    RETURNS trigger
@@ -4358,7 +4349,7 @@ export const Constants = {
 //       RETURN NEW;
 //   END;
 //   $function$
-//   
+//
 // FUNCTION process_conversions()
 //   CREATE OR REPLACE FUNCTION public.process_conversions()
 //    RETURNS void
@@ -4374,26 +4365,26 @@ export const Constants = {
 //     -- Parametros do sistema
 //     SELECT (value->>'max_days')::int INTO max_days FROM public.app_settings WHERE key = 'conversion_params';
 //     SELECT (value->>'max_score_days')::int INTO max_score_days FROM public.app_settings WHERE key = 'conversion_params';
-//     
+//
 //     SELECT (value->>'fast_reversion')::int INTO fast_pts FROM public.app_settings WHERE key = 'score_params';
 //     SELECT (value->>'late_reversion')::int INTO late_pts FROM public.app_settings WHERE key = 'score_params';
-//     
+//
 //     IF max_days IS NULL THEN max_days := 120; END IF;
 //     IF max_score_days IS NULL THEN max_score_days := 7; END IF;
 //     IF fast_pts IS NULL THEN fast_pts := 5; END IF;
 //     IF late_pts IS NULL THEN late_pts := 2; END IF;
-//   
+//
 //     INSERT INTO public.contact_results (
-//       contact_id, 
-//       uc, 
-//       cod_pess_fat, 
-//       settlement_id, 
-//       valor_recuperado, 
-//       data_baixa, 
-//       dias_para_reversao, 
+//       contact_id,
+//       uc,
+//       cod_pess_fat,
+//       settlement_id,
+//       valor_recuperado,
+//       data_baixa,
+//       dias_para_reversao,
 //       pontos_reversao
 //     )
-//     SELECT 
+//     SELECT
 //       ch.id as contact_id,
 //       s.uc,
 //       COALESCE(s.cod_pess_fat, ch.cod_pess_fat) as cod_pess_fat,
@@ -4408,7 +4399,7 @@ export const Constants = {
 //     JOIN LATERAL (
 //       SELECT id, created_at, cod_pess_fat, is_active
 //       FROM public.contact_history ch2
-//       WHERE ch2.uc = s.uc 
+//       WHERE ch2.uc = s.uc
 //         AND (ch2.cod_pess_fat = s.cod_pess_fat OR s.cod_pess_fat IS NULL)
 //         AND ch2.is_active = true
 //         AND (ch2.created_at AT TIME ZONE 'America/Sao_Paulo')::date <= COALESCE(s.datacriacao::date, s.databaixa_final, s.databaixa_inicial, s.datacredito_final, s.datacredito_inicial, s.neg_data)
@@ -4419,15 +4410,15 @@ export const Constants = {
 //     WHERE s.tipo_baixa IN ('CONV.ARREC', 'DEB.AUTO')
 //       -- Ensures we don't duplicate a result if the settlement was cleaned up and re-imported later.
 //       AND NOT EXISTS (
-//         SELECT 1 FROM public.contact_results cr 
-//         WHERE cr.contact_id = ch.id 
-//           AND cr.valor_recuperado = s.valor_total 
+//         SELECT 1 FROM public.contact_results cr
+//         WHERE cr.contact_id = ch.id
+//           AND cr.valor_recuperado = s.valor_total
 //           AND cr.data_baixa = COALESCE(s.datacriacao::date, s.databaixa_final, s.databaixa_inicial, s.datacredito_final, s.datacredito_inicial, s.neg_data)
 //       )
 //     ON CONFLICT (contact_id, settlement_id) DO NOTHING;
 //   END;
 //   $function$
-//   
+//
 // FUNCTION protect_profile_roles()
 //   CREATE OR REPLACE FUNCTION public.protect_profile_roles()
 //    RETURNS trigger
@@ -4441,17 +4432,17 @@ export const Constants = {
 //     IF NEW.role IS NOT DISTINCT FROM OLD.role AND NEW.is_admin IS NOT DISTINCT FROM OLD.is_admin THEN
 //       RETURN NEW;
 //     END IF;
-//   
+//
 //     -- If system/service_role bypass (auth.uid() is null)
 //     IF auth.uid() IS NULL THEN
 //       RETURN NEW;
 //     END IF;
-//   
+//
 //     -- Check if the caller is an admin
-//     SELECT (role = 'admin' OR is_admin = true) INTO is_caller_admin 
-//     FROM public.profiles 
+//     SELECT (role = 'admin' OR is_admin = true) INTO is_caller_admin
+//     FROM public.profiles
 //     WHERE id = auth.uid();
-//   
+//
 //     IF COALESCE(is_caller_admin, false) THEN
 //       RETURN NEW;
 //     ELSE
@@ -4462,7 +4453,7 @@ export const Constants = {
 //     END IF;
 //   END;
 //   $function$
-//   
+//
 // FUNCTION recalculate_working_days_metrics(timestamp with time zone)
 //   CREATE OR REPLACE FUNCTION public.recalculate_working_days_metrics(p_month timestamp with time zone)
 //    RETURNS void
@@ -4478,16 +4469,16 @@ export const Constants = {
 //   BEGIN
 //     v_start_date := date_trunc('month', p_month AT TIME ZONE 'America/Sao_Paulo')::DATE;
 //     v_end_date := (date_trunc('month', p_month AT TIME ZONE 'America/Sao_Paulo') + INTERVAL '1 month' - INTERVAL '1 day')::DATE;
-//     
+//
 //     v_start_ts := v_start_date::timestamp AT TIME ZONE 'America/Sao_Paulo';
 //     v_end_ts := (v_end_date + INTERVAL '1 day')::timestamp AT TIME ZONE 'America/Sao_Paulo';
-//   
+//
 //     -- Stamp missing days in calendar_settings as is_working_day = true
 //     INSERT INTO public.calendar_settings (date, is_working_day, updated_at)
 //     SELECT d::DATE, true, NOW()
 //     FROM generate_series(v_start_date, v_end_date, '1 day'::interval) d
 //     ON CONFLICT (date) DO NOTHING;
-//   
+//
 //     -- Create temp table to hold calculated values
 //     CREATE TEMP TABLE IF NOT EXISTS tmp_metrics (
 //       uc text,
@@ -4495,18 +4486,18 @@ export const Constants = {
 //       data_leitura_real date,
 //       working_day_index integer
 //     ) ON COMMIT DROP;
-//     
+//
 //     TRUNCATE tmp_metrics;
-//   
+//
 //     WITH calendar AS (
-//       SELECT 
+//       SELECT
 //         d::DATE as cal_date,
 //         COALESCE(cs.is_working_day, true) as is_working
 //       FROM generate_series(v_start_date, v_end_date, '1 day'::interval) d
 //       LEFT JOIN public.calendar_settings cs ON cs.date = d::DATE
 //     ),
 //     cumulative_calendar AS (
-//       SELECT 
+//       SELECT
 //         cal_date,
 //         is_working,
 //         SUM(CASE WHEN is_working THEN 1 ELSE 0 END) OVER (ORDER BY cal_date) as working_day_index
@@ -4524,14 +4515,14 @@ export const Constants = {
 //       ORDER BY dr.uc, date_trunc('month', dr.data_referencia AT TIME ZONE 'UTC')::DATE, dr.data_leitura_real DESC
 //     )
 //     INSERT INTO tmp_metrics (uc, data_referencia, data_leitura_real, working_day_index)
-//     SELECT 
+//     SELECT
 //       ur.uc,
 //       ur.data_ref_date,
 //       ur.data_leitura_date,
 //       cc.working_day_index
 //     FROM unique_readings ur
 //     JOIN cumulative_calendar cc ON cc.cal_date = ur.data_leitura_date;
-//   
+//
 //     -- Upsert from temp table in a single robust operation
 //     INSERT INTO public.reading_working_days_metrics (uc, data_referencia, data_leitura_real, working_day_index, updated_at)
 //     SELECT uc, data_referencia, data_leitura_real, working_day_index, NOW()
@@ -4540,14 +4531,14 @@ export const Constants = {
 //       data_leitura_real = EXCLUDED.data_leitura_real,
 //       working_day_index = EXCLUDED.working_day_index,
 //       updated_at = EXCLUDED.updated_at;
-//   
+//
 //     DROP TABLE IF EXISTS tmp_metrics;
-//   
+//
 //     -- Refreshes the daily_readings_summary for the calculated month
 //     PERFORM public.refresh_daily_readings_summary(p_month);
 //   END;
 //   $function$
-//   
+//
 // FUNCTION record_portfolio_snapshot()
 //   CREATE OR REPLACE FUNCTION public.record_portfolio_snapshot()
 //    RETURNS void
@@ -4563,7 +4554,7 @@ export const Constants = {
 //           total_corte_cases, total_corte_value, total_corte_vencido, total_corte_a_vencer, total_corte_retidas, total_corte_retidas_cases,
 //           total_recorte_cases, total_recorte_value, total_recorte_vencido, total_recorte_a_vencer, total_recorte_retidas, total_recorte_retidas_cases
 //       )
-//       SELECT 
+//       SELECT
 //           CURRENT_DATE,
 //           COUNT(*) FILTER (WHERE COALESCE(pd.setor, '') != '4036' AND pd.is_active = true),
 //           COALESCE(SUM(COALESCE(pd.valor_total, 0) - COALESCE(pd.valor_retidas_em_aberto, 0)) FILTER (WHERE COALESCE(pd.setor, '') != '4036' AND pd.is_active = true), 0),
@@ -4571,45 +4562,45 @@ export const Constants = {
 //           COALESCE(SUM(pd.valor_a_vencer) FILTER (WHERE COALESCE(pd.setor, '') != '4036' AND pd.is_active = true), 0),
 //           COALESCE(SUM(pd.valor_retidas_em_aberto) FILTER (WHERE COALESCE(pd.setor, '') != '4036' AND pd.is_active = true), 0),
 //           COUNT(*) FILTER (WHERE COALESCE(pd.setor, '') != '4036' AND COALESCE(pd.valor_retidas_em_aberto, 0) > 0 AND pd.is_active = true),
-//           
+//
 //           COUNT(*) FILTER (WHERE COALESCE(pd.setor, '') = '4036' AND pd.is_active = true),
 //           COALESCE(SUM(pd.valor_total) FILTER (WHERE COALESCE(pd.setor, '') = '4036' AND pd.is_active = true), 0),
 //           COALESCE(SUM(pd.valor_vencido) FILTER (WHERE COALESCE(pd.setor, '') = '4036' AND pd.is_active = true), 0),
 //           COALESCE(SUM(pd.valor_a_vencer) FILTER (WHERE COALESCE(pd.setor, '') = '4036' AND pd.is_active = true), 0),
-//   
+//
 //           COUNT(*) FILTER (WHERE COALESCE(pd.setor, '') != '4036' AND pd.is_active = true AND sa.queue_type = 'strategic'),
 //           COALESCE(SUM(COALESCE(pd.valor_total, 0) - COALESCE(pd.valor_retidas_em_aberto, 0)) FILTER (WHERE COALESCE(pd.setor, '') != '4036' AND pd.is_active = true AND sa.queue_type = 'strategic'), 0),
 //           COALESCE(SUM(pd.valor_vencido) FILTER (WHERE COALESCE(pd.setor, '') != '4036' AND pd.is_active = true AND sa.queue_type = 'strategic'), 0),
 //           COALESCE(SUM(pd.valor_a_vencer) FILTER (WHERE COALESCE(pd.setor, '') != '4036' AND pd.is_active = true AND sa.queue_type = 'strategic'), 0),
 //           COALESCE(SUM(pd.valor_retidas_em_aberto) FILTER (WHERE COALESCE(pd.setor, '') != '4036' AND pd.is_active = true AND sa.queue_type = 'strategic'), 0),
 //           COUNT(*) FILTER (WHERE COALESCE(pd.setor, '') != '4036' AND COALESCE(pd.valor_retidas_em_aberto, 0) > 0 AND pd.is_active = true AND sa.queue_type = 'strategic'),
-//   
+//
 //           COUNT(*) FILTER (WHERE COALESCE(pd.setor, '') != '4036' AND pd.is_active = true AND sa.queue_type = 'legal'),
 //           COALESCE(SUM(COALESCE(pd.valor_total, 0) - COALESCE(pd.valor_retidas_em_aberto, 0)) FILTER (WHERE COALESCE(pd.setor, '') != '4036' AND pd.is_active = true AND sa.queue_type = 'legal'), 0),
 //           COALESCE(SUM(pd.valor_vencido) FILTER (WHERE COALESCE(pd.setor, '') != '4036' AND pd.is_active = true AND sa.queue_type = 'legal'), 0),
 //           COALESCE(SUM(pd.valor_a_vencer) FILTER (WHERE COALESCE(pd.setor, '') != '4036' AND pd.is_active = true AND sa.queue_type = 'legal'), 0),
 //           COALESCE(SUM(pd.valor_retidas_em_aberto) FILTER (WHERE COALESCE(pd.setor, '') != '4036' AND pd.is_active = true AND sa.queue_type = 'legal'), 0),
 //           COUNT(*) FILTER (WHERE COALESCE(pd.setor, '') != '4036' AND COALESCE(pd.valor_retidas_em_aberto, 0) > 0 AND pd.is_active = true AND sa.queue_type = 'legal'),
-//   
+//
 //           COUNT(*) FILTER (WHERE COALESCE(pd.setor, '') != '4036' AND pd.is_active = true AND sa.queue_type = 'cut'),
 //           COALESCE(SUM(COALESCE(pd.valor_total, 0) - COALESCE(pd.valor_retidas_em_aberto, 0)) FILTER (WHERE COALESCE(pd.setor, '') != '4036' AND pd.is_active = true AND sa.queue_type = 'cut'), 0),
 //           COALESCE(SUM(pd.valor_vencido) FILTER (WHERE COALESCE(pd.setor, '') != '4036' AND pd.is_active = true AND sa.queue_type = 'cut'), 0),
 //           COALESCE(SUM(pd.valor_a_vencer) FILTER (WHERE COALESCE(pd.setor, '') != '4036' AND pd.is_active = true AND sa.queue_type = 'cut'), 0),
 //           COALESCE(SUM(pd.valor_retidas_em_aberto) FILTER (WHERE COALESCE(pd.setor, '') != '4036' AND pd.is_active = true AND sa.queue_type = 'cut'), 0),
 //           COUNT(*) FILTER (WHERE COALESCE(pd.setor, '') != '4036' AND COALESCE(pd.valor_retidas_em_aberto, 0) > 0 AND pd.is_active = true AND sa.queue_type = 'cut'),
-//   
+//
 //           COUNT(*) FILTER (WHERE COALESCE(pd.setor, '') != '4036' AND pd.is_active = true AND sa.queue_type = 'recut'),
 //           COALESCE(SUM(COALESCE(pd.valor_total, 0) - COALESCE(pd.valor_retidas_em_aberto, 0)) FILTER (WHERE COALESCE(pd.setor, '') != '4036' AND pd.is_active = true AND sa.queue_type = 'recut'), 0),
 //           COALESCE(SUM(pd.valor_vencido) FILTER (WHERE COALESCE(pd.setor, '') != '4036' AND pd.is_active = true AND sa.queue_type = 'recut'), 0),
 //           COALESCE(SUM(pd.valor_a_vencer) FILTER (WHERE COALESCE(pd.setor, '') != '4036' AND pd.is_active = true AND sa.queue_type = 'recut'), 0),
 //           COALESCE(SUM(pd.valor_retidas_em_aberto) FILTER (WHERE COALESCE(pd.setor, '') != '4036' AND pd.is_active = true AND sa.queue_type = 'recut'), 0),
 //           COUNT(*) FILTER (WHERE COALESCE(pd.setor, '') != '4036' AND COALESCE(pd.valor_retidas_em_aberto, 0) > 0 AND pd.is_active = true AND sa.queue_type = 'recut')
-//   
+//
 //       FROM public.pending_debts pd
 //       LEFT JOIN LATERAL (
-//         SELECT queue_type 
-//         FROM public.strategic_assignments 
-//         WHERE uc = pd.uc AND cod_pess_fat = pd.cod_pess_fat 
+//         SELECT queue_type
+//         FROM public.strategic_assignments
+//         WHERE uc = pd.uc AND cod_pess_fat = pd.cod_pess_fat
 //           AND (
 //             (queue_type = 'strategic' AND status IN ('pending', 'started')) OR
 //             (queue_type = 'legal' AND status IN ('a_encaminhar', 'encaminhado')) OR
@@ -4618,8 +4609,8 @@ export const Constants = {
 //           )
 //         LIMIT 1
 //       ) sa ON true
-//       ON CONFLICT (snapshot_date) DO UPDATE 
-//       SET total_cases = EXCLUDED.total_cases, 
+//       ON CONFLICT (snapshot_date) DO UPDATE
+//       SET total_cases = EXCLUDED.total_cases,
 //           total_value = EXCLUDED.total_value,
 //           total_vencido = EXCLUDED.total_vencido,
 //           total_a_vencer = EXCLUDED.total_a_vencer,
@@ -4655,7 +4646,7 @@ export const Constants = {
 //           total_recorte_retidas_cases = EXCLUDED.total_recorte_retidas_cases;
 //   END;
 //   $function$
-//   
+//
 // FUNCTION refresh_daily_readings_summary(timestamp with time zone)
 //   CREATE OR REPLACE FUNCTION public.refresh_daily_readings_summary(p_month timestamp with time zone)
 //    RETURNS void
@@ -4672,14 +4663,14 @@ export const Constants = {
 //     v_end_date := (v_start_date + INTERVAL '1 month' - INTERVAL '1 day')::DATE;
 //     v_start_ts := v_start_date::timestamp AT TIME ZONE 'America/Sao_Paulo';
 //     v_end_ts := (v_end_date + INTERVAL '1 day')::timestamp AT TIME ZONE 'America/Sao_Paulo';
-//   
+//
 //     -- Delete existing records for the month to allow clean aggregation
 //     DELETE FROM public.daily_readings_summary
 //     WHERE day >= v_start_date AND day <= v_end_date;
-//   
+//
 //     -- Insert aggregated data
 //     WITH daily_data AS (
-//       SELECT 
+//       SELECT
 //         (dr.data_leitura_real AT TIME ZONE 'America/Sao_Paulo')::DATE AS day_date,
 //         COUNT(*) as total_readings,
 //         dr.usuario_id
@@ -4688,7 +4679,7 @@ export const Constants = {
 //       GROUP BY (dr.data_leitura_real AT TIME ZONE 'America/Sao_Paulo')::DATE, dr.usuario_id
 //     ),
 //     aggregated AS (
-//       SELECT 
+//       SELECT
 //         day_date as day,
 //         SUM(total_readings)::INT as total_readings,
 //         jsonb_object_agg(COALESCE(usuario_id, 'UNKNOWN'), total_readings) as reader_stats
@@ -4700,7 +4691,7 @@ export const Constants = {
 //     FROM aggregated;
 //   END;
 //   $function$
-//   
+//
 // FUNCTION remove_duplicate_settlements()
 //   CREATE OR REPLACE FUNCTION public.remove_duplicate_settlements()
 //    RETURNS json
@@ -4711,36 +4702,36 @@ export const Constants = {
 //     deleted_count INT := 0;
 //   BEGIN
 //     WITH ranked_settlements AS (
-//       SELECT 
+//       SELECT
 //         s.id,
 //         EXISTS (SELECT 1 FROM public.contact_results cr WHERE cr.settlement_id = s.id) as is_referenced,
 //         ROW_NUMBER() OVER (
-//           PARTITION BY 
-//             s.uc, 
-//             COALESCE(s.cod_pess_fat, ''), 
-//             s.valor_total, 
+//           PARTITION BY
+//             s.uc,
+//             COALESCE(s.cod_pess_fat, ''),
+//             s.valor_total,
 //             COALESCE(date_trunc('second', s.datacriacao::timestamp)::text, s.databaixa_final::text, s.databaixa_inicial::text, s.datacredito_final::text, s.datacredito_inicial::text, s.neg_data::text),
 //             COALESCE(s.refs, '')
-//           ORDER BY 
+//           ORDER BY
 //             CASE WHEN EXISTS (SELECT 1 FROM public.contact_results cr WHERE cr.settlement_id = s.id) THEN 0 ELSE 1 END,
 //             s.created_at ASC
 //         ) as rn
 //       FROM public.settlements s
 //     ),
 //     to_delete AS (
-//       SELECT id 
-//       FROM ranked_settlements 
+//       SELECT id
+//       FROM ranked_settlements
 //       WHERE rn > 1 AND is_referenced = false
 //     )
 //     DELETE FROM public.settlements
 //     WHERE id IN (SELECT id FROM to_delete);
-//   
+//
 //     GET DIAGNOSTICS deleted_count = ROW_COUNT;
-//   
+//
 //     RETURN json_build_object('deleted_count', deleted_count);
 //   END;
 //   $function$
-//   
+//
 // FUNCTION revert_billing_dispatches(date)
 //   CREATE OR REPLACE FUNCTION public.revert_billing_dispatches(p_date date)
 //    RETURNS json
@@ -4753,13 +4744,13 @@ export const Constants = {
 //     UPDATE public.pending_debts
 //     SET ultimo_disparo = NULL
 //     WHERE DATE(ultimo_disparo AT TIME ZONE 'America/Sao_Paulo') = p_date;
-//     
+//
 //     GET DIAGNOSTICS affected_count = ROW_COUNT;
-//     
+//
 //     RETURN json_build_object('affected_count', affected_count);
 //   END;
 //   $function$
-//   
+//
 // FUNCTION set_current_timestamp_updated_at()
 //   CREATE OR REPLACE FUNCTION public.set_current_timestamp_updated_at()
 //    RETURNS trigger
@@ -4770,7 +4761,7 @@ export const Constants = {
 //     RETURN NEW;
 //   END;
 //   $function$
-//   
+//
 // FUNCTION trg_update_is_leiturista()
 //   CREATE OR REPLACE FUNCTION public.trg_update_is_leiturista()
 //    RETURNS trigger
@@ -4786,7 +4777,7 @@ export const Constants = {
 //       RETURN NEW;
 //   END;
 //   $function$
-//   
+//
 // FUNCTION trg_update_serasa_workflow_on_negativation()
 //   CREATE OR REPLACE FUNCTION public.trg_update_serasa_workflow_on_negativation()
 //    RETURNS trigger
@@ -4796,7 +4787,7 @@ export const Constants = {
 //   BEGIN
 //     IF NEW.situacao != 'Baixado' THEN
 //       UPDATE public.serasa_workflow
-//       SET 
+//       SET
 //         status = 'negativado',
 //         updated_at = NOW()
 //       WHERE status = 'sendo_negativado'
@@ -4805,7 +4796,7 @@ export const Constants = {
 //     RETURN NEW;
 //   END;
 //   $function$
-//   
+//
 // FUNCTION trg_validate_assignment()
 //   CREATE OR REPLACE FUNCTION public.trg_validate_assignment()
 //    RETURNS trigger
@@ -4816,8 +4807,8 @@ export const Constants = {
 //     -- Validate if the UC and cod_pess_fat exist and are active in pending_debts
 //     IF NOT EXISTS (
 //       SELECT 1 FROM public.pending_debts pd
-//       WHERE pd.uc = NEW.uc 
-//         AND pd.cod_pess_fat = NEW.cod_pess_fat 
+//       WHERE pd.uc = NEW.uc
+//         AND pd.cod_pess_fat = NEW.cod_pess_fat
 //         AND pd.is_active = true
 //     ) THEN
 //       -- Silently drop the insert if validation fails (useful for bulk imports)
@@ -4826,7 +4817,7 @@ export const Constants = {
 //     RETURN NEW;
 //   END;
 //   $function$
-//   
+//
 // FUNCTION trigger_record_snapshot()
 //   CREATE OR REPLACE FUNCTION public.trigger_record_snapshot()
 //    RETURNS trigger
@@ -4838,7 +4829,7 @@ export const Constants = {
 //       RETURN NULL;
 //   END;
 //   $function$
-//   
+//
 // FUNCTION truncate_pending_debts()
 //   CREATE OR REPLACE FUNCTION public.truncate_pending_debts()
 //    RETURNS void
@@ -4851,12 +4842,12 @@ export const Constants = {
 //     -- para que o histórico operacional se mantenha mas não apareça nos dashboards financeiros.
 //     -- Utiliza uma única instrução UPDATE para evitar o overhead de loops limitados e snapshot expansion
 //     -- O statement_timeout é aumentado localmente nesta função para evitar cancelamentos de timeout durante o processo
-//     UPDATE public.pending_debts 
-//     SET is_active = false 
+//     UPDATE public.pending_debts
+//     SET is_active = false
 //     WHERE is_active = true OR is_active IS NULL;
 //   END;
 //   $function$
-//   
+//
 // FUNCTION uc_numeric(pending_debts)
 //   CREATE OR REPLACE FUNCTION public.uc_numeric(rec pending_debts)
 //    RETURNS numeric
@@ -4865,34 +4856,34 @@ export const Constants = {
 //   AS $function$
 //     SELECT NULLIF(regexp_replace(rec.uc, '\D', '', 'g'), '')::NUMERIC;
 //   $function$
-//   
+//
 // FUNCTION uc_numeric(vw_pending_debts_with_contacts)
 //   CREATE OR REPLACE FUNCTION public.uc_numeric(vw vw_pending_debts_with_contacts)
 //    RETURNS numeric
 //    LANGUAGE sql
 //    IMMUTABLE
-//   AS $function$ 
-//     SELECT NULLIF(regexp_replace(vw.uc, '\D', '', 'g'), '')::numeric; 
+//   AS $function$
+//     SELECT NULLIF(regexp_replace(vw.uc, '\D', '', 'g'), '')::numeric;
 //   $function$
-//   
+//
 // FUNCTION uc_numeric(vw_terms_queue_debts)
 //   CREATE OR REPLACE FUNCTION public.uc_numeric(vw vw_terms_queue_debts)
 //    RETURNS numeric
 //    LANGUAGE sql
 //    IMMUTABLE
-//   AS $function$ 
-//     SELECT NULLIF(regexp_replace(vw.uc, '\D', '', 'g'), '')::numeric; 
+//   AS $function$
+//     SELECT NULLIF(regexp_replace(vw.uc, '\D', '', 'g'), '')::numeric;
 //   $function$
-//   
+//
 // FUNCTION uc_numeric(vw_queue_debts)
 //   CREATE OR REPLACE FUNCTION public.uc_numeric(vw vw_queue_debts)
 //    RETURNS numeric
 //    LANGUAGE sql
 //    IMMUTABLE
-//   AS $function$ 
-//     SELECT NULLIF(regexp_replace(vw.uc, '\D', '', 'g'), '')::numeric; 
+//   AS $function$
+//     SELECT NULLIF(regexp_replace(vw.uc, '\D', '', 'g'), '')::numeric;
 //   $function$
-//   
+//
 // FUNCTION update_serasa_debts_status()
 //   CREATE OR REPLACE FUNCTION public.update_serasa_debts_status()
 //    RETURNS void
@@ -4905,10 +4896,10 @@ export const Constants = {
 //     affected INT;
 //   BEGIN
 //     -- Get the last pending_debts import date
-//     SELECT MAX(created_at) INTO last_import_date 
-//     FROM public.import_history 
+//     SELECT MAX(created_at) INTO last_import_date
+//     FROM public.import_history
 //     WHERE table_name LIKE 'Pendências (Substituição Total)%';
-//     
+//
 //     -- Use loop for batch processing to avoid statement timeout
 //     LOOP
 //       WITH to_update AS (
@@ -4918,17 +4909,17 @@ export const Constants = {
 //         LIMIT batch_size
 //       )
 //       UPDATE public.serasa_negativations s
-//       SET 
+//       SET
 //         possui_debitos = EXISTS (
-//           SELECT 1 FROM public.pending_debts pd 
-//           WHERE pd.is_active = true 
+//           SELECT 1 FROM public.pending_debts pd
+//           WHERE pd.is_active = true
 //           AND (
-//             REGEXP_REPLACE(pd.pessoa_fatura_cpf_cnpj, '[^0-9]', '', 'g') IN (u.cpf_cnpj, u.clean_cpf_cnpj) OR 
-//             REGEXP_REPLACE(pd.proprietario_cpf_cnpj, '[^0-9]', '', 'g') IN (u.cpf_cnpj, u.clean_cpf_cnpj) OR 
+//             REGEXP_REPLACE(pd.pessoa_fatura_cpf_cnpj, '[^0-9]', '', 'g') IN (u.cpf_cnpj, u.clean_cpf_cnpj) OR
+//             REGEXP_REPLACE(pd.proprietario_cpf_cnpj, '[^0-9]', '', 'g') IN (u.cpf_cnpj, u.clean_cpf_cnpj) OR
 //             REGEXP_REPLACE(pd.responsavel_cpf_cnpj, '[^0-9]', '', 'g') IN (u.cpf_cnpj, u.clean_cpf_cnpj) OR
 //             REGEXP_REPLACE(pd.cod_pess_fat, '[^0-9]', '', 'g') IN (u.cpf_cnpj, u.clean_cpf_cnpj) OR
-//             pd.pessoa_fatura_cpf_cnpj IN (u.cpf_cnpj, u.clean_cpf_cnpj) OR 
-//             pd.proprietario_cpf_cnpj IN (u.cpf_cnpj, u.clean_cpf_cnpj) OR 
+//             pd.pessoa_fatura_cpf_cnpj IN (u.cpf_cnpj, u.clean_cpf_cnpj) OR
+//             pd.proprietario_cpf_cnpj IN (u.cpf_cnpj, u.clean_cpf_cnpj) OR
 //             pd.responsavel_cpf_cnpj IN (u.cpf_cnpj, u.clean_cpf_cnpj) OR
 //             pd.cod_pess_fat IN (u.cpf_cnpj, u.clean_cpf_cnpj)
 //           )
@@ -4936,16 +4927,16 @@ export const Constants = {
 //         ultima_verificacao = NOW()
 //       FROM to_update u
 //       WHERE s.id = u.id;
-//   
+//
 //       GET DIAGNOSTICS affected = ROW_COUNT;
 //       EXIT WHEN affected = 0;
-//       
+//
 //       -- Small pause to let other transactions run
 //       PERFORM pg_sleep(0.01);
 //     END LOOP;
 //   END;
 //   $function$
-//   
+//
 
 // --- TRIGGERS ---
 // Table: contact_history
@@ -5027,4 +5018,3 @@ export const Constants = {
 //   CREATE INDEX strategic_assignments_uc_cod_pess_fat_idx ON public.strategic_assignments USING btree (uc, cod_pess_fat)
 // Table: system_documentation
 //   CREATE UNIQUE INDEX system_documentation_route_key ON public.system_documentation USING btree (route)
-
